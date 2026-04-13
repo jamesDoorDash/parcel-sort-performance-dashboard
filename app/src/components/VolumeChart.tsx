@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import type { DayBucket, MetricConfig, MetricKey } from "../data/mock";
 import { getDayStatus } from "../data/mock";
+import { cn } from "../lib/cn";
+import { chartNeutralColors, chartStateColors } from "../lib/chartColors";
 
 type Props = {
   data: DayBucket[]; // always a full Mon–Sun week
@@ -9,18 +11,46 @@ type Props = {
 };
 
 const COLORS = {
-  processed: "#4969f5",
-  lost: "#d91400",
-  readyToSort: "#d3d6d9",
-  expected: "#aeb1b7",
-  bar: "#4969f5",
-  outOfRange: "#f1f1f1",
-  pending: "#e9eaec",
-  pendingIcon: "#111318",
-  target: "#111318",
-  axis: "#606060",
-  grid: "#e9eaec",
+  processed: chartStateColors.primary,
+  lost: chartStateColors.bad,
+  readyToSort: chartStateColors.secondary,
+  expected: chartStateColors.forecasted,
+  bar: chartStateColors.primary,
+  outOfRange: chartNeutralColors.outOfRange,
+  pending: chartNeutralColors.pending,
+  pendingIcon: chartNeutralColors.ink,
+  target: chartNeutralColors.ink,
+  axis: chartNeutralColors.axis,
+  grid: chartNeutralColors.pending,
 };
+
+type ProcessedSeriesKey = "processed" | "lost" | "readyToSort" | "expected";
+
+function estimateTooltipWidth(text: string) {
+  let width = 0;
+
+  for (const char of text) {
+    if ("il1| '".includes(char)) {
+      width += 3.8;
+      continue;
+    }
+    if ("fjrt".includes(char)) {
+      width += 4.8;
+      continue;
+    }
+    if ("mwMW@#%&".includes(char)) {
+      width += 8.8;
+      continue;
+    }
+    if ("ABCDEFGHIJKLMNOPQRSTUVWXYZ".includes(char)) {
+      width += 7.4;
+      continue;
+    }
+    width += 6.6;
+  }
+
+  return width;
+}
 
 // Return date that the metric for `dateIso` will be fully calculated,
 // formatted like "Feb 15th".
@@ -42,27 +72,51 @@ function formatCalcDate(dateIso: string, bakeDays: number): string {
 
 export function VolumeChart({ data, metric, visibleDays }: Props) {
   const isProcessed = metric.key === "processed";
+  const singleDayMode = visibleDays?.size === 1;
+  const chartData = singleDayMode
+    ? data.filter((day) => visibleDays.has(day.date))
+    : data;
+  const [hiddenSeries, setHiddenSeries] = useState<Set<ProcessedSeriesKey>>(new Set());
   const [hoveredPending, setHoveredPending] = useState<{
     date: string;
     // SVG user-space coords (same as viewBox)
     cx: number;
     cy: number;
   } | null>(null);
+  const isSeriesVisible = (series: ProcessedSeriesKey) => !hiddenSeries.has(series);
+  const toggleSeries = (series: ProcessedSeriesKey) => {
+    setHiddenSeries((current) => {
+      const next = new Set(current);
+      if (next.has(series)) next.delete(series);
+      else next.add(series);
+      return next;
+    });
+  };
 
   // ---- Compute y-axis max ----
   const maxValue = useMemo(() => {
     if (isProcessed) {
-      const max = Math.max(
-        ...data.map((d) =>
+        const max = Math.max(
+        ...chartData.map((d) =>
           Math.max(
-            d.processed.processed + d.processed.lost + d.processed.readyToSort,
-            d.processed.expectedVolume,
+            (isSeriesVisible("processed") ? d.processed.processed : 0) +
+              (isSeriesVisible("lost") ? d.processed.lost : 0) +
+              (isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0),
+            isSeriesVisible("expected") ? d.processed.expectedVolume : 0,
           ),
         ),
       );
-      return Math.max(Math.ceil(max / 500) * 500, 2500);
+      if (max <= 0) return 100;
+      if (max <= 10) return 10;
+      if (max <= 25) return 25;
+      if (max <= 50) return 50;
+      if (max <= 100) return 100;
+      if (max <= 250) return 250;
+      if (max <= 500) return 500;
+      if (max <= 1000) return 1000;
+      return Math.ceil(max / 500) * 500;
     }
-    const values = data
+    const values = chartData
       .map((d) => d.values[metric.key as MetricKey])
       .filter((v): v is number => typeof v === "number");
     // High-% metrics (target > 80%): lock Y axis to 0–100%.
@@ -82,7 +136,7 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
     // rounded up to the nearest 10.
     const rawMax = Math.max(...values, metric.target);
     return Math.ceil(rawMax / 10) * 10;
-  }, [data, metric, isProcessed]);
+  }, [chartData, metric, isProcessed, hiddenSeries]);
 
   const ticks = useMemo(() => {
     const step = maxValue / 5;
@@ -177,8 +231,8 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
           )}
 
           {/* Bars */}
-          {data.map((d, i) => {
-            const slot = plotWidth / data.length;
+          {chartData.map((d, i) => {
+            const slot = plotWidth / chartData.length;
             const barWidth = 44;
             const cx = leftPadding + slot * i + slot / 2;
             const x = cx - barWidth / 2;
@@ -190,7 +244,7 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                 x={cx}
                 y={height - 10}
                 textAnchor="middle"
-                fill={inRange ? COLORS.axis : "#c5c7cc"}
+                fill={inRange ? COLORS.axis : chartNeutralColors.disabled}
                 fontSize={12}
                 fontFamily="Inter, sans-serif"
                 fontWeight={500}
@@ -224,20 +278,15 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
             // ---- PROCESSED: stacked bar ----
             if (isProcessed) {
               if (d.isFuture) {
+                if (!isSeriesVisible("expected")) {
+                  return <g key={d.label}>{xAxisLabel}</g>;
+                }
                 const y = scaleY(d.processed.expectedVolume);
                 const h = topPadding + plotHeight - y;
                 return (
                   <g key={d.label}>
-                    <rect
-                      x={x}
-                      y={y}
-                      width={barWidth}
-                      height={h}
-                      fill="#ffffff"
-                      stroke={COLORS.expected}
-                      strokeWidth={1.5}
-                      strokeDasharray="4 3"
-                    />
+                    <path d={roundedTopBarPath(x, y, barWidth, h, 4)} fill={COLORS.expected} />
+                    <ValueLabel cx={cx} y={y - 8} text={d.processed.expectedVolume.toLocaleString()} />
                     <text
                       x={cx}
                       y={y - 8}
@@ -254,66 +303,79 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                 );
               }
 
-              const total = d.processed.processed + d.processed.lost + d.processed.readyToSort;
-              const yProcessed = scaleY(d.processed.processed);
-              const hProcessed = topPadding + plotHeight - yProcessed;
+              const processedValue = isSeriesVisible("processed") ? d.processed.processed : 0;
+              const lostValue = isSeriesVisible("lost") ? d.processed.lost : 0;
+              const readyValue = isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0;
+              const visibleTotal = processedValue + lostValue + readyValue;
+              const yProcessed = scaleY(processedValue);
+              const hProcessed = processedValue > 0 ? topPadding + plotHeight - yProcessed : 0;
 
-              const yLost = scaleY(d.processed.processed + d.processed.lost);
-              const hLost = scaleY(d.processed.processed) - yLost;
+              const processedAndLost = processedValue + lostValue;
+              const yLost = scaleY(processedAndLost);
+              const hLost = lostValue > 0 ? scaleY(processedValue) - yLost : 0;
 
-              const yReady = scaleY(
-                d.processed.processed + d.processed.lost + d.processed.readyToSort,
-              );
-              const hReady = scaleY(d.processed.processed + d.processed.lost) - yReady;
+              const yReady = scaleY(visibleTotal);
+              const hReady = readyValue > 0 ? scaleY(processedAndLost) - yReady : 0;
 
-              const labelY = scaleY(total) - 8;
-              const labelText = d.isPartial
-                ? d.processed.expectedVolume.toLocaleString()
-                : total.toLocaleString();
+              const labelValue = visibleTotal;
+              const labelY = labelValue > 0 ? scaleY(labelValue) - 8 : topPadding + plotHeight - 8;
+              const labelText = labelValue > 0 ? labelValue.toLocaleString() : null;
 
               return (
                 <g key={d.label}>
+                  {(() => {
+                    const topSegment = hReady > 0 ? "ready" : hLost > 0 ? "lost" : hProcessed > 0 ? "processed" : null;
+
+                    return (
+                      <>
                   {hProcessed > 0 && (
-                    <rect
-                      x={x}
-                      y={yProcessed}
-                      width={barWidth}
-                      height={hProcessed}
-                      fill={COLORS.processed}
-                      
-                    />
+                    topSegment === "processed" ? (
+                      <path d={roundedTopBarPath(x, yProcessed, barWidth, hProcessed, 4)} fill={COLORS.processed} />
+                    ) : (
+                      <rect
+                        x={x}
+                        y={yProcessed}
+                        width={barWidth}
+                        height={hProcessed}
+                        fill={COLORS.processed}
+                      />
+                    )
                   )}
                   {hLost > 0 && (
-                    <rect
-                      x={x}
-                      y={yLost}
-                      width={barWidth}
-                      height={hLost}
-                      fill={COLORS.lost}
-                      
-                    />
+                    topSegment === "lost" ? (
+                      <path d={roundedTopBarPath(x, yLost, barWidth, hLost, 4)} fill={COLORS.lost} />
+                    ) : (
+                      <rect
+                        x={x}
+                        y={yLost}
+                        width={barWidth}
+                        height={hLost}
+                        fill={COLORS.lost}
+                      />
+                    )
                   )}
                   {hReady > 0 && (
-                    <rect
-                      x={x}
-                      y={yReady}
-                      width={barWidth}
-                      height={hReady}
-                      fill={COLORS.readyToSort}
-                      
-                    />
+                    <path d={roundedTopBarPath(x, yReady, barWidth, hReady, 4)} fill={COLORS.readyToSort} />
                   )}
-                  <text
-                    x={cx}
-                    y={labelY}
-                    textAnchor="middle"
-                    fill={COLORS.axis}
-                    fontSize={12}
-                    fontFamily="Inter, sans-serif"
-                    fontWeight={600}
-                  >
-                    {labelText}
-                  </text>
+                      </>
+                    );
+                  })()}
+                  {labelText && (
+                    <>
+                      <ValueLabel cx={cx} y={labelY} text={labelText} />
+                      <text
+                        x={cx}
+                        y={labelY}
+                        textAnchor="middle"
+                        fill={COLORS.axis}
+                        fontSize={12}
+                        fontFamily="Inter, sans-serif"
+                        fontWeight={600}
+                      >
+                        {labelText}
+                      </text>
+                    </>
+                  )}
                   {xAxisLabel}
                 </g>
               );
@@ -326,23 +388,16 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
 
             // Future days with NO bake time: flat tick on the baseline
             if ((d.isFuture || status === "future") && !hasBake) {
-              return (
-                <g key={d.label}>
-                  <rect
-                    x={x}
-                    y={topPadding + plotHeight - 4}
-                    width={barWidth}
-                    height={4}
-                    fill={COLORS.outOfRange}
-                  />
-                  {xAxisLabel}
-                </g>
-              );
+              return <g key={d.label}>{xAxisLabel}</g>;
             }
 
             // Pending (past not yet baked) OR future days of baked metrics
             // both render as the "not calculated yet" info box.
-            if (status === "pending" || (hasBake && status === "future")) {
+            if (status === "future") {
+              return <g key={d.label}>{xAxisLabel}</g>;
+            }
+
+            if (status === "pending") {
               const boxY = topPadding;
               const boxHeight = plotHeight;
               const centerY = boxY + boxHeight / 2;
@@ -412,13 +467,8 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
 
             return (
               <g key={d.label}>
-                <rect
-                  x={x}
-                  y={y}
-                  width={barWidth}
-                  height={h}
-                  fill={fill}
-                />
+                <path d={roundedTopBarPath(x, y, barWidth, h, 4)} fill={fill} />
+                <ValueLabel cx={cx} y={y - 8} text={metric.format(value)} />
                 <text
                   x={cx}
                   y={y - 8}
@@ -441,7 +491,7 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
             x2={width - rightPadding}
             y1={scaleY(0)}
             y2={scaleY(0)}
-            stroke="#6c707a"
+            stroke={chartNeutralColors.baseline}
             strokeWidth={1.5}
           />
 
@@ -452,14 +502,21 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                 hoveredPending.date,
                 metric.bakeDays ?? 0,
               )}`;
-              const paddingX = 12;
-              const paddingY = 8;
-              const charW = 6.2; // approx
-              const textW = text.length * charW;
+              const paddingX = 16;
+              const textW = estimateTooltipWidth(text);
               const boxW = textW + paddingX * 2;
-              const boxH = 28;
-              const tx = hoveredPending.cx - boxW / 2;
-              const ty = hoveredPending.cy - 36;
+              const boxH = 32;
+              const edgePadding = 12;
+              const iconTop = hoveredPending.cy - 9; // info circle radius
+              const tailGap = 6; // clearance between tail tip and icon top
+              const tailHeight = 5;
+              const boxBottom = iconTop - tailGap - tailHeight;
+              const ty = boxBottom - boxH;
+              const tx = Math.max(
+                edgePadding,
+                Math.min(hoveredPending.cx - boxW / 2, width - boxW - edgePadding),
+              );
+              const textX = tx + boxW / 2;
               return (
                 <g pointerEvents="none">
                   <rect
@@ -468,13 +525,13 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                     width={boxW}
                     height={boxH}
                     rx={6}
-                    fill="#111318"
+                    fill={chartNeutralColors.ink}
                   />
                   <text
-                    x={hoveredPending.cx}
-                    y={ty + boxH / 2 + 4}
+                    x={textX}
+                    y={ty + boxH / 2 + 4.5}
                     textAnchor="middle"
-                    fill="#ffffff"
+                    fill={chartNeutralColors.surface}
                     fontSize={12}
                     fontFamily="Inter, sans-serif"
                     fontWeight={600}
@@ -484,7 +541,7 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                   {/* tail */}
                   <polygon
                     points={`${hoveredPending.cx - 5},${ty + boxH} ${hoveredPending.cx + 5},${ty + boxH} ${hoveredPending.cx},${ty + boxH + 5}`}
-                    fill="#111318"
+                    fill={chartNeutralColors.ink}
                   />
                 </g>
               );
@@ -493,27 +550,83 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="flex min-w-[180px] flex-col gap-4 pt-6">
-        {isProcessed ? (
-          <>
-            <LegendItem color={COLORS.processed} label="Processed" />
-            <LegendItem color={COLORS.lost} label="Lost" />
-            <LegendItem color={COLORS.readyToSort} label="Ready to sort" />
-            <LegendItem dashed label="Expected volume" />
-          </>
-        ) : (
-          <>
-            <LegendItem color={COLORS.bar} label={metric.label} />
-            <LegendItem color={COLORS.lost} label="Below target" />
-            {(metric.bakeDays ?? 0) > 0 && (
-              <LegendItem color={COLORS.pending} label="Not calculated yet" />
-            )}
-            <LegendItem targetLine label={`Target ${metric.format(metric.target)}`} />
-          </>
-        )}
+      <div className="flex min-w-[180px] items-center">
+        <div className="flex flex-col gap-4">
+          {isProcessed ? (
+            <>
+              <LegendItem
+                color={COLORS.processed}
+                label="Processed"
+                active={isSeriesVisible("processed")}
+                onClick={() => toggleSeries("processed")}
+              />
+              <LegendItem
+                color={COLORS.lost}
+                label="Lost"
+                active={isSeriesVisible("lost")}
+                onClick={() => toggleSeries("lost")}
+              />
+              <LegendItem
+                color={COLORS.readyToSort}
+                label="Ready to sort"
+                active={isSeriesVisible("readyToSort")}
+                onClick={() => toggleSeries("readyToSort")}
+              />
+              <LegendItem
+                color={COLORS.expected}
+                label="Forecasted volume"
+                active={isSeriesVisible("expected")}
+                onClick={() => toggleSeries("expected")}
+              />
+            </>
+          ) : (
+            <>
+              <LegendItem color={COLORS.bar} label={metric.label} />
+              <LegendItem color={COLORS.lost} label="Below target" />
+              {(metric.bakeDays ?? 0) > 0 && (
+                <LegendItem color={COLORS.pending} label="Not calculated yet" />
+              )}
+              <LegendItem targetLine label={`Target ${metric.format(metric.target)}`} />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
+}
+
+function ValueLabel({ cx, y, text }: { cx: number; y: number; text: string }) {
+  const width = estimateLabelWidth(text);
+
+  return (
+    <rect
+      x={cx - width / 2}
+      y={y - 11}
+      width={width}
+      height={16}
+      rx={4}
+      fill="white"
+    />
+  );
+}
+
+function estimateLabelWidth(text: string) {
+  return Math.max(28, text.length * 6.8 + 10);
+}
+
+function roundedTopBarPath(x: number, y: number, width: number, height: number, radius: number) {
+  const r = Math.max(0, Math.min(radius, width / 2, height));
+  const bottom = y + height;
+
+  return [
+    `M ${x} ${bottom}`,
+    `L ${x} ${y + r}`,
+    `Q ${x} ${y} ${x + r} ${y}`,
+    `L ${x + width - r} ${y}`,
+    `Q ${x + width} ${y} ${x + width} ${y + r}`,
+    `L ${x + width} ${bottom}`,
+    "Z",
+  ].join(" ");
 }
 
 function LegendItem({
@@ -522,37 +635,68 @@ function LegendItem({
   dashed,
   outlined,
   targetLine,
+  active = true,
+  onClick,
 }: {
   color?: string;
   label: string;
   dashed?: boolean;
   outlined?: boolean;
   targetLine?: boolean;
+  active?: boolean;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="flex items-center gap-2">
+  const content = (
+    <>
       {dashed ? (
         <span
-          className="h-3 w-3 border-[1.5px] border-dashed"
-          style={{ borderColor: "#aeb1b7" }}
+          className="relative h-4 w-4 rounded-[4px] border-[1.5px] border-dashed"
+          style={{ borderColor: chartNeutralColors.disabled, opacity: active ? 1 : 0 }}
         />
       ) : targetLine ? (
         <span
           className="h-[2px] w-4"
           style={{
-            borderTop: "1.5px dashed #111318",
+            borderTop: `1.5px dashed ${chartNeutralColors.ink}`,
             background: "none",
+            opacity: active ? 1 : 0,
           }}
         />
       ) : outlined ? (
         <span
-          className="h-3 w-3 border-[1.5px]"
-          style={{ background: color, borderColor: "#4969f5" }}
+          className="h-4 w-4 rounded-[4px] border-[1.5px]"
+          style={{
+            background: color,
+            borderColor: chartStateColors.primary,
+            opacity: active ? 1 : 0,
+          }}
         />
       ) : (
-        <span className="h-3 w-3" style={{ backgroundColor: color }} />
+        <span
+          className="block h-4 w-4 rounded-[4px]"
+          style={{ backgroundColor: color, opacity: active ? 1 : 0 }}
+        />
       )}
-      <span className="text-body-md text-ink">{label}</span>
+      <span className={cn("text-body-md text-ink", !active && "line-through opacity-60")}>{label}</span>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-pressed={active}
+        className="flex items-center gap-2 rounded-button text-left transition-opacity hover:opacity-80"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {content}
     </div>
   );
 }

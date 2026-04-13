@@ -1,6 +1,8 @@
 // Mock data for the Parcel Sort performance dashboard.
 // All values are fabricated for demo purposes.
 
+import { getMetricTarget } from "./targets";
+
 export type DateRangeKey = "lastWeek" | "today" | "thisWeek" | "nextWeek" | "custom";
 
 export type MetricKey =
@@ -35,28 +37,28 @@ export const metricConfigs: Record<MetricKey, MetricConfig> = {
     key: "processed",
     label: "Parcels processed",
     unit: "count",
-    target: 2400,
+    target: getMetricTarget("processed"),
     format: (n) => n.toLocaleString(),
   },
   pallets: {
     key: "pallets",
     label: "Pallets scanned to truck",
     unit: "percent",
-    target: 95,
+    target: getMetricTarget("pallets"),
     format: (n) => `${n.toFixed(1)}%`,
   },
   trucksOnTime: {
     key: "trucksOnTime",
     label: "Trucks departed on time",
     unit: "percent",
-    target: 95,
+    target: getMetricTarget("trucksOnTime"),
     format: (n) => `${n.toFixed(1)}%`,
   },
   missort: {
     key: "missort",
     label: "Missort rate",
     unit: "percent",
-    target: 0.5,
+    target: getMetricTarget("missort"),
     format: (n) => `${n.toFixed(2)}%`,
     bakeDays: 1,
   },
@@ -64,7 +66,7 @@ export const metricConfigs: Record<MetricKey, MetricConfig> = {
     key: "loss",
     label: "Loss rate",
     unit: "percent",
-    target: 0.05,
+    target: getMetricTarget("loss"),
     format: (n) => `${n.toFixed(2)}%`,
     bakeDays: 9,
   },
@@ -72,21 +74,21 @@ export const metricConfigs: Record<MetricKey, MetricConfig> = {
     key: "preSortSpeed",
     label: "Pre-sort speed",
     unit: "rate",
-    target: 120,
+    target: getMetricTarget("preSortSpeed"),
     format: (n) => `${Math.round(n)} / hr`,
   },
   sortSpeed: {
     key: "sortSpeed",
     label: "Sort speed",
     unit: "rate",
-    target: 140,
+    target: getMetricTarget("sortSpeed"),
     format: (n) => `${Math.round(n)} / hr`,
   },
   loadSpeed: {
     key: "loadSpeed",
     label: "Load speed",
     unit: "rate",
-    target: 135,
+    target: getMetricTarget("loadSpeed"),
     format: (n) => `${Math.round(n)} / hr`,
   },
 };
@@ -113,6 +115,7 @@ export type DayBucket = {
 export type Kpi = {
   key: MetricKey | string;
   label: string;
+  labelTooltip?: { title: string; body: string };
   value: string;
   delta?: { value: string; direction: "up" | "down" } | null;
   deltaLabel?: string;
@@ -122,6 +125,13 @@ export type Kpi = {
   partialNote?: string;
   tooltip?: { title: string; body: string };
   highlighted?: boolean;
+  // V2 extensions (optional, ignored in V1 rendering)
+  /** Small badge shown next to the tile label (e.g. "1 day" for bake time). */
+  bakeBadge?: string;
+  /** Informational note shown below the value in accent/pink color (no icon). */
+  alertNote?: string;
+  /** Explicitly override delta color instead of using up=positive/down=negative. */
+  deltaColor?: "positive" | "negative";
 };
 
 export type Sorter = {
@@ -336,14 +346,14 @@ export const kpisToday: Kpi[] = [
     placeholderNote: "Will be calculated on Feb 15",
     tooltip: {
       title: "No data for Feb 14 yet",
-      body: "Missort rate is calculated the following day. Feb 14 data will be ready on Feb 15.",
+      body: "Missort rate is calculated the following day. Feb 14 data will be ready on Feb 15",
     },
   }),
   k("loss", "--", null, {
     placeholderNote: "Will be calculated on Feb 23",
     tooltip: {
       title: "No data for Feb 14 yet",
-      body: "Loss rate takes 9 days to calculate. Feb 14 data will be ready on Feb 23.",
+      body: "Loss rate takes 9 days to calculate. Feb 14 data will be ready on Feb 23",
     },
   }),
   k("preSortSpeed", "132 / hr", { value: "24", direction: "up" }),
@@ -360,7 +370,7 @@ export const kpisThisWeek: Kpi[] = [
     partialNote: "Feb 9 – Feb 13 data only",
     tooltip: {
       title: "Incomplete data for Feb 9 – Feb 15",
-      body: "Full data will be calculated on Feb 16.",
+      body: "Full data will be calculated on Feb 16",
     },
   }),
   // Loss: all 7 days still pending (within 9 days of today).
@@ -368,7 +378,7 @@ export const kpisThisWeek: Kpi[] = [
     placeholderNote: "Will be calculated on Feb 24",
     tooltip: {
       title: "No data for Feb 9 – Feb 15 yet",
-      body: "Loss rate takes 9 days to calculate. Full data will be ready on Feb 24.",
+      body: "Loss rate takes 9 days to calculate. Full data will be ready on Feb 24",
     },
   }),
   k("preSortSpeed", "135 / hr", { value: "15", direction: "up" }),
@@ -387,7 +397,7 @@ export const kpisLastWeek: Kpi[] = [
     partialNote: "Feb 2 – Feb 5 data only",
     tooltip: {
       title: "Incomplete data for Feb 2 – Feb 8",
-      body: "Full data will be calculated on Feb 17.",
+      body: "Full data will be calculated on Feb 17",
     },
   }),
   k("preSortSpeed", "132 / hr", { value: "12", direction: "up" }),
@@ -513,6 +523,14 @@ function isoDate(d: Date) {
 export function formatShort(d: Date) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
+/** Start/end ISO (inclusive) for each built-in tab. */
+export const rangeIsoBounds: Record<Exclude<DateRangeKey, "custom">, { start: string; end: string }> = {
+  today: { start: "2026-02-14", end: "2026-02-14" },
+  thisWeek: { start: "2026-02-09", end: "2026-02-15" },
+  lastWeek: { start: "2026-02-02", end: "2026-02-08" },
+  nextWeek: { start: "2026-02-16", end: "2026-02-22" },
+};
 
 /**
  * Status of a given day's value for a metric, considering bake time.

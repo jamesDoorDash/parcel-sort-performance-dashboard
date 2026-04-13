@@ -81,16 +81,18 @@ export function DateRangePicker({ value, onChange, onClose, anchorRef }: Props) 
 
   const handleDayClick = (d: Date) => {
     if (d < MIN_DATE || d > MAX_DATE) return;
-    if (!pending.end || (pending.start && pending.end)) {
+    // Complete selection exists → start a new one
+    if (pending.end !== null) {
       setPending({ start: d, end: null });
-    } else if (d < pending.start) {
+      return;
+    }
+    // Waiting for end date
+    if (d < pending.start) {
       setPending({ start: d, end: pending.start });
     } else {
       setPending({ start: pending.start, end: d });
     }
   };
-
-  const rangeEnd = pending.end ?? hover ?? pending.start;
 
   return (
     <div

@@ -25,7 +25,7 @@ export function DateRangeTabs({
 
   return (
     <div className="flex items-center gap-3">
-      <div className="inline-flex items-center rounded-button border border-line-hovered bg-white">
+      <div className="inline-flex items-center overflow-hidden rounded-button border border-line-hovered bg-white">
         {dateRangeTabs.map((tab) => {
           const active = tab.key === value;
           return (
@@ -34,10 +34,10 @@ export function DateRangeTabs({
               type="button"
               onClick={() => onChange(tab.key)}
               className={cn(
-                "relative -my-px h-[34px] rounded-button px-3 text-body-md-strong transition-colors first:-ml-px last:-mr-px",
+                "relative flex h-10 items-center justify-center rounded-button px-3 text-body-md-strong transition-colors",
                 active
-                  ? "z-10 border border-ink bg-white text-ink"
-                  : "border border-transparent text-ink-subdued hover:text-ink",
+                  ? "z-10 bg-white text-ink ring-2 ring-inset ring-ink"
+                  : "text-ink-subdued hover:text-ink",
               )}
             >
               {tab.label}
@@ -53,8 +53,8 @@ export function DateRangeTabs({
             type="button"
             onClick={() => setPickerOpen((o) => !o)}
             className={cn(
-              "inline-flex h-8 items-center gap-2 rounded-button border border-line-hovered bg-white px-3 text-body-md-strong text-ink outline-none transition-colors hover:border-ink",
-              pickerOpen && "border-ink",
+              "inline-flex h-10 items-center gap-2 rounded-button border border-line-hovered bg-white px-3 text-body-md-strong text-ink outline-none transition-colors hover:border-ink",
+              pickerOpen && "border-2 border-ink",
             )}
           >
             <Calendar className="h-3.5 w-3.5 text-icon-subdued" strokeWidth={2} />

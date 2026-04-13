@@ -7,10 +7,18 @@ import {
   type DateRangeKey,
   type MetricKey,
   metricConfigs,
+  rangeIsoBounds,
   rangePayloads,
   resolveCustomRange,
-  sorters,
 } from "../data/mock";
+import { getSortersForRange } from "../data/sortersData";
+
+function toIso(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export function PerformancePage() {
   const [range, setRange] = useState<DateRangeKey>("today");
@@ -23,6 +31,14 @@ export function PerformancePage() {
   const payload = useMemo(() => {
     if (range === "custom") return resolveCustomRange(customRange.start, customRange.end);
     return rangePayloads[range];
+  }, [range, customRange]);
+
+  const sorters = useMemo(() => {
+    if (range === "custom") {
+      return getSortersForRange(toIso(customRange.start), toIso(customRange.end));
+    }
+    const { start, end } = rangeIsoBounds[range];
+    return getSortersForRange(start, end);
   }, [range, customRange]);
 
   const showChart = payload.week != null;

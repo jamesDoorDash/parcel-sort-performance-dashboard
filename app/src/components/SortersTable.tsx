@@ -58,8 +58,8 @@ export function SortersTable({ sorters }: Props) {
           <span className="text-ink-subdued">meeting targets</span>
         </div>
       </div>
-      <div className="overflow-hidden rounded-card border border-line-hovered bg-white shadow-card">
-        <table className="w-full border-collapse">
+      <div className="overflow-x-auto rounded-card border border-line-hovered bg-white">
+        <table className="min-w-max w-full border-collapse">
           <thead>
             <tr className="border-b border-line bg-[#fafafa]">
               {columns.map((col) => {
@@ -106,12 +106,12 @@ export function SortersTable({ sorters }: Props) {
                   {s.meetsTargets ? (
                     <span className="inline-flex items-center gap-1 rounded-tag bg-positive-bg px-2 py-0.5 text-body-sm-strong text-positive">
                       <Check className="h-3 w-3" strokeWidth={2.5} />
-                      Meets targets
+                      Meets all targets
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-body-sm-strong text-negative">
                       <AlertTriangle className="h-3 w-3" strokeWidth={2.5} />
-                      Below targets
+                      Below target
                     </span>
                   )}
                 </td>

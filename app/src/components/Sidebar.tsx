@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   BarChart3,
@@ -38,13 +38,30 @@ const nav: NavItem[] = [
   { key: "admin", label: "Admin", icon: <Settings className="h-[18px] w-[18px]" strokeWidth={1.75} /> },
 ];
 
+const VERSIONS = ["V1", "V2", "V3", "V4"];
+
 type Props = {
   active: string;
   onSelect: (key: string) => void;
+  version: string;
+  onVersionChange: (v: string) => void;
 };
 
-export function Sidebar({ active, onSelect }: Props) {
+export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
   const [trucksOpen, setTrucksOpen] = useState(true);
+  const [versionOpen, setVersionOpen] = useState(false);
+  const versionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!versionOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (versionRef.current && !versionRef.current.contains(e.target as Node)) {
+        setVersionOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [versionOpen]);
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-line bg-white">
@@ -130,8 +147,44 @@ export function Sidebar({ active, onSelect }: Props) {
         })}
       </nav>
 
-      {/* Footer — collapse */}
-      <div className="border-t border-line px-4 py-4">
+      {/* Footer — version selector + collapse */}
+      <div className="border-t border-line px-4 py-4 space-y-1">
+        {/* Prototype version selector */}
+        <div ref={versionRef} className="relative px-3 py-2">
+          <p className="mb-1.5 text-body-sm text-ink-subdued">Prototype version</p>
+          <button
+            type="button"
+            onClick={() => setVersionOpen((v) => !v)}
+            className="flex h-9 w-full items-center justify-between rounded-button bg-ink px-3 text-left"
+          >
+            <span className="text-body-md-strong text-white">{version}</span>
+            <ChevronDown
+              className={cn("h-4 w-4 text-white transition-transform", versionOpen && "rotate-180")}
+              strokeWidth={2}
+            />
+          </button>
+          {versionOpen && (
+            <div className="absolute bottom-full left-3 right-3 mb-1 overflow-hidden rounded-button border border-line bg-white shadow-md">
+              {VERSIONS.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => { onVersionChange(v); setVersionOpen(false); }}
+                  className={cn(
+                    "flex h-9 w-full items-center px-3 text-left transition-colors hover:bg-surface-hovered",
+                    v === version ? "text-body-md-strong text-ink" : "text-body-md text-ink-subdued",
+                  )}
+                >
+                  {v}
+                  {v === version && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-ink" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button
           type="button"
           className="flex h-12 w-full items-center gap-3 rounded-button px-3 text-left text-ink-subdued hover:bg-surface-hovered hover:text-ink"
