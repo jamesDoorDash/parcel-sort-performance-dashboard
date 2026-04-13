@@ -18,7 +18,7 @@ type Props = {
   sorters: SorterV2[];
 };
 
-const WEIGHTED_RATE_TOOLTIP = "2+ kg parcels count 1.8x in weighted rates.";
+const WEIGHTED_RATE_TOOLTIP = "2lb + parcels count 1.8x in weighted rates.";
 
 function HeaderCell({
   label,

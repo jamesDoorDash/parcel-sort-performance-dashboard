@@ -28,9 +28,21 @@ function dayCount(range: DateRangeKey, custom?: { start: Date; end: Date }) {
   return 7;
 }
 
+function isSingleCalendarWeek(range: DateRangeKey, customRange: { start: Date; end: Date }) {
+  if (range !== "custom") return true;
+
+  const start = new Date(customRange.start);
+  const end = new Date(customRange.end);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+  return diffDays === 7 && start.getDay() === 0 && end.getDay() === 6;
+}
+
 export function PerformancePageV3() {
   const [range, setRange] = useState<DateRangeKey>("thisWeek");
-  const [selectedMetric, setSelectedMetric] = useState<V3MetricId>("parcelDwellTime");
+  const [selectedMetric, setSelectedMetric] = useState<V3MetricId>("parcelsProcessed");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
     end: new Date("2026-02-15T00:00:00"),
@@ -42,6 +54,7 @@ export function PerformancePageV3() {
   }, [customRange.end, customRange.start, range]);
 
   const metric = getMetricDefinition(selectedMetric);
+  const showChart = isSingleCalendarWeek(range, customRange);
   const sorterDays = useMemo(() => dayCount(range, range === "custom" ? customRange : undefined), [customRange, range]);
 
   const sorters = useMemo(() => {
@@ -89,40 +102,44 @@ export function PerformancePageV3() {
           </div>
         </section>
 
-        <section className="mt-8">
-          {metric.chartKind === "processed" && (
-            <VolumeChart
-              data={payload.processedWeek}
-              metric={metricConfigs.processed}
-              visibleDays={payload.visibleDays}
-            />
-          )}
+        {showChart && (
+          <section className="mt-8">
+            {metric.chartKind === "processed" && (
+              <VolumeChart
+                data={payload.processedWeek}
+                metric={metricConfigs.processed}
+                visibleDays={payload.visibleDays}
+              />
+            )}
 
-          {metric.chartKind === "waiting" && (
-            <WaitingStackChart
-              data={payload.waitingWeek}
-              visibleDays={payload.visibleDays}
-            />
-          )}
+            {metric.chartKind === "waiting" && (
+              <WaitingStackChart
+                data={payload.waitingWeek}
+                target={metric.target}
+                targetLabel="180 hrs"
+                visibleDays={payload.visibleDays}
+              />
+            )}
 
-          {metric.chartKind === "simple" && payload.simpleSeries[selectedMetric] && (
-            <V3MetricChart
-              data={payload.simpleSeries[selectedMetric] ?? []}
-              target={metric.target}
-              targetLabel={metric.targetLabel}
-              isPercent={metric.unit === "percent"}
-              visibleDays={payload.visibleDays}
-              formatValue={(value) => metric.formatValue(value)}
-            />
-          )}
+            {metric.chartKind === "simple" && payload.simpleSeries[selectedMetric] && (
+              <V3MetricChart
+                data={payload.simpleSeries[selectedMetric] ?? []}
+                target={metric.target}
+                targetLabel={metric.targetLabel}
+                isPercent={metric.unit === "percent"}
+                visibleDays={payload.visibleDays}
+                formatValue={(value) => metric.formatValue(value)}
+              />
+            )}
 
-          {metric.chartKind === "flowBreakout" && (
-            <V3FlowBreakoutChart
-              data={payload.flowRateWeek["parcels-sort"]}
-              visibleDays={payload.visibleDays}
-            />
-          )}
-        </section>
+            {metric.chartKind === "flowBreakout" && (
+              <V3FlowBreakoutChart
+                data={payload.flowRateWeek["parcels-sort"]}
+                visibleDays={payload.visibleDays}
+              />
+            )}
+          </section>
+        )}
 
         <section className="mt-8">
           <SortersTableV3 sorters={sorters} />

@@ -22,7 +22,7 @@ const SERIES = [
 ] as const;
 
 type SeriesKey = (typeof SERIES)[number]["key"];
-const WEIGHTED_RATE_TOOLTIP = "2+ kg parcels count 1.8x in weighted rates.";
+const WEIGHTED_RATE_TOOLTIP = "2lb + parcels count 1.8x in weighted rates.";
 
 type Props = {
   data: FlowRateDayBucket[];

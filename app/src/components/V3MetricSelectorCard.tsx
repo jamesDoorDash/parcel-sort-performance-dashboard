@@ -52,15 +52,15 @@ export function V3MetricSelectorCard({ card, selected, onClick }: Props) {
           </div>
         )}
       </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <div className={cn("text-title-md", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
+      <div className="mt-3.5 flex items-baseline gap-2 whitespace-nowrap">
+        <div className={cn("text-[1.66rem] leading-[1.1] font-semibold tracking-[-0.02em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
           {card.value}
         </div>
         {card.delta && (
-          <div className={cn("flex items-baseline gap-1 text-body-sm-strong", deltaToneClass)}>
+          <div className={cn("flex items-baseline gap-1 whitespace-nowrap text-[0.875rem] leading-[1.2] font-semibold", deltaToneClass)}>
             <DeltaTriangle direction={card.delta.direction} />
             <span>{card.delta.value}</span>
-            <span className="font-normal text-ink-subdued">vs. target</span>
+            <span className="whitespace-nowrap font-normal text-[0.875rem] leading-[1.2] text-ink-subdued">vs. target</span>
           </div>
         )}
       </div>

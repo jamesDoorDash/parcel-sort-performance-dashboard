@@ -29,11 +29,14 @@ const Y_TICKS = [0, 50, 100, 150, 200, 250];
 
 type Props = {
   data: WaitingDayBucket[];
+  target?: number;
+  targetLabel?: string;
   visibleDays?: Set<string>;
 };
 
-export function WaitingStackChart({ data, visibleDays }: Props) {
+export function WaitingStackChart({ data, target, targetLabel, visibleDays }: Props) {
   const [hiddenSeries, setHiddenSeries] = useState<Set<"waitingForSort" | "waitingOnPallet">>(new Set());
+  const [showTarget, setShowTarget] = useState(true);
   const singleDayMode = visibleDays?.size === 1;
   const chartData = singleDayMode
     ? data.filter((day) => visibleDays.has(day.date))
@@ -106,6 +109,18 @@ export function WaitingStackChart({ data, visibleDays }: Props) {
               </g>
             );
           })}
+
+          {target !== undefined && showTarget && (
+            <line
+              x1={leftPadding}
+              x2={leftPadding + plotWidth}
+              y1={yPx(target)}
+              y2={yPx(target)}
+              stroke={chartNeutralColors.ink}
+              strokeDasharray="6 6"
+              strokeWidth={1.5}
+            />
+          )}
 
           {/* Bars */}
           {chartData.map((day, i) => {
@@ -222,6 +237,15 @@ export function WaitingStackChart({ data, visibleDays }: Props) {
             active={isVisible("waitingForSort")}
             onClick={() => toggleSeries("waitingForSort")}
           />
+          {target !== undefined && (
+            <LegendToggle
+              color={chartNeutralColors.ink}
+              label={`Target ${targetLabel ?? formatLegendTarget(target)}`}
+              active={showTarget}
+              dashed
+              onClick={() => setShowTarget((current) => !current)}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -266,11 +290,13 @@ function LegendToggle({
   color,
   label,
   active,
+  dashed,
   onClick,
 }: {
   color: string;
   label: string;
   active: boolean;
+  dashed?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -280,10 +306,29 @@ function LegendToggle({
       aria-pressed={active}
       className="flex items-center gap-2 rounded-button text-left transition-opacity hover:opacity-80"
     >
-      <span className="relative h-4 w-4 shrink-0 rounded-[4px]">
-        <span className="block h-full w-full rounded-[4px]" style={{ backgroundColor: color, opacity: active ? 1 : 0 }} />
-      </span>
+      {dashed ? (
+        <span className="relative h-[2px] w-4 shrink-0">
+          <span
+            className="absolute inset-0 border-t-[1.5px]"
+            style={{
+              borderColor: color,
+              borderTopStyle: "dashed",
+              opacity: active ? 1 : 0,
+            }}
+          />
+        </span>
+      ) : (
+        <span className="relative h-4 w-4 shrink-0 rounded-[4px]">
+          <span className="block h-full w-full rounded-[4px]" style={{ backgroundColor: color, opacity: active ? 1 : 0 }} />
+        </span>
+      )}
       <span className={cn("text-body-md text-ink", !active && "line-through opacity-60")}>{label}</span>
     </button>
   );
+}
+
+function formatLegendTarget(value: number) {
+  if (value >= 100) return Math.round(value).toString();
+  if (value >= 10) return value.toFixed(1).replace(".0", "");
+  return value.toFixed(2).replace(/0$/, "");
 }

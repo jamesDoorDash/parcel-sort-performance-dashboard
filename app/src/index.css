@@ -24,7 +24,7 @@ body {
 .metric-label-underline {
   position: relative;
   display: inline-block;
-  padding-bottom: 5px;
+  padding-bottom: 3px;
   text-decoration: none;
 }
 

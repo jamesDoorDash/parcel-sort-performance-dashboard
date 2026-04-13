@@ -19,12 +19,13 @@ import {
 import { getSortersForRange } from "../data/sortersData";
 
 type V4MetricId = V3MetricId | "parcelPreSortRate";
+type V4View = "facility" | "individualUsers";
 
 const PRE_SORT_RATE_TOOLTIP =
-  "Average number of parcels pre-sorted to staging areas per labor hour during active sort time in the selected period. Parcels 2+ kg count 1.8x in weighted rates.";
+  "Average number of parcels pre-sorted to staging areas per labor hour during active sort time in the selected period. Parcels 2lb + count 1.8x in weighted rates.";
 
 const SORT_RATE_TOOLTIP =
-  "Average number of parcels sorted to pallets per labor hour during active sort time in the selected period. Parcels 2+ kg count 1.8x in weighted rates.";
+  "Average number of parcels sorted to pallets per labor hour during active sort time in the selected period. Parcels 2lb + count 1.8x in weighted rates.";
 
 const V4_METRIC_ORDER: V4MetricId[] = [
   "parcelsProcessed",
@@ -54,6 +55,18 @@ function dayCount(range: DateRangeKey, custom?: { start: Date; end: Date }) {
     return Math.max(1, Math.round((custom.end.getTime() - custom.start.getTime()) / 86400000) + 1);
   }
   return 7;
+}
+
+function isSingleCalendarWeek(range: DateRangeKey, customRange: { start: Date; end: Date }) {
+  if (range !== "custom") return true;
+
+  const start = new Date(customRange.start);
+  const end = new Date(customRange.end);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+  return diffDays === 7 && start.getDay() === 0 && end.getDay() === 6;
 }
 
 function formatShortDate(date: Date) {
@@ -173,7 +186,8 @@ function buildPreSortCard(payload: (typeof rangePayloadsV3)[Exclude<DateRangeKey
 
 export function PerformancePageV4() {
   const [range, setRange] = useState<DateRangeKey>("thisWeek");
-  const [selectedMetric, setSelectedMetric] = useState<V4MetricId>("parcelDwellTime");
+  const [selectedMetric, setSelectedMetric] = useState<V4MetricId>("parcelsProcessed");
+  const [view, setView] = useState<V4View>("facility");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
     end: new Date("2026-02-15T00:00:00"),
@@ -215,6 +229,7 @@ export function PerformancePageV4() {
         formatValue: (value: number) => `${Math.round(value)} / hr`,
       }
     : getV4MetricDefinition(selectedMetric);
+  const showChart = isSingleCalendarWeek(range, customRange);
   const sorterDays = useMemo(() => dayCount(range, range === "custom" ? customRange : undefined), [customRange, range]);
 
   const sorters = useMemo(() => {
@@ -249,61 +264,98 @@ export function PerformancePageV4() {
           />
         </div>
 
-        <section className="mt-8 py-2">
-          <div className="grid grid-cols-4 gap-4">
-            {cards.map((card) => (
-              <V3MetricSelectorCard
-                key={card.id}
-                card={card}
-                selected={card.id === selectedMetric}
-                onClick={() => setSelectedMetric(card.id as V4MetricId)}
-              />
-            ))}
+      </div>
+
+      <section className="relative mt-5 w-full border-b border-line">
+        <div className="mx-auto w-full max-w-[1220px] px-12">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setView("facility")}
+              className={view === "facility" ? "relative px-0 py-2 text-body-md font-medium text-ink" : "px-0 py-2 text-body-md text-ink-subdued"}
+            >
+              Facility
+              {view === "facility" && <span className="absolute inset-x-0 bottom-0 h-1 rounded-t-[4px] bg-ink" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("individualUsers")}
+              className={view === "individualUsers" ? "relative px-0 py-2 text-body-md-strong text-ink" : "px-0 py-2 text-body-md text-ink-subdued"}
+            >
+              Individual users
+              {view === "individualUsers" && <span className="absolute inset-x-0 bottom-0 h-1 rounded-t-[4px] bg-ink" />}
+            </button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="mt-8 py-2">
-          {metric.chartKind === "processed" && (
-            <VolumeChart
-              data={payload.processedWeek}
-              metric={metricConfigs.processed}
-              visibleDays={payload.visibleDays}
-            />
-          )}
+      <div className="mx-auto w-full max-w-[1220px] px-12 pb-16">
 
-          {metric.chartKind === "waiting" && (
-            <WaitingStackChart
-              data={payload.waitingWeek}
-              visibleDays={payload.visibleDays}
-            />
-          )}
+        {view === "facility" && (
+          <>
+            <section className="mt-8 py-2">
+              <div className="grid grid-cols-4 gap-4">
+                {cards.map((card) => (
+                  <V3MetricSelectorCard
+                    key={card.id}
+                    card={card}
+                    selected={card.id === selectedMetric}
+                    onClick={() => setSelectedMetric(card.id as V4MetricId)}
+                  />
+                ))}
+              </div>
+            </section>
 
-          {metric.chartKind === "simple" && selectedMetric !== "parcelPreSortRate" && payload.simpleSeries[selectedMetric] && (
-            <V3MetricChart
-              data={payload.simpleSeries[selectedMetric] ?? []}
-              target={metric.target}
-              targetLabel={metric.targetLabel}
-              isPercent={metric.unit === "percent"}
-              bakeDays={metric.bakeDays}
-              visibleDays={payload.visibleDays}
-              formatValue={(value) => metric.formatValue(value)}
-            />
-          )}
-          {metric.chartKind === "simple" && selectedMetric === "parcelPreSortRate" && (
-            <V3MetricChart
-              data={preSortSeries}
-              target={145}
-              targetLabel="145 / hr"
-              isPercent={false}
-              visibleDays={payload.visibleDays}
-              formatValue={(value) => `${Math.round(value)} / hr`}
-            />
-          )}
-        </section>
+            {showChart && (
+              <section className="mt-8 py-2">
+                {metric.chartKind === "processed" && (
+                  <VolumeChart
+                    data={payload.processedWeek}
+                    metric={metricConfigs.processed}
+                    visibleDays={payload.visibleDays}
+                  />
+                )}
 
-        <section className="mt-8">
-          <SortersTableV3 sorters={sorters} />
-        </section>
+                {metric.chartKind === "waiting" && (
+                  <WaitingStackChart
+                    data={payload.waitingWeek}
+                    target={metric.target}
+                    targetLabel="180 hrs"
+                    visibleDays={payload.visibleDays}
+                  />
+                )}
+
+                {metric.chartKind === "simple" && selectedMetric !== "parcelPreSortRate" && payload.simpleSeries[selectedMetric] && (
+                  <V3MetricChart
+                    data={payload.simpleSeries[selectedMetric] ?? []}
+                    target={metric.target}
+                    targetLabel={metric.targetLabel}
+                    isPercent={metric.unit === "percent"}
+                    bakeDays={metric.bakeDays}
+                    visibleDays={payload.visibleDays}
+                    formatValue={(value) => metric.formatValue(value)}
+                  />
+                )}
+                {metric.chartKind === "simple" && selectedMetric === "parcelPreSortRate" && (
+                  <V3MetricChart
+                    data={preSortSeries}
+                    target={145}
+                    targetLabel="145 / hr"
+                    isPercent={false}
+                    visibleDays={payload.visibleDays}
+                    formatValue={(value) => `${Math.round(value)} / hr`}
+                  />
+                )}
+              </section>
+            )}
+          </>
+        )}
+
+        {view === "individualUsers" && (
+          <section className="mt-8">
+            <SortersTableV3 sorters={sorters} />
+          </section>
+        )}
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ type Props = {
 
 type SortKey = "name" | "parcelRate" | "parcelsSorted" | "parcelsMissorted" | "parcelsLost" | "palletRate" | "palletsLoaded" | "meetsTargets";
 
-const BLENDED_TOOLTIP = "2+ kg parcels count 1.8x.";
+const BLENDED_TOOLTIP = "2lb + parcels count 1.8x.";
 
 function HeaderCell({
   label,
