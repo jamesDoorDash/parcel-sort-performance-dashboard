@@ -251,7 +251,7 @@ export function PerformancePageV4() {
 
   return (
     <div className="flex h-full flex-col overflow-auto">
-      <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
+      <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-8">
         <h1 className="text-display-lg text-ink">Performance</h1>
 
         <div className="mt-6">
@@ -266,7 +266,7 @@ export function PerformancePageV4() {
 
       </div>
 
-      <section className="relative mt-5 w-full border-b border-line">
+      <section className="relative mt-0.5 w-full border-b border-line">
         <div className="mx-auto w-full max-w-[1220px] px-12">
           <div className="flex items-center gap-3">
             <button
