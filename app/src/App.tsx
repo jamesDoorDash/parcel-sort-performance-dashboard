@@ -4,15 +4,17 @@ import { PerformancePage } from "./pages/PerformancePage";
 import { PerformancePageV2 } from "./pages/PerformancePageV2";
 import { PerformancePageV3 } from "./pages/PerformancePageV3";
 import { PerformancePageV4 } from "./pages/PerformancePageV4";
+import { PerformancePageV5 } from "./pages/PerformancePageV5";
 
 export default function App() {
   const [active, setActive] = useState<string>("performance");
-  const [version, setVersion] = useState("V4");
+  const [version, setVersion] = useState("V3");
 
   let page = <PerformancePage />;
   if (version === "V2") page = <PerformancePageV2 />;
   if (version === "V3") page = <PerformancePageV3 />;
   if (version === "V4") page = <PerformancePageV4 />;
+  if (version === "V5") page = <PerformancePageV5 />;
 
   return (
     <div className="flex h-screen w-screen bg-white text-ink">
