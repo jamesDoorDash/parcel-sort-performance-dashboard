@@ -6,9 +6,16 @@ import { PerformancePageV3 } from "./pages/PerformancePageV3";
 import { PerformancePageV4 } from "./pages/PerformancePageV4";
 import { PerformancePageV5 } from "./pages/PerformancePageV5";
 
+function getInitialVersion() {
+  if (typeof window === "undefined") return "V3";
+
+  const value = new URLSearchParams(window.location.search).get("version");
+  return value && ["V1", "V2", "V3", "V4", "V5"].includes(value) ? value : "V3";
+}
+
 export default function App() {
   const [active, setActive] = useState<string>("performance");
-  const [version, setVersion] = useState("V3");
+  const [version, setVersion] = useState(getInitialVersion);
 
   let page = <PerformancePage />;
   if (version === "V2") page = <PerformancePageV2 />;

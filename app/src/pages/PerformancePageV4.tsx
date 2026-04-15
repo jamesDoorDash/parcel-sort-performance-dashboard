@@ -21,6 +21,13 @@ import { getSortersForRange } from "../data/sortersData";
 type V4MetricId = V3MetricId | "parcelPreSortRate";
 type V4View = "facility" | "individualUsers";
 
+function getInitialView(): V4View {
+  if (typeof window === "undefined") return "facility";
+
+  const value = new URLSearchParams(window.location.search).get("view");
+  return value === "individualUsers" ? "individualUsers" : "facility";
+}
+
 const PRE_SORT_RATE_TOOLTIP =
   "Average number of parcels pre-sorted to staging areas per labor hour during active sort time in the selected period. Parcels 2lb + count 1.8x in weighted rates.";
 
@@ -187,7 +194,7 @@ function buildPreSortCard(payload: (typeof rangePayloadsV3)[Exclude<DateRangeKey
 export function PerformancePageV4() {
   const [range, setRange] = useState<DateRangeKey>("thisWeek");
   const [selectedMetric, setSelectedMetric] = useState<V4MetricId>("parcelsProcessed");
-  const [view, setView] = useState<V4View>("facility");
+  const [view, setView] = useState<V4View>(getInitialView);
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
     end: new Date("2026-02-15T00:00:00"),

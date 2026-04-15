@@ -574,7 +574,7 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
               />
               <LegendItem
                 color={COLORS.expected}
-                label="Forecasted volume"
+                label="Forecasted"
                 active={isSeriesVisible("expected")}
                 onClick={() => toggleSeries("expected")}
               />
