@@ -100,7 +100,6 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
   const n = data.length;
   const slotW = plotW / n;
   const pointX = (i: number) => PAD.left + slotW * i + slotW / 2;
-  const isFutureDay = (i: number) => data[i].date >= FUTURE_CUTOFF;
 
   const points = (key: keyof Pick<FlowRateDayBucket, "blendedAverage" | "smallOnly" | "largeOnly">) =>
     data.filter((d) => d.date < FUTURE_CUTOFF).map((d): [number, number] => {

@@ -611,7 +611,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
   const summary = definition.summarize(observedDays);
 
   // Check if some days in the range are still baking
-  let bakeNote: string | undefined;
+  let bakeNote: { title: string; body: string } | undefined;
   if (definition.bakeDays && definition.bakeDays > 1) {
     const nonFutureDays = days.filter((day) => !day.isFuture);
     const pendingDays = nonFutureDays.filter((day) => isPendingDay(day.date, definition.bakeDays));
@@ -662,11 +662,6 @@ function averageSummary(days: V3SimpleSeriesDay[]) {
   if (days.length === 0) return { value: 0 };
   const total = days.reduce((sum, day) => sum + day.value, 0);
   return { value: total / days.length };
-}
-
-function maxSummary(days: V3SimpleSeriesDay[]) {
-  if (days.length === 0) return { value: 0 };
-  return { value: Math.max(...days.map((day) => day.value)) };
 }
 
 function day(

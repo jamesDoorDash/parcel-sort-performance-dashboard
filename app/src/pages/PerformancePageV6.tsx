@@ -2,15 +2,12 @@ import { useMemo, useState } from "react";
 import { ChevronDown, Info } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
-import { V3MetricChart } from "../components/V3MetricChart";
 import { FlowRateSection } from "../components/FlowRateSection";
 import { VolumeChart } from "../components/VolumeChart";
-import { WaitingStackChart } from "../components/WaitingStackChart";
 import type { DateRangeKey, DayBucket } from "../data/mock";
 import { metricConfigs, rangeIsoBounds } from "../data/mock";
 import { applySorterTargetStatuses, toSorterV2 } from "../data/mockV2";
 import {
-  getMetricDefinition,
   rangePayloadsV3,
   resolveCustomRangeV3,
   type V3MetricCard,
@@ -69,6 +66,7 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
   return [{
     date: days[0].date,
     label,
+    weekday: days[0].weekday,
     isFuture: false,
     processed: {
       processed: sum.processed,
@@ -327,7 +325,6 @@ export function PerformancePageV6() {
   const preSortCard = useMemo(() => buildPreSortCard(payload), [payload]);
   const sortRateCard = useMemo(() => buildSortRateCard(payload), [payload]);
   const loadRateCard = useMemo(() => buildLoadRateCard(payload), [payload]);
-  const preSortSeries = useMemo(() => buildPreSortSeries(payload), [payload]);
 
   /* -- Section card groups -- */
   const parcelCards = [
