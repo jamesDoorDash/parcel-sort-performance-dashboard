@@ -1,20 +1,31 @@
 import { useMemo, useState } from "react";
+import { Info } from "lucide-react";
 import type { DayBucket, MetricConfig, MetricKey } from "../data/mock";
 import { getDayStatus } from "../data/mock";
 import { cn } from "../lib/cn";
 import { chartNeutralColors, chartStateColors } from "../lib/chartColors";
 
+type SeriesLabels = {
+  processed: string;
+  sortedLate?: string;
+  lost: string;
+  readyToSort: string;
+  forecasted: string;
+};
+
 type Props = {
   data: DayBucket[]; // always a full Mon–Sun week
   metric: MetricConfig;
   visibleDays?: Set<string>; // ISO date strings that are "in range"
+  seriesLabels?: SeriesLabels;
 };
 
 const COLORS = {
-  processed: chartStateColors.primary,
-  lost: chartStateColors.bad,
-  readyToSort: chartStateColors.secondary,
-  expected: chartStateColors.forecasted,
+  processed: chartStateColors.primary,       // blue — sorted on time
+  sortedLate: chartStateColors.secondary,    // teal — sorted late
+  lost: chartStateColors.bad,                // pink — lost
+  readyToSort: chartStateColors.forecasted,  // lavender — ready to sort
+  expected: chartStateColors.notCalculated,  // gray — forecasted
   bar: chartStateColors.primary,
   outOfRange: chartNeutralColors.outOfRange,
   pending: chartNeutralColors.pending,
@@ -24,7 +35,7 @@ const COLORS = {
   grid: chartNeutralColors.pending,
 };
 
-type ProcessedSeriesKey = "processed" | "lost" | "readyToSort" | "expected";
+type ProcessedSeriesKey = "processed" | "sortedLate" | "lost" | "readyToSort" | "expected";
 
 function estimateTooltipWidth(text: string) {
   let width = 0;
@@ -70,13 +81,22 @@ function formatCalcDate(dateIso: string, bakeDays: number): string {
   return `${month} ${day}${suffix}`;
 }
 
-export function VolumeChart({ data, metric, visibleDays }: Props) {
+const DEFAULT_LABELS: SeriesLabels = {
+  processed: "Sorted on time",
+  lost: "Lost",
+  readyToSort: "Ready to sort",
+  forecasted: "Forecasted",
+};
+
+export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) {
+  const labels = seriesLabels ?? DEFAULT_LABELS;
   const isProcessed = metric.key === "processed";
   const singleDayMode = visibleDays?.size === 1;
   const chartData = singleDayMode
     ? data.filter((day) => visibleDays.has(day.date))
     : data;
   const [hiddenSeries, setHiddenSeries] = useState<Set<ProcessedSeriesKey>>(new Set());
+  const [hoveredBar, setHoveredBar] = useState<{ idx: number; cx: number; topY: number } | null>(null);
   const [hoveredPending, setHoveredPending] = useState<{
     date: string;
     // SVG user-space coords (same as viewBox)
@@ -100,6 +120,7 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
         ...chartData.map((d) =>
           Math.max(
             (isSeriesVisible("processed") ? d.processed.processed : 0) +
+              (isSeriesVisible("sortedLate") ? (d.processed.sortedLate ?? 0) : 0) +
               (isSeriesVisible("lost") ? d.processed.lost : 0) +
               (isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0),
             isSeriesVisible("expected") ? d.processed.expectedVolume : 0,
@@ -168,6 +189,7 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
           viewBox={`0 0 ${width} ${height}`}
           className="w-full"
           preserveAspectRatio="xMidYMid meet"
+          overflow="visible"
           role="img"
           aria-label={`${metric.label} by day`}
         >
@@ -298,68 +320,87 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                     >
                       {d.processed.expectedVolume.toLocaleString()}
                     </text>
+                    <rect
+                      x={x}
+                      y={topPadding}
+                      width={barWidth}
+                      height={plotHeight}
+                      fill="transparent"
+                      onMouseEnter={() => setHoveredBar({ idx: i, cx, topY: y })}
+                      onMouseLeave={() => setHoveredBar(null)}
+                      style={{ cursor: "default" }}
+                    />
                     {xAxisLabel}
                   </g>
                 );
               }
 
               const processedValue = isSeriesVisible("processed") ? d.processed.processed : 0;
+              const sortedLateValue = isSeriesVisible("sortedLate") ? (d.processed.sortedLate ?? 0) : 0;
               const lostValue = isSeriesVisible("lost") ? d.processed.lost : 0;
               const readyValue = isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0;
-              const visibleTotal = processedValue + lostValue + readyValue;
-              const yProcessed = scaleY(processedValue);
-              const hProcessed = processedValue > 0 ? topPadding + plotHeight - yProcessed : 0;
 
-              const processedAndLost = processedValue + lostValue;
-              const yLost = scaleY(processedAndLost);
-              const hLost = lostValue > 0 ? scaleY(processedValue) - yLost : 0;
+              // Stack order bottom→top: readyToSort, processed, sortedLate, lost
+              const cumAfterReady = readyValue;
+              const cumAfterProcessed = cumAfterReady + processedValue;
+              const cumAfterLate = cumAfterProcessed + sortedLateValue;
+              const visibleTotal = cumAfterLate + lostValue;
 
-              const yReady = scaleY(visibleTotal);
-              const hReady = readyValue > 0 ? scaleY(processedAndLost) - yReady : 0;
+              const yReady = scaleY(cumAfterReady);
+              const hReady = readyValue > 0 ? topPadding + plotHeight - yReady : 0;
+
+              const yProcessed = scaleY(cumAfterProcessed);
+              const hProcessed = processedValue > 0 ? scaleY(cumAfterReady) - yProcessed : 0;
+
+              const yLate = scaleY(cumAfterLate);
+              const hLate = sortedLateValue > 0 ? scaleY(cumAfterProcessed) - yLate : 0;
+
+              const yLost = scaleY(visibleTotal);
+              const hLost = lostValue > 0 ? scaleY(cumAfterLate) - yLost : 0;
 
               const labelValue = visibleTotal;
               const labelY = labelValue > 0 ? scaleY(labelValue) - 8 : topPadding + plotHeight - 8;
               const labelText = labelValue > 0 ? labelValue.toLocaleString() : null;
 
+              // Determine which segment is on top (gets rounded corners)
+              const segments = [
+                { key: "lost", h: hLost },
+                { key: "late", h: hLate },
+                { key: "processed", h: hProcessed },
+                { key: "ready", h: hReady },
+              ];
+              const topSegment = segments.find((s) => s.h > 0)?.key ?? null;
+
               return (
                 <g key={d.label}>
-                  {(() => {
-                    const topSegment = hReady > 0 ? "ready" : hLost > 0 ? "lost" : hProcessed > 0 ? "processed" : null;
-
-                    return (
-                      <>
+                  {hReady > 0 && (
+                    topSegment === "ready" ? (
+                      <path d={roundedTopBarPath(x, yReady, barWidth, hReady, 4)} fill={COLORS.readyToSort} />
+                    ) : (
+                      <rect x={x} y={yReady} width={barWidth} height={hReady} fill={COLORS.readyToSort} />
+                    )
+                  )}
                   {hProcessed > 0 && (
                     topSegment === "processed" ? (
                       <path d={roundedTopBarPath(x, yProcessed, barWidth, hProcessed, 4)} fill={COLORS.processed} />
                     ) : (
-                      <rect
-                        x={x}
-                        y={yProcessed}
-                        width={barWidth}
-                        height={hProcessed}
-                        fill={COLORS.processed}
-                      />
+                      <rect x={x} y={yProcessed} width={barWidth} height={hProcessed} fill={COLORS.processed} />
+                    )
+                  )}
+                  {hLate > 0 && (
+                    topSegment === "late" ? (
+                      <path d={roundedTopBarPath(x, yLate, barWidth, hLate, 4)} fill={COLORS.sortedLate} />
+                    ) : (
+                      <rect x={x} y={yLate} width={barWidth} height={hLate} fill={COLORS.sortedLate} />
                     )
                   )}
                   {hLost > 0 && (
                     topSegment === "lost" ? (
                       <path d={roundedTopBarPath(x, yLost, barWidth, hLost, 4)} fill={COLORS.lost} />
                     ) : (
-                      <rect
-                        x={x}
-                        y={yLost}
-                        width={barWidth}
-                        height={hLost}
-                        fill={COLORS.lost}
-                      />
+                      <rect x={x} y={yLost} width={barWidth} height={hLost} fill={COLORS.lost} />
                     )
                   )}
-                  {hReady > 0 && (
-                    <path d={roundedTopBarPath(x, yReady, barWidth, hReady, 4)} fill={COLORS.readyToSort} />
-                  )}
-                      </>
-                    );
-                  })()}
                   {labelText && (
                     <>
                       <ValueLabel cx={cx} y={labelY} text={labelText} />
@@ -376,6 +417,17 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                       </text>
                     </>
                   )}
+                  {/* Hover zone */}
+                  <rect
+                    x={x}
+                    y={topPadding}
+                    width={barWidth}
+                    height={plotHeight}
+                    fill="transparent"
+                    onMouseEnter={() => setHoveredBar({ idx: i, cx, topY: labelValue > 0 ? scaleY(labelValue) : topPadding + plotHeight })}
+                    onMouseLeave={() => setHoveredBar(null)}
+                    style={{ cursor: "default" }}
+                  />
                   {xAxisLabel}
                 </g>
               );
@@ -546,35 +598,101 @@ export function VolumeChart({ data, metric, visibleDays }: Props) {
                 </g>
               );
             })()}
+
+          {/* Tooltip for hovered stacked bar */}
+          {hoveredBar && isProcessed &&
+            (() => {
+              const d = chartData[hoveredBar.idx];
+              if (!d) return null;
+              const rows = d.isFuture
+                ? [
+                    { label: labels.forecasted, value: d.processed.expectedVolume, color: COLORS.expected },
+                  ].filter((r) => isSeriesVisible("expected") && r.value > 0)
+                : [
+                    { label: labels.lost, value: d.processed.lost, color: COLORS.lost },
+                    { label: labels.sortedLate ?? "Sorted late", value: d.processed.sortedLate ?? 0, color: COLORS.sortedLate },
+                    { label: labels.processed, value: d.processed.processed, color: COLORS.processed },
+                    { label: labels.readyToSort, value: d.processed.readyToSort, color: COLORS.readyToSort },
+                  ].filter((r) => {
+                    if (r.value <= 0) return false;
+                    if (r.color === COLORS.lost) return isSeriesVisible("lost");
+                    if (r.color === COLORS.sortedLate) return isSeriesVisible("sortedLate");
+                    if (r.color === COLORS.processed) return isSeriesVisible("processed");
+                    if (r.color === COLORS.readyToSort) return isSeriesVisible("readyToSort");
+                    return true;
+                  });
+              if (rows.length === 0) return null;
+
+              const boxW = 200;
+              const rowH = 20;
+              const padY = 10;
+              const padX = 12;
+              const boxH = padY * 2 + rows.length * rowH + 18;
+              const tailH = 6;
+              const gap = 6;
+              const ty = hoveredBar.topY - gap - tailH - boxH;
+              const tx = Math.max(12, Math.min(hoveredBar.cx - boxW / 2, width - boxW - 12));
+
+              return (
+                <g pointerEvents="none">
+                  <rect x={tx} y={ty} width={boxW} height={boxH} rx={6} fill={chartNeutralColors.ink} />
+                  <text x={tx + padX} y={ty + padY + 12} fill="white" fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>
+                    {d.label}
+                  </text>
+                  {rows.map((r, ri) => (
+                    <g key={ri}>
+                      <rect x={tx + padX} y={ty + padY + 22 + ri * rowH + 4} width={8} height={8} rx={2} fill={r.color} />
+                      <text x={tx + padX + 14} y={ty + padY + 22 + ri * rowH + 12} fill="white" opacity={0.8} fontSize={11} fontFamily="Inter, sans-serif">
+                        {r.label}
+                      </text>
+                      <text x={tx + boxW - padX} y={ty + padY + 22 + ri * rowH + 12} fill="white" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={600} textAnchor="end">
+                        {r.value.toLocaleString()}
+                      </text>
+                    </g>
+                  ))}
+                  <polygon
+                    points={`${hoveredBar.cx - 5},${ty + boxH} ${hoveredBar.cx + 5},${ty + boxH} ${hoveredBar.cx},${ty + boxH + tailH}`}
+                    fill={chartNeutralColors.ink}
+                  />
+                </g>
+              );
+            })()}
         </svg>
       </div>
 
       {/* Legend */}
       <div className="flex min-w-[180px] items-center">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {isProcessed ? (
             <>
               <LegendItem
+                color={COLORS.lost}
+                label={labels.lost}
+                active={isSeriesVisible("lost")}
+                onClick={() => toggleSeries("lost")}
+                infoTooltip="Takes 9 days to finalize. Only days with confirmed data are shown."
+              />
+              <LegendItem
+                color={COLORS.sortedLate}
+                label={labels.sortedLate ?? "Sorted late"}
+                active={isSeriesVisible("sortedLate")}
+                onClick={() => toggleSeries("sortedLate")}
+              />
+              <LegendItem
                 color={COLORS.processed}
-                label="Processed"
+                label={labels.processed}
                 active={isSeriesVisible("processed")}
                 onClick={() => toggleSeries("processed")}
               />
               <LegendItem
-                color={COLORS.lost}
-                label="Lost"
-                active={isSeriesVisible("lost")}
-                onClick={() => toggleSeries("lost")}
-              />
-              <LegendItem
                 color={COLORS.readyToSort}
-                label="Ready to sort"
+                label={labels.readyToSort}
                 active={isSeriesVisible("readyToSort")}
                 onClick={() => toggleSeries("readyToSort")}
               />
               <LegendItem
                 color={COLORS.expected}
-                label="Forecasted"
+                label={labels.forecasted}
                 active={isSeriesVisible("expected")}
                 onClick={() => toggleSeries("expected")}
               />
@@ -637,6 +755,7 @@ function LegendItem({
   targetLine,
   active = true,
   onClick,
+  infoTooltip,
 }: {
   color?: string;
   label: string;
@@ -645,7 +764,9 @@ function LegendItem({
   targetLine?: boolean;
   active?: boolean;
   onClick?: () => void;
+  infoTooltip?: string;
 }) {
+  const [infoOpen, setInfoOpen] = useState(false);
   const content = (
     <>
       {dashed ? (
@@ -681,22 +802,42 @@ function LegendItem({
     </>
   );
 
+  const infoIcon = infoTooltip ? (
+    <div
+      className="relative flex items-center"
+      onMouseEnter={() => setInfoOpen(true)}
+      onMouseLeave={() => setInfoOpen(false)}
+    >
+      <Info className="h-3.5 w-3.5 text-ink-subdued" strokeWidth={1.75} />
+      {infoOpen && (
+        <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[220px] -translate-x-1/2 whitespace-normal rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+          <div className="text-body-sm text-white/80">{infoTooltip}</div>
+          <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
+        </div>
+      )}
+    </div>
+  ) : null;
+
   if (onClick) {
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        aria-pressed={active}
-        className="flex items-center gap-2 rounded-button text-left transition-opacity hover:opacity-80"
-      >
-        {content}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onClick}
+          aria-pressed={active}
+          className="flex items-center gap-2 rounded-button text-left transition-opacity hover:opacity-80"
+        >
+          {content}
+        </button>
+        {infoIcon}
+      </div>
     );
   }
 
   return (
     <div className="flex items-center gap-2">
       {content}
+      {infoIcon}
     </div>
   );
 }

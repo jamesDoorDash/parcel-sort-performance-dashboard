@@ -16,7 +16,7 @@ const Y_TICKS = [0, 50, 100, 150, 200, 250];
 const SERIES_COLORS = {
   blended: chartStateColors.primary,
   small: chartStateColors.secondary,
-  large: chartStateColors.forecasted,
+  large: chartStateColors.bad,
 };
 
 const BLENDED_TOOLTIP = "2lb + parcels count 1.8x.";
@@ -66,15 +66,17 @@ function smoothPath(points: [number, number][]): string {
 // ---- Component ----
 type Props = {
   flowRateWeek: FlowRateWeekData;
+  visibleDays?: Set<string>;
 };
 
-export function FlowRateSection({ flowRateWeek }: Props) {
+export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
   const [itemType, setItemType] = useState<ItemType>("parcels");
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
   const [summaryRate, setSummaryRate] = useState<SummaryRateType>("average");
   const [parcelFlowMode, setParcelFlowMode] = useState<ParcelFlowMode>("stage");
   const [hiddenSeries, setHiddenSeries] = useState<Set<"blendedAverage" | "smallOnly" | "largeOnly">>(new Set());
   const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   const handleItemType = (t: ItemType) => {
     setItemType(t);
@@ -89,13 +91,22 @@ export function FlowRateSection({ flowRateWeek }: Props) {
   const currentCombo = itemType === "pallets"
     ? comboKey("pallets", summaryRate)
     : comboKey("parcels", parcelFlowMode === "stage" ? parcelStage : summaryRate);
-  const data: FlowRateDayBucket[] = flowRateWeek[currentCombo];
+  const FUTURE_CUTOFF = "2026-02-15";
+  const allData: FlowRateDayBucket[] = flowRateWeek[currentCombo];
+  const singleDayMode = visibleDays?.size === 1;
+  const data = singleDayMode
+    ? allData.filter((d) => visibleDays.has(d.date))
+    : allData;
   const n = data.length;
   const slotW = plotW / n;
   const pointX = (i: number) => PAD.left + slotW * i + slotW / 2;
+  const isFutureDay = (i: number) => data[i].date >= FUTURE_CUTOFF;
 
   const points = (key: keyof Pick<FlowRateDayBucket, "blendedAverage" | "smallOnly" | "largeOnly">) =>
-    data.map((d, i): [number, number] => [pointX(i), yPx(d[key])]);
+    data.filter((d) => d.date < FUTURE_CUTOFF).map((d): [number, number] => {
+      const origIdx = data.indexOf(d);
+      return [pointX(origIdx), yPx(d[key])];
+    });
   const isVisible = (series: "blendedAverage" | "smallOnly" | "largeOnly") => !hiddenSeries.has(series);
   const toggleSeries = (series: "blendedAverage" | "smallOnly" | "largeOnly") => {
     setHiddenSeries((current) => {
@@ -109,16 +120,14 @@ export function FlowRateSection({ flowRateWeek }: Props) {
   const tabGroupClass = "inline-flex items-center rounded-button border border-line-hovered bg-white";
   const tabBtnClass = (active: boolean) =>
     cn(
-      "relative -my-px h-[34px] rounded-button px-3 text-body-md-strong transition-colors first:-ml-px last:-mr-px",
-      active ? "z-10 border border-ink bg-white text-ink" : "border border-transparent text-ink-subdued hover:text-ink",
+      "relative -my-px h-[34px] rounded-button px-6 text-body-md-strong transition-colors first:-ml-px last:-mr-px",
+      active ? "z-10 bg-white text-ink ring-2 ring-inset ring-ink" : "text-ink-subdued hover:text-ink",
     );
 
   return (
     <section>
-      <h2 className="mb-5 text-display-md text-ink">Flow rate</h2>
-
       {/* Tab rows */}
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mb-6 flex items-center gap-4">
         {/* Group 1 — Parcels / Pallets */}
         <div className={tabGroupClass}>
           {itemTabs.map((tab) => (
@@ -166,12 +175,13 @@ export function FlowRateSection({ flowRateWeek }: Props) {
       </div>
 
       {/* Chart + legend row */}
-      <div className="flex gap-8">
+      <div className="relative z-10 flex gap-8">
       <div className="flex-1">
       <svg
         viewBox={`0 0 ${CHART_W} ${CHART_H}`}
         className="w-full"
         preserveAspectRatio="xMidYMid meet"
+        overflow="visible"
         role="img"
         aria-label="Flow rate by day"
       >
@@ -237,10 +247,10 @@ export function FlowRateSection({ flowRateWeek }: Props) {
           </text>
         ))}
 
-        {/* Series lines */}
-        {isVisible("largeOnly") && <path d={smoothPath(points("largeOnly"))} fill="none" stroke={SERIES_COLORS.large} strokeWidth={2} />}
-        {isVisible("smallOnly") && <path d={smoothPath(points("smallOnly"))} fill="none" stroke={SERIES_COLORS.small} strokeWidth={2} />}
-        {isVisible("blendedAverage") && <path d={smoothPath(points("blendedAverage"))} fill="none" stroke={SERIES_COLORS.blended} strokeWidth={2.5} />}
+        {/* Series lines (skip in single-day mode) */}
+        {!singleDayMode && isVisible("largeOnly") && <path d={smoothPath(points("largeOnly"))} fill="none" stroke={SERIES_COLORS.large} strokeWidth={2} />}
+        {!singleDayMode && isVisible("smallOnly") && <path d={smoothPath(points("smallOnly"))} fill="none" stroke={SERIES_COLORS.small} strokeWidth={2} />}
+        {!singleDayMode && isVisible("blendedAverage") && <path d={smoothPath(points("blendedAverage"))} fill="none" stroke={SERIES_COLORS.blended} strokeWidth={2.5} />}
 
         {/* Data point dots */}
         {(["blendedAverage", "smallOnly", "largeOnly"] as const).map((key) => {
@@ -251,6 +261,21 @@ export function FlowRateSection({ flowRateWeek }: Props) {
           ));
         })}
 
+        {/* Hover zones per day (non-future only) */}
+        {data.map((d, i) => d.date >= FUTURE_CUTOFF ? null : (
+          <rect
+            key={`hover-${i}`}
+            x={PAD.left + slotW * i}
+            y={PAD.top}
+            width={slotW}
+            height={plotH}
+            fill="transparent"
+            onMouseEnter={() => setHoveredPoint(i)}
+            onMouseLeave={() => setHoveredPoint(null)}
+            style={{ cursor: "default" }}
+          />
+        ))}
+
         {/* Baseline */}
         <line
           x1={PAD.left}
@@ -260,6 +285,52 @@ export function FlowRateSection({ flowRateWeek }: Props) {
           stroke={chartNeutralColors.baseline}
           strokeWidth={1.5}
         />
+
+        {/* Hover tooltip */}
+        {hoveredPoint !== null && (() => {
+          const d = data[hoveredPoint];
+          const cx = pointX(hoveredPoint);
+          const rows = [
+            { label: "Blended average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
+            { label: "Small parcels only", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
+            { label: "Large parcels only", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
+          ].filter((r) => r.visible);
+          if (rows.length === 0) return null;
+
+          const boxW = 210;
+          const rowH = 20;
+          const padY = 10;
+          const padX = 12;
+          const boxH = padY * 2 + rows.length * rowH + 18;
+          const tailH = 6;
+          const minY = Math.min(...rows.map((r) => yPx(r.value)));
+          const ty = minY - 8 - tailH - boxH;
+          const tx = Math.max(12, Math.min(cx - boxW / 2, CHART_W - boxW - 12));
+
+          return (
+            <g pointerEvents="none">
+              <rect x={tx} y={ty} width={boxW} height={boxH} rx={6} fill={chartNeutralColors.ink} />
+              <text x={tx + padX} y={ty + padY + 12} fill="white" fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>
+                {d.label}
+              </text>
+              {rows.map((r, ri) => (
+                <g key={ri}>
+                  <rect x={tx + padX} y={ty + padY + 22 + ri * rowH + 4} width={8} height={8} rx={2} fill={r.color} />
+                  <text x={tx + padX + 14} y={ty + padY + 22 + ri * rowH + 12} fill="white" opacity={0.8} fontSize={11} fontFamily="Inter, sans-serif">
+                    {r.label}
+                  </text>
+                  <text x={tx + boxW - padX} y={ty + padY + 22 + ri * rowH + 12} fill="white" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={600} textAnchor="end">
+                    {Math.round(r.value)} / hr
+                  </text>
+                </g>
+              ))}
+              <polygon
+                points={`${cx - 5},${ty + boxH} ${cx + 5},${ty + boxH} ${cx},${ty + boxH + tailH}`}
+                fill={chartNeutralColors.ink}
+              />
+            </g>
+          );
+        })()}
 
       </svg>
       </div>
@@ -278,15 +349,10 @@ export function FlowRateSection({ flowRateWeek }: Props) {
               aria-pressed={isVisible(key)}
               className="flex items-center gap-2 rounded-button text-left transition-opacity hover:opacity-80"
             >
-              <span className="relative h-3 w-3 shrink-0">
-                <span className="block h-full w-full rounded-[4px]" style={{ backgroundColor: color }} />
-                {!isVisible(key) && (
-                  <span
-                    className="absolute left-1/2 top-1/2 h-[1.5px] w-[18px] -translate-x-1/2 -translate-y-1/2 -rotate-45 bg-ink"
-                    aria-hidden="true"
-                  />
-                )}
-              </span>
+              <span
+                className="block h-4 w-4 shrink-0 rounded-[4px]"
+                style={{ backgroundColor: color, opacity: isVisible(key) ? 1 : 0 }}
+              />
               <span className={cn("whitespace-nowrap text-body-md text-ink", !isVisible(key) && "line-through opacity-60")}>{label}</span>
             </button>
             {showInfo && (
@@ -300,9 +366,8 @@ export function FlowRateSection({ flowRateWeek }: Props) {
                   <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </button>
                 {tooltipOpen && (
-                  <div className="absolute bottom-full left-1/2 z-20 mb-2 w-[280px] -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
-                    <div className="text-body-sm-strong text-white">Blended average</div>
-                    <div className="mt-0.5 text-body-sm text-white/80">{BLENDED_TOOLTIP}</div>
+                  <div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
+                    <div className="text-body-sm text-white/80">{BLENDED_TOOLTIP}</div>
                     <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
                   </div>
                 )}

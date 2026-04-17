@@ -44,6 +44,7 @@ const VERSION_OPTIONS = [
   { value: "V3", label: "V3: One page" },
   { value: "V4", label: "V4: Tabbed" },
   { value: "V5", label: "V5: Chart on top" },
+  { value: "V6", label: "V6: Sectioned" },
 ];
 
 type Props = {

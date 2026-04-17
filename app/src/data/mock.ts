@@ -104,6 +104,7 @@ export type DayBucket = {
   // Processed has a stacked view:
   processed: {
     processed: number;
+    sortedLate?: number;
     lost: number;
     readyToSort: number;
     expectedVolume: number;
@@ -151,7 +152,7 @@ export const weekThis: DayBucket[] = [
     date: "2026-02-09",
     label: "Feb 9",
     weekday: "Mon",
-    processed: { processed: 2150, lost: 60, readyToSort: 0, expectedVolume: 2200 },
+    processed: { processed: 2150, sortedLate: 30, lost: 0, readyToSort: 0, expectedVolume: 2200 },
     values: {
       pallets: 96.4,
       trucksOnTime: 94.1,
@@ -166,7 +167,7 @@ export const weekThis: DayBucket[] = [
     date: "2026-02-10",
     label: "Feb 10",
     weekday: "Tue",
-    processed: { processed: 2170, lost: 60, readyToSort: 0, expectedVolume: 2200 },
+    processed: { processed: 2170, sortedLate: 25, lost: 0, readyToSort: 0, expectedVolume: 2200 },
     values: {
       pallets: 97.1,
       trucksOnTime: 96.0,
@@ -181,7 +182,7 @@ export const weekThis: DayBucket[] = [
     date: "2026-02-11",
     label: "Feb 11",
     weekday: "Wed",
-    processed: { processed: 2340, lost: 71, readyToSort: 0, expectedVolume: 2380 },
+    processed: { processed: 2340, sortedLate: 40, lost: 0, readyToSort: 0, expectedVolume: 2380 },
     values: {
       pallets: 98.3,
       trucksOnTime: 97.2,
@@ -196,7 +197,7 @@ export const weekThis: DayBucket[] = [
     date: "2026-02-12",
     label: "Feb 12",
     weekday: "Thu",
-    processed: { processed: 2040, lost: 52, readyToSort: 0, expectedVolume: 2100 },
+    processed: { processed: 2040, sortedLate: 35, lost: 0, readyToSort: 0, expectedVolume: 2100 },
     values: {
       pallets: 95.6,
       trucksOnTime: 93.4,
@@ -211,7 +212,7 @@ export const weekThis: DayBucket[] = [
     date: "2026-02-13",
     label: "Feb 13",
     weekday: "Fri",
-    processed: { processed: 2330, lost: 68, readyToSort: 0, expectedVolume: 2400 },
+    processed: { processed: 2330, sortedLate: 28, lost: 0, readyToSort: 0, expectedVolume: 2400 },
     values: {
       pallets: 98.8,
       trucksOnTime: 98.5,
@@ -227,7 +228,7 @@ export const weekThis: DayBucket[] = [
     label: "Feb 14",
     weekday: "Sat",
     isPartial: true,
-    processed: { processed: 424, lost: 0, readyToSort: 2074, expectedVolume: 2498 },
+    processed: { processed: 424, sortedLate: 1580, lost: 0, readyToSort: 494, expectedVolume: 2498 },
     values: {
       pallets: 98.0,
       trucksOnTime: 98.0,
@@ -243,7 +244,7 @@ export const weekThis: DayBucket[] = [
     label: "Feb 15",
     weekday: "Sun",
     isFuture: true,
-    processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 2311 },
+    processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 2311 },
     values: {
       pallets: null,
       trucksOnTime: null,
@@ -262,62 +263,62 @@ export const weekLast: DayBucket[] = [
     date: "2026-02-02",
     label: "Feb 2",
     weekday: "Mon",
-    processed: { processed: 2084, lost: 48, readyToSort: 0, expectedVolume: 2150 },
+    processed: { processed: 2084, sortedLate: 28, lost: 48, readyToSort: 0, expectedVolume: 2150 },
     values: { pallets: 97.2, trucksOnTime: 95.3, missort: 0.36, loss: 0.02, preSortSpeed: 131, sortSpeed: 147, loadSpeed: 138 },
   },
   {
     date: "2026-02-03",
     label: "Feb 3",
     weekday: "Tue",
-    processed: { processed: 2290, lost: 62, readyToSort: 0, expectedVolume: 2300 },
+    processed: { processed: 2290, sortedLate: 32, lost: 62, readyToSort: 0, expectedVolume: 2300 },
     values: { pallets: 98.1, trucksOnTime: 96.4, missort: 0.34, loss: 0.02, preSortSpeed: 138, sortSpeed: 152, loadSpeed: 141 },
   },
   {
     date: "2026-02-04",
     label: "Feb 4",
     weekday: "Wed",
-    processed: { processed: 2410, lost: 55, readyToSort: 0, expectedVolume: 2400 },
+    processed: { processed: 2410, sortedLate: 38, lost: 55, readyToSort: 0, expectedVolume: 2400 },
     values: { pallets: 98.6, trucksOnTime: 97.8, missort: 0.28, loss: 0.01, preSortSpeed: 146, sortSpeed: 158, loadSpeed: 144 },
   },
   {
     date: "2026-02-05",
     label: "Feb 5",
     weekday: "Thu",
-    processed: { processed: 2186, lost: 70, readyToSort: 0, expectedVolume: 2250 },
+    processed: { processed: 2186, sortedLate: 44, lost: 70, readyToSort: 0, expectedVolume: 2250 },
     values: { pallets: 96.8, trucksOnTime: 94.7, missort: 0.47, loss: 0.03, preSortSpeed: 130, sortSpeed: 144, loadSpeed: 135 },
   },
   {
     date: "2026-02-06",
     label: "Feb 6",
     weekday: "Fri",
-    processed: { processed: 2388, lost: 64, readyToSort: 0, expectedVolume: 2400 },
+    processed: { processed: 2388, sortedLate: 30, lost: 0, readyToSort: 0, expectedVolume: 2400 },
     values: { pallets: 98.2, trucksOnTime: 96.9, missort: 0.33, loss: 0.02, preSortSpeed: 142, sortSpeed: 155, loadSpeed: 142 },
   },
   {
     date: "2026-02-07",
     label: "Feb 7",
     weekday: "Sat",
-    processed: { processed: 2054, lost: 58, readyToSort: 0, expectedVolume: 2100 },
+    processed: { processed: 2054, sortedLate: 36, lost: 0, readyToSort: 0, expectedVolume: 2100 },
     values: { pallets: 95.1, trucksOnTime: 93.2, missort: 0.54, loss: 0.04, preSortSpeed: 121, sortSpeed: 136, loadSpeed: 128 },
   },
   {
     date: "2026-02-08",
     label: "Feb 8",
     weekday: "Sun",
-    processed: { processed: 1872, lost: 42, readyToSort: 0, expectedVolume: 1900 },
+    processed: { processed: 1872, sortedLate: 22, lost: 0, readyToSort: 0, expectedVolume: 1900 },
     values: { pallets: 94.3, trucksOnTime: 91.8, missort: 0.61, loss: 0.05, preSortSpeed: 115, sortSpeed: 128, loadSpeed: 122 },
   },
 ];
 
 // ---- Week Feb 16 – Feb 22 2026 — "Next week" (future, forecast only) ----
 export const weekNext: DayBucket[] = [
-  { date: "2026-02-16", label: "Feb 16", weekday: "Mon", isFuture: true, processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 2250 }, values: {} },
-  { date: "2026-02-17", label: "Feb 17", weekday: "Tue", isFuture: true, processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 2320 }, values: {} },
-  { date: "2026-02-18", label: "Feb 18", weekday: "Wed", isFuture: true, processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 2410 }, values: {} },
-  { date: "2026-02-19", label: "Feb 19", weekday: "Thu", isFuture: true, processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 2190 }, values: {} },
-  { date: "2026-02-20", label: "Feb 20", weekday: "Fri", isFuture: true, processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 2380 }, values: {} },
-  { date: "2026-02-21", label: "Feb 21", weekday: "Sat", isFuture: true, processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 2050 }, values: {} },
-  { date: "2026-02-22", label: "Feb 22", weekday: "Sun", isFuture: true, processed: { processed: 0, lost: 0, readyToSort: 0, expectedVolume: 1920 }, values: {} },
+  { date: "2026-02-16", label: "Feb 16", weekday: "Mon", isFuture: true, processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 2250 }, values: {} },
+  { date: "2026-02-17", label: "Feb 17", weekday: "Tue", isFuture: true, processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 2320 }, values: {} },
+  { date: "2026-02-18", label: "Feb 18", weekday: "Wed", isFuture: true, processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 2410 }, values: {} },
+  { date: "2026-02-19", label: "Feb 19", weekday: "Thu", isFuture: true, processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 2190 }, values: {} },
+  { date: "2026-02-20", label: "Feb 20", weekday: "Fri", isFuture: true, processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 2380 }, values: {} },
+  { date: "2026-02-21", label: "Feb 21", weekday: "Sat", isFuture: true, processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 2050 }, values: {} },
+  { date: "2026-02-22", label: "Feb 22", weekday: "Sun", isFuture: true, processed: { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 1920 }, values: {} },
 ];
 
 // ---- KPI tile values ----

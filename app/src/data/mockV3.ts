@@ -36,6 +36,7 @@ export type V3MetricCard = {
   };
   value: string;
   placeholderNote?: string;
+  bakeNote?: { title: string; body: string };
   delta?: {
     value: string;
     direction: "up" | "down";
@@ -79,6 +80,8 @@ export type V3RangePayload = {
   waitingWeek: WaitingDayBucket[];
   flowRateWeek: FlowRateWeekData;
   processedWeek: DayBucket[];
+  palletVolumeWeek: DayBucket[];
+  returnVolumeWeek: DayBucket[];
   simpleSeries: Partial<Record<V3MetricId, V3SimpleSeriesDay[]>>;
   visibleDays?: Set<string>;
 };
@@ -151,19 +154,19 @@ const metricDefinitions: V3MetricDefinition[] = [
   },
   {
     id: "parcelDwellTime",
-    label: "Parcel dwell time",
+    label: "Dwelled parcels",
     description: {
-      title: "Parcel dwell time",
-      body: "Aggregate hours parcels spent idle for more than 24 hours in each state with no progress in the selected period.",
+      title: "Dwelled parcels",
+      body: "Number of parcels that have dwelled for more than 24 hours in the selected period.",
     },
-    unit: "hours",
+    unit: "count",
     chartKind: "waiting",
-    target: 180,
+    target: 0,
     lowerIsBetter: true,
-    chartLabel: "Waiting backlog",
-    formatValue: (value) => `${Math.round(value)} hrs`,
-    formatDelta: (value) => `${Math.abs(Math.round(value))} hrs`,
-    summarize: maxSummary,
+    chartLabel: "Dwelled parcels",
+    formatValue: (value) => `${Math.round(value)}`,
+    formatDelta: (value) => `${Math.abs(Math.round(value))}`,
+    summarize: averageSummary,
   },
   {
     id: "parcelSortRate",
@@ -405,6 +408,68 @@ const processedByWeek: Record<V3WeekKey, DayBucket[]> = {
   nextWeek: weekNext,
 };
 
+/** Derive pallet volume data from parcel data (~15% of parcel volume) */
+function derivePalletVolume(parcelWeek: DayBucket[]): DayBucket[] {
+  return parcelWeek.map((d) => {
+    const scale = 0.035;
+    const dispatched = Math.round(d.processed.processed * scale);
+    const missloaded = Math.round(d.processed.lost * scale * 0.5);
+    const ready = Math.round(d.processed.readyToSort * scale);
+    const expected = Math.round(d.processed.expectedVolume * scale);
+    return {
+      ...d,
+      processed: {
+        processed: dispatched,
+        lost: missloaded,
+        readyToSort: ready,
+        expectedVolume: expected,
+      },
+    };
+  });
+}
+
+/** Derive return volume data — some days zero, others 5-35 */
+const RETURN_PATTERNS: number[][] = [
+  [12, 0, 28, 7, 0, 19, 0],   // lastWeek
+  [0, 15, 0, 33, 22, 0, 8],   // thisWeek
+  [25, 0, 11, 0, 0, 18, 30],  // nextWeek
+];
+let returnPatternIdx = 0;
+
+function deriveReturnVolume(parcelWeek: DayBucket[]): DayBucket[] {
+  const pattern = RETURN_PATTERNS[returnPatternIdx % RETURN_PATTERNS.length];
+  returnPatternIdx++;
+  return parcelWeek.map((d, i) => {
+    const total = pattern[i] ?? 0;
+    const lost = total > 0 ? Math.min(2, Math.round(total * 0.05)) : 0;
+    const returned = Math.max(0, total - lost);
+    const ready = d.isFuture ? Math.round(total * 0.8) : 0;
+    const expected = d.isFuture ? total : 0;
+    return {
+      ...d,
+      processed: {
+        processed: returned,
+        sortedLate: 0,
+        lost,
+        readyToSort: ready,
+        expectedVolume: expected,
+      },
+    };
+  });
+}
+
+const palletVolumeByWeek: Record<V3WeekKey, DayBucket[]> = {
+  lastWeek: derivePalletVolume(weekLast),
+  thisWeek: derivePalletVolume(weekThis),
+  nextWeek: derivePalletVolume(weekNext),
+};
+
+const returnVolumeByWeek: Record<V3WeekKey, DayBucket[]> = {
+  lastWeek: deriveReturnVolume(weekLast),
+  thisWeek: deriveReturnVolume(weekThis),
+  nextWeek: deriveReturnVolume(weekNext),
+};
+
 export const rangePayloadsV3: Record<Exclude<DateRangeKey, "custom">, V3RangePayload> = {
   today: createPayload("thisWeek", new Set(["2026-02-14"]), "Feb 14"),
   thisWeek: createPayload("thisWeek", undefined, "This week"),
@@ -446,6 +511,8 @@ function createPayload(week: V3WeekKey, visibleDays: Set<string> | undefined, la
     waitingWeek: waitingByWeek[week],
     flowRateWeek: flowRateByWeek[week],
     processedWeek: processedByWeek[week],
+    palletVolumeWeek: palletVolumeByWeek[week],
+    returnVolumeWeek: returnVolumeByWeek[week],
     simpleSeries: simpleSeriesByWeek[week],
     visibleDays,
   };
@@ -492,12 +559,14 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
   }
 
   if (definition.id === "parcelDwellTime") {
+    // Derive parcel counts dwelling >24hrs from waiting hours data
+    const DWELL_COUNTS = [3, 0, 8, 12, 5, 0, 7];
     const days = waitingByWeek[week]
       .filter((day) => !visibleDays || visibleDays.has(day.date))
-      .map((day) => ({
+      .map((day, i) => ({
         date: day.date,
         label: day.label,
-        value: day.waitingForSort + day.waitingOnPallet,
+        value: DWELL_COUNTS[i % DWELL_COUNTS.length],
         isFuture: day.isFuture,
       }));
     const observedDays = days.filter((day) => !day.isFuture);
@@ -541,12 +610,40 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
 
   const summary = definition.summarize(observedDays);
 
+  // Check if some days in the range are still baking
+  let bakeNote: string | undefined;
+  if (definition.bakeDays && definition.bakeDays > 1) {
+    const nonFutureDays = days.filter((day) => !day.isFuture);
+    const pendingDays = nonFutureDays.filter((day) => isPendingDay(day.date, definition.bakeDays));
+    if (pendingDays.length > 0) {
+      const fmtShort = (iso: string) => {
+        const d = new Date(`${iso}T00:00:00`);
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      };
+      const latestPending = pendingDays.reduce((a, b) => (a.date > b.date ? a : b));
+      const fullDataDate = new Date(`${latestPending.date}T00:00:00`);
+      fullDataDate.setDate(fullDataDate.getDate() + definition.bakeDays);
+      const readyLabel = fullDataDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const rangeLabel = (arr: typeof observedDays) => {
+        if (arr.length === 0) return "";
+        if (arr.length === 1) return fmtShort(arr[0].date);
+        return `${fmtShort(arr[0].date)} – ${fmtShort(arr[arr.length - 1].date)}`;
+      };
+
+      bakeNote = {
+        title: `${definition.label} takes ${definition.bakeDays} days to finalize`,
+        body: `Showing ${rangeLabel(observedDays)}. Full results for this period by ${readyLabel}.`,
+      };
+    }
+  }
+
   return {
     id: definition.id,
     label: definition.label,
     labelTooltip: definition.description,
     value: definition.formatValue(summary.value, { denominator: summary.denominator }),
     delta: createDelta(definition, summary.value),
+    bakeNote,
   };
 }
 

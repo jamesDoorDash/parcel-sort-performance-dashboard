@@ -18,7 +18,7 @@ type Props = {
   sorters: SorterV2[];
 };
 
-const WEIGHTED_RATE_TOOLTIP = "2lb + parcels count 1.8x in weighted rates.";
+const WEIGHTED_RATE_TOOLTIP = "2lb+ parcels count 1.8x.";
 
 function HeaderCell({
   label,
@@ -61,7 +61,7 @@ function HeaderCell({
               <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
             {tooltipOpen && (
-              <div className="absolute top-full left-1/2 z-30 mt-2 w-[260px] -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+              <div className="absolute top-full left-1/2 z-30 mt-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
                 <div className="text-body-sm text-white/80">{WEIGHTED_RATE_TOOLTIP}</div>
                 <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent" />
               </div>
@@ -104,9 +104,9 @@ export function SortersTableV3({ sorters }: Props) {
   return (
     <div>
       <div className="mb-3 flex items-end justify-between">
-        <h3 className="text-body-md-strong text-ink">{sorters.length} sorters active</h3>
+        <h3 className="text-body-lg-strong text-ink">{sorters.length} sorters active</h3>
         <div className="flex items-end gap-1 text-body-sm text-ink-subdued">
-          <span className="text-body-md-strong text-ink">
+          <span className="text-body-lg-strong text-ink">
             {meetingCount} / {sorters.length}
           </span>
           <span>meeting targets</span>

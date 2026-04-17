@@ -95,14 +95,14 @@ export function KpiTile({ kpi, selected, onClick }: Props) {
       )}
 
       {/* Partial / placeholder caption */}
-      {!kpi.alertNote && (kpi.partialNote || (isPlaceholder && kpi.placeholderNote)) && (
+      {!kpi.alertNote && kpi.partialNote && (
         <div
           className="relative mt-auto flex items-center gap-1.5 text-body-sm text-ink-subdued"
           onMouseEnter={() => hasFooterTooltip && setFooterTooltipOpen(true)}
           onMouseLeave={() => setFooterTooltipOpen(false)}
         >
           <Info className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-          <span>{kpi.partialNote ?? kpi.placeholderNote}</span>
+          <span>{kpi.partialNote}</span>
 
           {/* Tooltip */}
           {hasFooterTooltip && footerTooltipOpen && kpi.tooltip && (
