@@ -344,7 +344,7 @@ export function PerformancePageV7() {
   const toggleSection = (id: string) => setOpenSection((prev) => (prev === id ? null : id));
 
   return (
-    <div className="flex h-full flex-col overflow-auto">
+    <div className="flex h-full flex-col overflow-y-scroll">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
         <h1 className="text-display-lg text-ink">Performance</h1>
 

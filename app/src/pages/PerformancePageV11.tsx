@@ -136,9 +136,9 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           </span>
         )}
         {deltaTooltipOpen && card.delta?.tooltip && (
-          <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-max rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+          <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 w-max -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
             <div className="text-body-sm text-white/80">{card.delta.tooltip}</div>
-            <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
+            <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
           </div>
         )}
       </div>
@@ -349,7 +349,7 @@ export function PerformancePageV11() {
   const toggleSection = (id: string) => setOpenSection((prev) => (prev === id ? null : id));
 
   return (
-    <div className="flex h-full flex-col overflow-auto">
+    <div className="flex h-full flex-col overflow-y-scroll">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
         <h1 className="text-display-lg text-ink">Performance</h1>
 

@@ -184,7 +184,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
 
   return (
     <div className="flex gap-8">
-      <div className="flex-1">
+      <div className="relative flex-1">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full"
@@ -599,65 +599,77 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
               );
             })()}
 
-          {/* Tooltip for hovered stacked bar */}
-          {hoveredBar && isProcessed &&
-            (() => {
-              const d = chartData[hoveredBar.idx];
-              if (!d) return null;
-              const rows = d.isFuture
-                ? [
-                    { label: labels.forecasted, value: d.processed.expectedVolume, color: COLORS.expected },
-                  ].filter((r) => isSeriesVisible("expected") && r.value > 0)
-                : [
-                    { label: labels.lost, value: d.processed.lost, color: COLORS.lost },
-                    { label: labels.sortedLate ?? "Sorted late", value: d.processed.sortedLate ?? 0, color: COLORS.sortedLate },
-                    { label: labels.processed, value: d.processed.processed, color: COLORS.processed },
-                    { label: labels.readyToSort, value: d.processed.readyToSort, color: COLORS.readyToSort },
-                  ].filter((r) => {
-                    if (r.value <= 0) return false;
-                    if (r.color === COLORS.lost) return isSeriesVisible("lost");
-                    if (r.color === COLORS.sortedLate) return isSeriesVisible("sortedLate");
-                    if (r.color === COLORS.processed) return isSeriesVisible("processed");
-                    if (r.color === COLORS.readyToSort) return isSeriesVisible("readyToSort");
-                    return true;
-                  });
-              if (rows.length === 0) return null;
-
-              const boxW = 200;
-              const rowH = 20;
-              const padY = 10;
-              const padX = 12;
-              const boxH = padY * 2 + rows.length * rowH + 18;
-              const tailH = 6;
-              const gap = 6;
-              const ty = hoveredBar.topY - gap - tailH - boxH;
-              const tx = Math.max(12, Math.min(hoveredBar.cx - boxW / 2, width - boxW - 12));
-
-              return (
-                <g pointerEvents="none">
-                  <rect x={tx} y={ty} width={boxW} height={boxH} rx={6} fill={chartNeutralColors.ink} />
-                  <text x={tx + padX} y={ty + padY + 12} fill="white" fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>
-                    {d.label}
-                  </text>
-                  {rows.map((r, ri) => (
-                    <g key={ri}>
-                      <rect x={tx + padX} y={ty + padY + 22 + ri * rowH + 4} width={8} height={8} rx={2} fill={r.color} />
-                      <text x={tx + padX + 14} y={ty + padY + 22 + ri * rowH + 12} fill="white" opacity={0.8} fontSize={11} fontFamily="Inter, sans-serif">
-                        {r.label}
-                      </text>
-                      <text x={tx + boxW - padX} y={ty + padY + 22 + ri * rowH + 12} fill="white" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={600} textAnchor="end">
-                        {r.value.toLocaleString()}
-                      </text>
-                    </g>
-                  ))}
-                  <polygon
-                    points={`${hoveredBar.cx - 5},${ty + boxH} ${hoveredBar.cx + 5},${ty + boxH} ${hoveredBar.cx},${ty + boxH + tailH}`}
-                    fill={chartNeutralColors.ink}
-                  />
-                </g>
-              );
-            })()}
+          {/* Bar tooltip moved to HTML layer below */}
         </svg>
+        {/* HTML bar tooltip — rendered outside SVG for proper z-index */}
+        {hoveredBar && isProcessed &&
+          (() => {
+            const d = chartData[hoveredBar.idx];
+            if (!d) return null;
+            const rows = d.isFuture
+              ? [
+                  { label: labels.forecasted, value: d.processed.expectedVolume, color: COLORS.expected },
+                ].filter((r) => isSeriesVisible("expected") && r.value > 0)
+              : [
+                  { label: labels.lost, value: d.processed.lost, color: COLORS.lost },
+                  { label: labels.sortedLate ?? "Sorted late", value: d.processed.sortedLate ?? 0, color: COLORS.sortedLate },
+                  { label: labels.processed, value: d.processed.processed, color: COLORS.processed },
+                  { label: labels.readyToSort, value: d.processed.readyToSort, color: COLORS.readyToSort },
+                ].filter((r) => {
+                  if (r.value <= 0) return false;
+                  if (r.color === COLORS.lost) return isSeriesVisible("lost");
+                  if (r.color === COLORS.sortedLate) return isSeriesVisible("sortedLate");
+                  if (r.color === COLORS.processed) return isSeriesVisible("processed");
+                  if (r.color === COLORS.readyToSort) return isSeriesVisible("readyToSort");
+                  return true;
+                });
+            if (rows.length === 0) return null;
+
+            const boxW = 200;
+            const rowH = 20;
+            const padY = 10;
+            const boxH = padY * 2 + rows.length * rowH + 18;
+            const tailH = 6;
+            const gap = 6;
+            const ty = hoveredBar.topY - gap - tailH - boxH;
+            const tx = Math.max(12, Math.min(hoveredBar.cx - boxW / 2, width - boxW - 12));
+
+            return (
+              <div
+                className="pointer-events-none absolute z-50"
+                style={{
+                  left: `${(tx / width) * 100}%`,
+                  top: `${(ty / height) * 100}%`,
+                  width: `${(boxW / width) * 100}%`,
+                }}
+              >
+                <div className="rounded-[6px] px-3 py-2.5 text-left shadow-lg" style={{ backgroundColor: chartNeutralColors.ink }}>
+                  <div className="text-[12px] font-semibold text-white">{d.label}</div>
+                  <div className="mt-1.5 space-y-1">
+                    {rows.map((r, ri) => (
+                      <div key={ri} className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <span className="block h-2 w-2 rounded-sm" style={{ backgroundColor: r.color }} />
+                          <span className="text-[11px] text-white/80">{r.label}</span>
+                        </div>
+                        <span className="text-[11px] font-semibold text-white">{r.value.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  className="absolute h-0 w-0"
+                  style={{
+                    left: `${((hoveredBar.cx - tx) / boxW) * 100}%`,
+                    transform: "translateX(-50%)",
+                    borderLeft: "5px solid transparent",
+                    borderRight: "5px solid transparent",
+                    borderTop: `${tailH}px solid ${chartNeutralColors.ink}`,
+                  }}
+                />
+              </div>
+            );
+          })()}
       </div>
 
       {/* Legend */}
