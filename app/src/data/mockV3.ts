@@ -707,7 +707,7 @@ function createDelta(definition: V3MetricDefinition, value: number) {
   const formatted = definition.formatDelta(rawDifference);
   const isOnTarget = Number(formatted.replace(/[^0-9.]/g, "")) === 0;
   if (isOnTarget) {
-    return { value: "On target", direction: "up" as const, tone: "neutral" as const };
+    return { value: "on target", direction: "up" as const, tone: "neutral" as const };
   }
   const metTarget = definition.lowerIsBetter ? value <= definition.target : value >= definition.target;
   return {

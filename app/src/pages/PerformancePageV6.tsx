@@ -135,7 +135,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         </span>
         {card.delta && (
           isNeutral ? (
-            <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">On target</span>
+            <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">on target</span>
           ) : (
             <span className={cn("flex items-baseline gap-1 text-[0.8125rem] leading-[1.2] font-semibold", deltaTone)}>
               <DeltaTriangle direction={card.delta.direction} />
@@ -220,7 +220,7 @@ function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3M
     labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
-      ? { value: "On target", direction: "up" as const, tone: "neutral" as const }
+      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
       : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
   };
 }
@@ -243,7 +243,7 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
     labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
-      ? { value: "On target", direction: "up" as const, tone: "neutral" as const }
+      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
       : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
   };
 }
@@ -266,7 +266,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
     labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
-      ? { value: "On target", direction: "up" as const, tone: "neutral" as const }
+      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
       : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
   };
 }
