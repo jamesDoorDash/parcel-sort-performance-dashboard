@@ -138,6 +138,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         {deltaTooltipOpen && card.delta?.tooltip && (
           <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-max rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
             <div className="text-body-sm text-white/80">{card.delta.tooltip}</div>
+            <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
           </div>
         )}
       </div>

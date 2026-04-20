@@ -184,7 +184,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
 
   return (
     <div className="flex gap-8">
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         <svg
           viewBox={`0 0 ${width} ${height}`}
           className="w-full"
