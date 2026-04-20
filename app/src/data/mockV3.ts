@@ -612,7 +612,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
 
   // Check if some days in the range are still baking
   let bakeNote: { title: string; body: string } | undefined;
-  if (definition.bakeDays && definition.bakeDays > 1) {
+  if (definition.bakeDays && definition.bakeDays >= 1) {
     const nonFutureDays = days.filter((day) => !day.isFuture);
     const pendingDays = nonFutureDays.filter((day) => isPendingDay(day.date, definition.bakeDays));
     if (pendingDays.length > 0) {

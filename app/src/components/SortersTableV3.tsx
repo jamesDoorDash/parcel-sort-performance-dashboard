@@ -104,7 +104,7 @@ export function SortersTableV3({ sorters }: Props) {
   return (
     <div>
       <div className="mb-3 flex items-end justify-between">
-        <h3 className="text-body-lg-strong text-ink">{sorters.length} sorters active</h3>
+        <h3 className="text-body-lg-strong text-ink">{sorters.length} workers active</h3>
         <div className="flex items-end gap-1 text-body-sm text-ink-subdued">
           <span className="text-body-lg-strong text-ink">
             {meetingCount} / {sorters.length}

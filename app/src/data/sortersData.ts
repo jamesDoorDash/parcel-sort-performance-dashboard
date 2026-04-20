@@ -5,6 +5,7 @@
 // averaged over the days they worked in that range.
 
 import type { Sorter } from "./mock";
+import { TODAY_ISO } from "./mock";
 import { sorterTargets } from "./targets";
 
 const NAMES = [
@@ -169,7 +170,10 @@ function dayMetrics(personId: string, day: string) {
 
 // ---- Public API ----
 export function getSortersForRange(startIso: string, endIso: string): Sorter[] {
-  const daysInRange = ALL_DAYS.filter((d) => d >= startIso && d <= endIso);
+  // Clamp to "today" — no performance data exists for future dates
+  const clampedEnd = endIso > TODAY_ISO ? TODAY_ISO : endIso;
+  if (startIso > TODAY_ISO) return [];
+  const daysInRange = ALL_DAYS.filter((d) => d >= startIso && d <= clampedEnd);
   if (daysInRange.length === 0) return [];
 
   // Union of people who worked at least one day in the range → days worked per person
