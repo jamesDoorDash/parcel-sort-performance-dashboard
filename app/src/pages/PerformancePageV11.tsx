@@ -172,7 +172,7 @@ function CollapsibleSection({
         <h2 className="text-body-lg-strong text-ink">{title}</h2>
         <ChevronDown className={cn("h-5 w-5 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
       </div>
-      <div className="px-6 pb-5 pt-1">{metrics}</div>
+      <div className="relative z-10 px-6 pb-5 pt-1">{metrics}</div>
       {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
     </section>
   );
