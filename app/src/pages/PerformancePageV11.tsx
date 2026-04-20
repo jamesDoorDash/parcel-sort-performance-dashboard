@@ -83,17 +83,9 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 /*  Section-level KPI card (non-selectable, display-only)              */
 /* ------------------------------------------------------------------ */
 
-function DeltaTriangle({ direction }: { direction: "up" | "down" }) {
-  return (
-    <svg aria-hidden viewBox="0 0 8 8" className={cn("h-4 w-4 shrink-0", direction === "down" && "rotate-180")} fill="currentColor">
-      <path d="M4 1 7 6H1z" />
-    </svg>
-  );
-}
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const isNeutral = card.delta?.tone === "neutral";
-  const deltaTone = isNeutral ? "text-ink-subdued" : card.delta?.tone === "positive" ? "text-positive" : "text-negative";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [bakeTooltipOpen, setBakeTooltipOpen] = useState(false);
@@ -144,9 +136,9 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           </span>
         )}
         {deltaTooltipOpen && card.delta?.tooltip && (
-          <div className="pointer-events-none absolute top-full left-0 z-50 mt-2 w-max rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+          <div className="pointer-events-none absolute bottom-full left-0 z-50 mb-2 w-max rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
             <div className="text-body-sm text-white/80">{card.delta.tooltip}</div>
-            <div className="absolute bottom-full left-4 h-0 w-0 border-b-[6px] border-r-[6px] border-l-[6px] border-b-[#111318] border-r-transparent border-l-transparent" />
+            <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
           </div>
         )}
       </div>
