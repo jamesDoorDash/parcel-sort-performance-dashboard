@@ -670,7 +670,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
                 label={labels.lost}
                 active={isSeriesVisible("lost")}
                 onClick={() => toggleSeries("lost")}
-                infoTooltip="Takes 9 days to finalize. Only days with confirmed data are shown."
+                infoTooltip="Takes 9 days to finalize. Only days with confirmed data are shown"
               />
               <LegendItem
                 color={COLORS.sortedLate}

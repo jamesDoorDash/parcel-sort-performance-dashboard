@@ -18,6 +18,8 @@ export type V3MetricId =
   | "parcelDwellTime"
   | "parcelSortRate"
   | "parcelsReturnedOnTime"
+  | "returnsScannedToPallet"
+  | "returnPalletScannedToTruck"
   | "palletsScannedToTruck"
   | "palletsLoadedOnTime"
   | "palletsMissloaded"
@@ -40,7 +42,7 @@ export type V3MetricCard = {
   delta?: {
     value: string;
     direction: "up" | "down";
-    tone: "positive" | "negative";
+    tone: "positive" | "negative" | "neutral";
   } | null;
   selected?: boolean;
 };
@@ -92,7 +94,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Parcels processed",
     description: {
       title: "Parcels processed",
-      body: "Number of parcels successfully sorted and outbounded versus the expected parcel volume in the selected period.",
+      body: "Number of parcels successfully sorted and outbounded versus the expected parcel volume in the selected period",
     },
     unit: "count",
     chartKind: "processed",
@@ -105,7 +107,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Parcels sorted on time",
     description: {
       title: "Parcels sorted on time",
-      body: "Percent of parcels sorted before the sort deadline in the selected period.",
+      body: "Percent of parcels sorted before the sort deadline in the selected period",
     },
     unit: "percent",
     chartKind: "simple",
@@ -121,7 +123,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Parcel missort rate",
     description: {
       title: "Parcels missorted",
-      body: "Percent of parcels that were scanned or placed into the wrong area during sorting.",
+      body: "Percent of parcels that were scanned or placed into the wrong area during sorting",
     },
     unit: "percent",
     chartKind: "simple",
@@ -139,7 +141,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Parcel loss rate",
     description: {
       title: "Parcels lost",
-      body: "Percent of parcels that still have not appeared in the expected area after 9 days with no further scans.",
+      body: "Percent of parcels that still have not appeared in the expected area after 9 days with no further scans",
     },
     unit: "percent",
     chartKind: "simple",
@@ -157,7 +159,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Dwelled parcels",
     description: {
       title: "Dwelled parcels",
-      body: "Number of parcels that have dwelled for more than 24 hours in the selected period.",
+      body: "Number of parcels that have dwelled for more than 24 hours in the selected period",
     },
     unit: "count",
     chartKind: "waiting",
@@ -173,7 +175,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Parcel sort rate",
     description: {
       title: "Parcel sort rate",
-      body: "Average number of parcels sorted per labor hour during active sort time in the selected period.",
+      body: "Average number of parcels sorted per labor hour during active sort time in the selected period",
     },
     unit: "rate",
     chartKind: "flowBreakout",
@@ -189,7 +191,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Parcels returned on time",
     description: {
       title: "Parcels returned on time",
-      body: "Percent of parcels successfully returned in the selected period. Some days may have no expected return parcels.",
+      body: "Percent of parcels successfully returned in the selected period. Some days may have no expected return parcels",
     },
     unit: "percent",
     chartKind: "simple",
@@ -201,11 +203,43 @@ const metricDefinitions: V3MetricDefinition[] = [
     summarize: averageSummary,
   },
   {
+    id: "returnsScannedToPallet",
+    label: "Returns scanned to pallet",
+    description: {
+      title: "Returns scanned to pallet",
+      body: "Percent of return parcels successfully scanned to a return pallet in the selected period",
+    },
+    unit: "percent",
+    chartKind: "simple",
+    target: 98,
+    chartLabel: "Return scan-to-pallet rate",
+    targetLabel: "98%",
+    formatValue: (value) => `${value.toFixed(1)}%`,
+    formatDelta: (value) => `${Math.abs(value).toFixed(1)}%`,
+    summarize: averageSummary,
+  },
+  {
+    id: "returnPalletScannedToTruck",
+    label: "Return pallets scanned to truck",
+    description: {
+      title: "Return pallets scanned to truck",
+      body: "Percent of return pallets successfully scanned to a truck in the selected period",
+    },
+    unit: "percent",
+    chartKind: "simple",
+    target: 98,
+    chartLabel: "Return pallet scan-to-truck rate",
+    targetLabel: "98%",
+    formatValue: (value) => `${value.toFixed(1)}%`,
+    formatDelta: (value) => `${Math.abs(value).toFixed(1)}%`,
+    summarize: averageSummary,
+  },
+  {
     id: "palletsScannedToTruck",
     label: "Pallets scanned to truck",
     description: {
       title: "Pallets scanned to truck",
-      body: "Percent of pallets successfully scanned to the correct truck before outbound.",
+      body: "Percent of pallets successfully scanned to the correct truck before outbound",
     },
     unit: "percent",
     chartKind: "simple",
@@ -221,7 +255,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Pallets loaded on time",
     description: {
       title: "Pallets loaded on time",
-      body: "Percent of outbound pallets loaded before their scheduled dispatch readiness cutoff.",
+      body: "Percent of outbound pallets loaded before their scheduled dispatch readiness cutoff",
     },
     unit: "percent",
     chartKind: "simple",
@@ -237,7 +271,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Pallets missloaded",
     description: {
       title: "Pallets missloaded",
-      body: "Percent of pallets that ended up at the wrong facility.",
+      body: "Percent of pallets that ended up at the wrong facility",
     },
     unit: "percent",
     chartKind: "simple",
@@ -255,7 +289,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Pallet load rate",
     description: {
       title: "Pallet load rate",
-      body: "Average number of pallets loaded onto trucks per labor hour during active load time in the selected period.",
+      body: "Average number of pallets loaded onto trucks per labor hour during active load time in the selected period",
     },
     unit: "rate",
     chartKind: "simple",
@@ -271,7 +305,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     label: "Trucks departed on time",
     description: {
       title: "Trucks departed on time",
-      body: "Percent of trucks that were loaded and left the facility before their critical pull time.",
+      body: "Percent of trucks that were loaded and left the facility before their critical pull time",
     },
     unit: "percent",
     chartKind: "simple",
@@ -330,6 +364,24 @@ const thisWeekSimpleSeries: Record<Exclude<V3MetricId, "parcelsProcessed" | "par
     day("2026-02-14", "Feb 14", 98.4, { isPartial: true }),
     day("2026-02-15", "Feb 15", 98.9, { isFuture: true }),
   ],
+  returnsScannedToPallet: [
+    day("2026-02-09", "Feb 9", 97.5),
+    day("2026-02-10", "Feb 10", 98.1),
+    day("2026-02-11", "Feb 11", 98.6),
+    day("2026-02-12", "Feb 12", 96.8),
+    day("2026-02-13", "Feb 13", 97.9),
+    day("2026-02-14", "Feb 14", 97.2, { isPartial: true }),
+    day("2026-02-15", "Feb 15", 98.0, { isFuture: true }),
+  ],
+  returnPalletScannedToTruck: [
+    day("2026-02-09", "Feb 9", 98.2),
+    day("2026-02-10", "Feb 10", 97.8),
+    day("2026-02-11", "Feb 11", 98.9),
+    day("2026-02-12", "Feb 12", 97.1),
+    day("2026-02-13", "Feb 13", 98.4),
+    day("2026-02-14", "Feb 14", 97.6, { isPartial: true }),
+    day("2026-02-15", "Feb 15", 98.3, { isFuture: true }),
+  ],
   palletsScannedToTruck: [
     day("2026-02-09", "Feb 9", 99.6),
     day("2026-02-10", "Feb 10", 99.8),
@@ -378,10 +430,10 @@ const thisWeekSimpleSeries: Record<Exclude<V3MetricId, "parcelsProcessed" | "par
 };
 
 const lastWeekSimpleSeries = shiftSeries(thisWeekSimpleSeries, [
-  0.2, -0.1, 0.01, 3, 0.3, 0.2, 0.4, 0.02, 2, 0.2,
+  0.2, -0.1, 0.01, 3, 0.3, 0.3, 0.2, 0.2, 0.4, 0.02, 2, 0.2,
 ]);
 const nextWeekSimpleSeries = shiftSeries(thisWeekSimpleSeries, [
-  0.1, -0.01, -0.0, 2, 0.2, 0.1, 0.2, -0.01, 1, 0.1,
+  0.1, -0.01, -0.0, 2, 0.2, 0.1, 0.15, 0.1, 0.2, -0.01, 1, 0.1,
 ], true);
 
 const simpleSeriesByWeek: Record<V3WeekKey, Partial<Record<V3MetricId, V3SimpleSeriesDay[]>>> = {
@@ -652,9 +704,14 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
 function createDelta(definition: V3MetricDefinition, value: number) {
   if (definition.target === undefined || !definition.formatDelta) return null;
   const rawDifference = value - definition.target;
+  const formatted = definition.formatDelta(rawDifference);
+  const isOnTarget = Number(formatted.replace(/[^0-9.]/g, "")) === 0;
+  if (isOnTarget) {
+    return { value: "On target", direction: "up" as const, tone: "neutral" as const };
+  }
   const metTarget = definition.lowerIsBetter ? value <= definition.target : value >= definition.target;
   return {
-    value: definition.formatDelta(rawDifference),
+    value: formatted,
     direction: metTarget ? "up" : "down",
     tone: metTarget ? "positive" : "negative",
   } as const;

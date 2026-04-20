@@ -92,7 +92,8 @@ function DeltaTriangle({ direction }: { direction: "up" | "down" }) {
 }
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
-  const deltaTone = card.delta?.tone === "positive" ? "text-positive" : "text-negative";
+  const isNeutral = card.delta?.tone === "neutral";
+  const deltaTone = isNeutral ? "text-ink-subdued" : card.delta?.tone === "positive" ? "text-positive" : "text-negative";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [bakeTooltipOpen, setBakeTooltipOpen] = useState(false);
@@ -133,11 +134,15 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           {card.value}
         </span>
         {card.delta && (
-          <span className={cn("flex items-baseline gap-1 text-[0.8125rem] leading-[1.2] font-semibold", deltaTone)}>
-            <DeltaTriangle direction={card.delta.direction} />
-            <span>{card.delta.value}</span>
-            <span className="font-normal text-ink-subdued">vs. target</span>
-          </span>
+          isNeutral ? (
+            <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">On target</span>
+          ) : (
+            <span className={cn("flex items-baseline gap-1 text-[0.8125rem] leading-[1.2] font-semibold", deltaTone)}>
+              <DeltaTriangle direction={card.delta.direction} />
+              <span>{card.delta.value}</span>
+              <span className="font-normal text-ink-subdued">vs. target</span>
+            </span>
+          )
         )}
       </div>
     </div>
@@ -206,19 +211,17 @@ function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3M
   const delta = avg - target;
 
   if (observed.length === 0) {
-    return { id: "parcelPreSortRate", label: "Pre-sort rate", labelTooltip: { title: "Pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period." }, value: "-- / hr", delta: null };
+    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" }, value: "-- / hr", delta: null };
   }
 
   return {
     id: "parcelPreSortRate",
-    label: "Pre-sort rate",
-    labelTooltip: { title: "Pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period." },
+    label: "Parcel pre-sort rate",
+    labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
-    delta: {
-      value: `${Math.abs(Math.round(delta))}`,
-      direction: avg >= target ? "up" : "down",
-      tone: avg >= target ? "positive" : "negative",
-    },
+    delta: Math.round(delta) === 0
+      ? { value: "On target", direction: "up" as const, tone: "neutral" as const }
+      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
   };
 }
 
@@ -228,7 +231,7 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   const target = 140;
 
   if (observed.length === 0) {
-    return { id: "parcelSortRate", label: "Sort rate", labelTooltip: { title: "Sort rate", body: "Average parcels sorted to pallet per hour across the selected period." }, value: "-- / hr", delta: null };
+    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -236,14 +239,12 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 
   return {
     id: "parcelSortRate",
-    label: "Sort rate",
-    labelTooltip: { title: "Sort rate", body: "Average parcels sorted to pallet per hour across the selected period." },
+    label: "Parcel sort to pallet rate",
+    labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
-    delta: {
-      value: `${Math.abs(Math.round(delta))}`,
-      direction: avg >= target ? "up" : "down",
-      tone: avg >= target ? "positive" : "negative",
-    },
+    delta: Math.round(delta) === 0
+      ? { value: "On target", direction: "up" as const, tone: "neutral" as const }
+      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
   };
 }
 
@@ -253,7 +254,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   const target = 55;
 
   if (observed.length === 0) {
-    return { id: "palletLoadRate", label: "Load rate", labelTooltip: { title: "Load rate", body: "Average pallets loaded to truck per hour across the selected period." }, value: "-- / hr", delta: null };
+    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -261,14 +262,12 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 
   return {
     id: "palletLoadRate",
-    label: "Load rate",
-    labelTooltip: { title: "Load rate", body: "Average pallets loaded to truck per hour across the selected period." },
+    label: "Pallet load rate",
+    labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
-    delta: {
-      value: `${Math.abs(Math.round(delta))}`,
-      direction: avg >= target ? "up" : "down",
-      tone: avg >= target ? "positive" : "negative",
-    },
+    delta: Math.round(delta) === 0
+      ? { value: "On target", direction: "up" as const, tone: "neutral" as const }
+      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
   };
 }
 
@@ -435,7 +434,7 @@ export function PerformancePageV6() {
             <FlowRateSection flowRateWeek={payload.flowRateWeek} visibleDays={payload.visibleDays} />
           ) : undefined}
           metrics={
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-4 gap-6">
               {flowRateCards.map((c) => <SectionKpiCard key={c.id} card={c} />)}
             </div>
           }

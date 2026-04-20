@@ -226,27 +226,27 @@ function kv2(
 const metricLabelTooltips = {
   parcelsCompleted: {
     title: "Parcels completed",
-    body: "Parcels fully processed so far versus the total expected in the selected period.",
+    body: "Parcels fully processed so far versus the total expected in the selected period",
   },
   parcelErrorRate: {
     title: "Parcel error rate",
-    body: "Share of parcels with an operational exception, like late sorting, missorts, or loss.",
+    body: "Share of parcels with an operational exception, like late sorting, missorts, or loss",
   },
   palletErrorRate: {
     title: "Pallet error rate",
-    body: "Share of pallets with an exception, usually delayed palletizing or pallet missorts.",
+    body: "Share of pallets with an exception, usually delayed palletizing or pallet missorts",
   },
   parcelDwellTime: {
     title: "Parcel dwell time",
-    body: "Total time parcels spend waiting in the hub before moving to the next step.",
+    body: "Total time parcels spend waiting in the hub before moving to the next step",
   },
   trucksDepartedOnTime: {
     title: "Trucks departed on time",
-    body: "Percent of controllable truck departures that left within the planned dispatch window.",
+    body: "Percent of controllable truck departures that left within the planned dispatch window",
   },
   parcelsReturnedOnTime: {
     title: "Parcels returned on time",
-    body: "Percent of return parcels handed back to the network by the promised cutoff.",
+    body: "Percent of return parcels handed back to the network by the promised cutoff",
   },
 } satisfies Record<string, { title: string; body: string }>;
 
@@ -351,7 +351,7 @@ export const kpisV2ThisWeek: V2Kpi[] = [
       partialNote: "Feb 9 – Feb 13 data only",
       tooltip: {
         title: "Incomplete data for Feb 9 – Feb 15",
-        body: "Full parcel error rate will be available on Feb 16.",
+        body: "Full parcel error rate will be available on Feb 16",
       },
     },
   ),
@@ -364,7 +364,7 @@ export const kpisV2ThisWeek: V2Kpi[] = [
       partialNote: "Feb 9 – Feb 13 data only",
       tooltip: {
         title: "Incomplete data for Feb 9 – Feb 15",
-        body: "Full pallet error rate will be available on Feb 16.",
+        body: "Full pallet error rate will be available on Feb 16",
       },
     },
   ),
@@ -544,6 +544,7 @@ export type SorterV2 = {
   parcelsLost: number;
   palletRate: number;
   palletsLoaded: number;
+  idleTime: number;
   meetsTargets: boolean;
   belowTargetMetric?: "parcelPreSortRate" | "parcelSortRate" | "palletRate" | "parcelsMissorted" | "parcelsLost" | null;
 };
@@ -562,6 +563,10 @@ export function toSorterV2(s: Sorter, days = 1): SorterV2 {
   const palletLoadSeed = hashStr(`${s.id}-${days}`);
   const palletLoadVariance = (palletLoadSeed % 19) - 9;
   const palletsLoaded = Math.max(24, Math.round(s.load * 1.55 * days + palletLoadVariance));
+  // Idle time: 0.5–2.0 hrs per day, seeded per person
+  const idleSeed = hashStr(`${s.id}-idle-${days}`);
+  const idlePerDay = 0.5 + (idleSeed % 16) / 10; // 0.5 to 2.0
+  const idleTime = Number((idlePerDay * days).toFixed(1));
 
   return {
     id: s.id,
@@ -574,6 +579,7 @@ export function toSorterV2(s: Sorter, days = 1): SorterV2 {
     parcelsLost: Math.max(0, Math.round(parcelsSorted * s.loss / 100)),
     palletRate: s.load,
     palletsLoaded,
+    idleTime,
     meetsTargets: true,
     belowTargetMetric: null,
   };

@@ -20,9 +20,9 @@ const SERIES_COLORS = {
 };
 
 const LEGEND_TOOLTIPS: Record<string, string> = {
-  blendedAverage: "2lb + parcels count 1.8x.",
-  smallOnly: "Parcels under 2 lbs.",
-  largeOnly: "Parcels over 2 lbs.",
+  blendedAverage: "Parcels greater than 2 lbs count 1.8x towards sort rate",
+  smallOnly: "Parcels under 2 lbs",
+  largeOnly: "Parcels over 2 lbs",
 };
 
 // ---- Tab definitions ----

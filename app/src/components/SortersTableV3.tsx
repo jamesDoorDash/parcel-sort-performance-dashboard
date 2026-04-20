@@ -12,13 +12,14 @@ type SortKey =
   | "parcelsLost"
   | "palletRate"
   | "palletsLoaded"
+  | "idleTime"
   | "meetsTargets";
 
 type Props = {
   sorters: SorterV2[];
 };
 
-const WEIGHTED_RATE_TOOLTIP = "2lb+ parcels count 1.8x.";
+const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
 
 function HeaderCell({
   label,
@@ -27,6 +28,7 @@ function HeaderCell({
   sortDir,
   onSort,
   showInfo,
+  infoTooltip,
 }: {
   label: string;
   sortKey: SortKey;
@@ -34,6 +36,7 @@ function HeaderCell({
   sortDir: "asc" | "desc";
   onSort: (key: SortKey) => void;
   showInfo?: boolean;
+  infoTooltip?: string;
 }) {
   const active = activeSortKey === sortKey;
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -61,8 +64,8 @@ function HeaderCell({
               <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
             </button>
             {tooltipOpen && (
-              <div className="absolute top-full left-1/2 z-30 mt-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
-                <div className="text-body-sm text-white/80">{WEIGHTED_RATE_TOOLTIP}</div>
+              <div className="absolute top-full left-1/2 z-30 mt-2 w-[260px] -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+                <div className="text-body-sm text-white/80">{infoTooltip ?? WEIGHTED_RATE_TOOLTIP}</div>
                 <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent" />
               </div>
             )}
@@ -125,6 +128,7 @@ export function SortersTableV3({ sorters }: Props) {
               <HeaderCell label="Lost" sortKey="parcelsLost" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <HeaderCell label="Load rate" sortKey="palletRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <HeaderCell label="Pallets loaded" sortKey="palletsLoaded" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <HeaderCell label="Idle time" sortKey="idleTime" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip="Time a worker is signed in but not actively sorting, loading, or scanning" />
               <HeaderCell label="Target status" sortKey="meetsTargets" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
             </tr>
           </thead>
@@ -164,6 +168,7 @@ export function SortersTableV3({ sorters }: Props) {
                   {sorter.palletRate} / hr
                 </td>
                 <td className="whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink">{sorter.palletsLoaded}</td>
+                <td className="whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink">{sorter.idleTime} hrs</td>
                 <td className="whitespace-nowrap border-b border-line px-4 py-3">
                   {sorter.meetsTargets ? (
                     <span className="inline-flex items-center gap-1 rounded-tag bg-positive-bg px-2 py-0.5 text-body-sm-strong text-positive">
