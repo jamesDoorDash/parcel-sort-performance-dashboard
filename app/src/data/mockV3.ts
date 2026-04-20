@@ -43,6 +43,7 @@ export type V3MetricCard = {
     value: string;
     direction: "up" | "down";
     tone: "positive" | "negative" | "neutral";
+    tooltip?: string;
   } | null;
   selected?: boolean;
 };
@@ -707,13 +708,19 @@ function createDelta(definition: V3MetricDefinition, value: number) {
   const formatted = definition.formatDelta(rawDifference);
   const isOnTarget = Number(formatted.replace(/[^0-9.]/g, "")) === 0;
   if (isOnTarget) {
-    return { value: "on target", direction: "up" as const, tone: "neutral" as const };
+    const targetFormatted = definition.formatValue(definition.target);
+    return { value: "on target", direction: "up" as const, tone: "neutral" as const, tooltip: `Matching target of ${targetFormatted}` };
   }
   const metTarget = definition.lowerIsBetter ? value <= definition.target : value >= definition.target;
+  const targetFormatted = definition.formatValue(definition.target);
+  const tooltip = metTarget
+    ? `${formatted} above target of ${targetFormatted}`
+    : `${formatted} below target of ${targetFormatted}`;
   return {
     value: formatted,
     direction: metTarget ? "up" : "down",
     tone: metTarget ? "positive" : "negative",
+    tooltip,
   } as const;
 }
 

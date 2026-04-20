@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { AlertTriangle, ChevronDown, Info } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { FlowRateSection } from "../components/FlowRateSection";
@@ -95,6 +95,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const isNeutral = card.delta?.tone === "neutral";
   const deltaTone = isNeutral ? "text-ink-subdued" : card.delta?.tone === "positive" ? "text-positive" : "text-negative";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
+  const isOffTarget = card.delta?.tone === "negative";
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [bakeTooltipOpen, setBakeTooltipOpen] = useState(false);
 
@@ -113,7 +114,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           </div>
         )}
       </div>
-      <div className="mt-[7px] flex items-baseline gap-[10px] whitespace-nowrap">
+      <div className="mt-[7px] flex items-baseline gap-2 whitespace-nowrap">
         {card.bakeNote && (
           <div
             className="relative self-center"
@@ -137,13 +138,20 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           isNeutral ? (
             <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">on target</span>
           ) : (
-            <span className={cn("flex items-baseline gap-1", deltaTone)}>
-              <span className="text-[1.125rem] leading-[1.1] font-semibold"><svg aria-hidden viewBox="0 0 8 7" className={cn("mr-1 inline h-3 w-3 align-baseline translate-y-[1px]", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>{card.delta.value}</span>
-              <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">vs. target</span>
+            <span className={cn("flex items-baseline gap-1 text-[0.8125rem] leading-[1.2] font-semibold", deltaTone)}>
+              <DeltaTriangle direction={card.delta.direction} />
+              <span>{card.delta.value}</span>
+              <span className="font-normal text-ink-subdued">vs. target</span>
             </span>
           )
         )}
       </div>
+      {isOffTarget && (
+        <div className="mt-2 inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-body-sm-strong text-negative">
+          <AlertTriangle className="h-3 w-3" strokeWidth={2.25} />
+          <span>Below target</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -274,7 +282,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV7() {
+export function PerformancePageV9() {
   const [range, setRange] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),

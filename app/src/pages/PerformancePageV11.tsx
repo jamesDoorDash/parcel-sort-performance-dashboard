@@ -85,7 +85,7 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 
 function DeltaTriangle({ direction }: { direction: "up" | "down" }) {
   return (
-    <svg aria-hidden viewBox="0 0 8 8" className={cn("h-2 w-2 shrink-0", direction === "down" && "rotate-180")} fill="currentColor">
+    <svg aria-hidden viewBox="0 0 8 8" className={cn("h-4 w-4 shrink-0", direction === "down" && "rotate-180")} fill="currentColor">
       <path d="M4 1 7 6H1z" />
     </svg>
   );
@@ -97,6 +97,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [bakeTooltipOpen, setBakeTooltipOpen] = useState(false);
+  const [deltaTooltipOpen, setDeltaTooltipOpen] = useState(false);
 
   return (
     <div className="flex flex-col items-start">
@@ -113,7 +114,11 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           </div>
         )}
       </div>
-      <div className="mt-[7px] flex items-baseline gap-[10px] whitespace-nowrap">
+      <div
+        className="relative mt-[7px] flex items-baseline gap-3 whitespace-nowrap cursor-default"
+        onMouseEnter={() => card.delta?.tooltip && setDeltaTooltipOpen(true)}
+        onMouseLeave={() => setDeltaTooltipOpen(false)}
+      >
         {card.bakeNote && (
           <div
             className="relative self-center"
@@ -133,15 +138,16 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         <span className={cn("text-[1.5rem] leading-[1.1] font-semibold tracking-[-0.02em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
           {card.value}
         </span>
-        {card.delta && (
-          isNeutral ? (
-            <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">on target</span>
-          ) : (
-            <span className={cn("flex items-baseline gap-1", deltaTone)}>
-              <span className="text-[1.125rem] leading-[1.1] font-semibold"><svg aria-hidden viewBox="0 0 8 7" className={cn("mr-1 inline h-3 w-3 align-baseline translate-y-[1px]", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>{card.delta.value}</span>
-              <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">vs. target</span>
-            </span>
-          )
+        {card.delta && !isNeutral && (
+          <span className={cn("inline-flex items-baseline rounded-md px-2 py-0.5", card.delta.tone === "positive" ? "bg-positive-bg text-positive" : "bg-negative-bg text-negative")}>
+            <span className="text-[1rem] leading-[1.1] font-semibold"><svg aria-hidden viewBox="0 0 8 7" className={cn("mr-1 inline h-[10px] w-[10px] align-baseline translate-y-[1px]", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>{card.delta.value}</span>
+          </span>
+        )}
+        {deltaTooltipOpen && card.delta?.tooltip && (
+          <div className="pointer-events-none absolute top-full left-0 z-50 mt-2 w-max rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+            <div className="text-body-sm text-white/80">{card.delta.tooltip}</div>
+            <div className="absolute bottom-full left-4 h-0 w-0 border-b-[6px] border-r-[6px] border-l-[6px] border-b-[#111318] border-r-transparent border-l-transparent" />
+          </div>
         )}
       </div>
     </div>
@@ -219,8 +225,8 @@ function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3M
     labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
-      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
-      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
+      ? { value: "on target", direction: "up" as const, tone: "neutral" as const, tooltip: `Matching target of ${target} / hr` }
+      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const, tooltip: `${Math.abs(Math.round(delta))} ${avg >= target ? "above" : "below"} target of ${target} / hr` },
   };
 }
 
@@ -242,8 +248,8 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
     labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
-      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
-      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
+      ? { value: "on target", direction: "up" as const, tone: "neutral" as const, tooltip: `Matching target of ${target} / hr` }
+      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const, tooltip: `${Math.abs(Math.round(delta))} ${avg >= target ? "above" : "below"} target of ${target} / hr` },
   };
 }
 
@@ -265,8 +271,8 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
     labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
-      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
-      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
+      ? { value: "on target", direction: "up" as const, tone: "neutral" as const, tooltip: `Matching target of ${target} / hr` }
+      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const, tooltip: `${Math.abs(Math.round(delta))} ${avg >= target ? "above" : "below"} target of ${target} / hr` },
   };
 }
 
@@ -274,7 +280,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV7() {
+export function PerformancePageV11() {
   const [range, setRange] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),

@@ -39,13 +39,17 @@ const nav: NavItem[] = [
 ];
 
 const VERSION_OPTIONS = [
-  { value: "V1", label: "V1: Original" },
-  { value: "V2", label: "V2: Rate separated" },
+  { value: "V1", label: "V1: Original", hidden: true },
+  { value: "V2", label: "V2: Rate separated", hidden: true },
   { value: "V3", label: "V3: One page" },
-  { value: "V4", label: "V4: Tabbed" },
-  { value: "V5", label: "V5: Chart on top" },
+  { value: "V4", label: "V4: Tabbed", hidden: true },
+  { value: "V5", label: "V5: Chart on top", hidden: true },
   { value: "V6", label: "V6: Sectioned" },
   { value: "V7", label: "V7: Metrics above chart" },
+  { value: "V8", label: "V8: Red left border", hidden: true },
+  { value: "V9", label: "V9: Status pill", hidden: true },
+  { value: "V10", label: "V10: Delta tag", hidden: true },
+  { value: "V11", label: "V11: Tag w/ hover" },
 ];
 
 type Props = {
@@ -57,6 +61,7 @@ type Props = {
 
 export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
   const [trucksOpen, setTrucksOpen] = useState(true);
+  const [showAll, setShowAll] = useState(false);
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-line bg-white">
@@ -146,9 +151,14 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
       <div className="border-t border-line px-4 py-4 space-y-1">
         {/* Prototype version selector */}
         <div className="rounded-card bg-ink px-3 py-3 shadow-sm">
-          <p className="mb-2 text-body-sm text-white/70">Prototype version</p>
+          <div className="mb-2 flex items-baseline justify-between">
+            <p className="text-body-sm text-white/70">Prototype version</p>
+            <button type="button" onClick={() => setShowAll((s) => !s)} className="text-body-sm text-white underline hover:text-white/80 transition-colors">
+              {showAll ? "Show less" : "Show all"}
+            </button>
+          </div>
           <fieldset className="space-y-1">
-            {VERSION_OPTIONS.map((option) => {
+            {VERSION_OPTIONS.filter((o) => showAll || !o.hidden).map((option) => {
               const checked = option.value === version;
               return (
                 <label
