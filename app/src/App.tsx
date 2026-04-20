@@ -6,12 +6,13 @@ import { PerformancePageV3 } from "./pages/PerformancePageV3";
 import { PerformancePageV4 } from "./pages/PerformancePageV4";
 import { PerformancePageV5 } from "./pages/PerformancePageV5";
 import { PerformancePageV6 } from "./pages/PerformancePageV6";
+import { PerformancePageV7 } from "./pages/PerformancePageV7";
 
 function getInitialVersion() {
   if (typeof window === "undefined") return "V3";
 
   const value = new URLSearchParams(window.location.search).get("version");
-  return value && ["V1", "V2", "V3", "V4", "V5", "V6"].includes(value) ? value : "V6";
+  return value && ["V1", "V2", "V3", "V4", "V5", "V6", "V7"].includes(value) ? value : "V7";
 }
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
   if (version === "V4") page = <PerformancePageV4 />;
   if (version === "V5") page = <PerformancePageV5 />;
   if (version === "V6") page = <PerformancePageV6 />;
+  if (version === "V7") page = <PerformancePageV7 />;
 
   return (
     <div className="flex h-screen w-screen bg-white text-ink">

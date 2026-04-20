@@ -19,7 +19,11 @@ const SERIES_COLORS = {
   large: chartStateColors.bad,
 };
 
-const BLENDED_TOOLTIP = "2lb + parcels count 1.8x.";
+const LEGEND_TOOLTIPS: Record<string, string> = {
+  blendedAverage: "2lb + parcels count 1.8x.",
+  smallOnly: "Parcels under 2 lbs.",
+  largeOnly: "Parcels over 2 lbs.",
+};
 
 // ---- Tab definitions ----
 type ItemType = "parcels" | "pallets";
@@ -75,7 +79,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
   const [summaryRate, setSummaryRate] = useState<SummaryRateType>("average");
   const [parcelFlowMode, setParcelFlowMode] = useState<ParcelFlowMode>("stage");
   const [hiddenSeries, setHiddenSeries] = useState<Set<"blendedAverage" | "smallOnly" | "largeOnly">>(new Set());
-  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState<string | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
   const handleItemType = (t: ItemType) => {
@@ -337,10 +341,10 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
       {/* Legend — vertical column to the right of chart */}
       <div className="flex min-w-[180px] flex-col gap-4 pt-6">
         {[
-          { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Blended average", showInfo: true },
-          { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Small parcels only", showInfo: false },
-          { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Large parcels only", showInfo: false },
-        ].map(({ key, color, label, showInfo }) => (
+          { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Blended average" },
+          { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Small parcels only" },
+          { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Large parcels only" },
+        ].map(({ key, color, label }) => (
           <div key={label} className="flex items-center gap-2">
             <button
               type="button"
@@ -354,19 +358,19 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
               />
               <span className={cn("whitespace-nowrap text-body-md text-ink", !isVisible(key) && "line-through opacity-60")}>{label}</span>
             </button>
-            {showInfo && (
+            {LEGEND_TOOLTIPS[key] && (
               <div className="relative">
                 <button
                   type="button"
                   className="flex items-center text-ink-subdued"
-                  onMouseEnter={() => setTooltipOpen(true)}
-                  onMouseLeave={() => setTooltipOpen(false)}
+                  onMouseEnter={() => setTooltipOpen(key)}
+                  onMouseLeave={() => setTooltipOpen(null)}
                 >
                   <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
                 </button>
-                {tooltipOpen && (
+                {tooltipOpen === key && (
                   <div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
-                    <div className="text-body-sm text-white/80">{BLENDED_TOOLTIP}</div>
+                    <div className="text-body-sm text-white/80">{LEGEND_TOOLTIPS[key]}</div>
                     <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
                   </div>
                 )}

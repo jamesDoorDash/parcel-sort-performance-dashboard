@@ -45,6 +45,7 @@ const VERSION_OPTIONS = [
   { value: "V4", label: "V4: Tabbed" },
   { value: "V5", label: "V5: Chart on top" },
   { value: "V6", label: "V6: Sectioned" },
+  { value: "V7", label: "V7: Metrics above chart" },
 ];
 
 type Props = {
@@ -167,7 +168,7 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
                     onChange={() => onVersionChange(option.value)}
                     className="h-4 w-4 accent-ink"
                   />
-                  <span className={checked ? "text-body-md-strong" : "text-body-md"}>
+                  <span className={checked ? "text-body-sm-strong" : "text-body-sm"}>
                     {option.label}
                   </span>
                 </label>

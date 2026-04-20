@@ -620,8 +620,9 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
         const d = new Date(`${iso}T00:00:00`);
         return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       };
-      const latestPending = pendingDays.reduce((a, b) => (a.date > b.date ? a : b));
-      const fullDataDate = new Date(`${latestPending.date}T00:00:00`);
+      // Use the last day in the full range (including future) to compute when all data is ready
+      const lastDayInRange = days.reduce((a, b) => (a.date > b.date ? a : b));
+      const fullDataDate = new Date(`${lastDayInRange.date}T00:00:00`);
       fullDataDate.setDate(fullDataDate.getDate() + definition.bakeDays);
       const readyLabel = fullDataDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
       const rangeLabel = (arr: typeof observedDays) => {
@@ -629,9 +630,10 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
         if (arr.length === 1) return fmtShort(arr[0].date);
         return `${fmtShort(arr[0].date)} – ${fmtShort(arr[arr.length - 1].date)}`;
       };
+      const daysWord = definition.bakeDays === 1 ? "day" : "days";
 
       bakeNote = {
-        title: `${definition.label} takes ${definition.bakeDays} days to finalize`,
+        title: `${definition.label} takes ${definition.bakeDays} ${daysWord} to finalize`,
         body: `Showing ${rangeLabel(observedDays)}. Full results for this period by ${readyLabel}.`,
       };
     }
