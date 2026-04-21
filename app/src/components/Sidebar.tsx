@@ -148,9 +148,9 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
       </nav>
 
       {/* Footer — version selector + collapse */}
-      <div className="border-t border-line px-4 py-4 space-y-1">
-        {/* Prototype version selector */}
-        <div className="rounded-card bg-ink px-3 py-3 shadow-sm">
+      <div className="relative border-t border-line px-4 py-4 space-y-1">
+        {/* Prototype version selector — grows upward */}
+        <div className="absolute bottom-14 left-4 right-4 rounded-card bg-ink px-3 py-3 shadow-sm">
           <div className="mb-2 flex items-baseline justify-between">
             <p className="text-body-sm text-white/70">Prototype version</p>
             <button type="button" onClick={() => setShowAll((s) => !s)} className="text-body-sm text-white underline hover:text-white/80 transition-colors">
