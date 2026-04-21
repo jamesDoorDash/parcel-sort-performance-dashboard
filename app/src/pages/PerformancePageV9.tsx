@@ -101,6 +101,10 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
 
   return (
     <div className="flex flex-col items-start">
+      <div className={cn("inline-flex items-center gap-1 rounded-tag px-2 py-0.5 text-body-sm-strong", isOffTarget ? "bg-negative-bg text-negative" : "invisible")}>
+        <AlertTriangle className="h-3 w-3" strokeWidth={2.25} />
+        <span>Below target</span>
+      </div>
       <div
         className="relative"
         onMouseEnter={() => setTooltipOpen(true)}
@@ -114,7 +118,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           </div>
         )}
       </div>
-      <div className="mt-[7px] flex items-baseline gap-2 whitespace-nowrap">
+      <div className="mt-[7px] flex items-baseline gap-[10px] whitespace-nowrap">
         {card.bakeNote && (
           <div
             className="relative self-center"
@@ -138,20 +142,13 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           isNeutral ? (
             <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">on target</span>
           ) : (
-            <span className={cn("flex items-baseline gap-1 text-[0.8125rem] leading-[1.2] font-semibold", deltaTone)}>
-              <DeltaTriangle direction={card.delta.direction} />
-              <span>{card.delta.value}</span>
-              <span className="font-normal text-ink-subdued">vs. target</span>
+            <span className={cn("flex items-baseline gap-1", deltaTone)}>
+              <span className="text-[1.125rem] leading-[1.1] font-semibold"><svg aria-hidden viewBox="0 0 8 7" className={cn("mr-1 inline h-3 w-3 align-baseline translate-y-[1px]", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>{card.delta.value}</span>
+              <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">vs. target</span>
             </span>
           )
         )}
       </div>
-      {isOffTarget && (
-        <div className="mt-2 inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-body-sm-strong text-negative">
-          <AlertTriangle className="h-3 w-3" strokeWidth={2.25} />
-          <span>Below target</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -176,13 +173,13 @@ function CollapsibleSection({
   return (
     <section className="overflow-visible rounded-card border border-line-hovered bg-white shadow-card">
       <div
-        className="flex w-full cursor-pointer items-center justify-between px-6 pt-5 pb-4"
+        className="flex w-full cursor-pointer items-center justify-between px-6 pt-5 pb-2"
         onClick={onToggle}
       >
         <h2 className="text-body-lg-strong text-ink">{title}</h2>
         <ChevronDown className={cn("h-5 w-5 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
       </div>
-      <div className="px-6 pb-5 pt-1">{metrics}</div>
+      <div className="px-6 pb-5 pt-0">{metrics}</div>
       {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
     </section>
   );
