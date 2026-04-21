@@ -114,8 +114,8 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         {card.bakeNote && (
           <div
             className="relative self-center"
-            onMouseEnter={() => setBakeTooltipOpen(true)}
-            onMouseLeave={() => setBakeTooltipOpen(false)}
+            onMouseEnter={() => { setBakeTooltipOpen(true); setDeltaTooltipOpen(false); }}
+            onMouseLeave={() => { setBakeTooltipOpen(false); if (card.delta?.tooltip) setDeltaTooltipOpen(true); }}
           >
             <Info className="h-3.5 w-3.5 text-ink" strokeWidth={1.75} />
             {bakeTooltipOpen && (
