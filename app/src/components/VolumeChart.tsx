@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Info } from "lucide-react";
+import { Info, Trash2 } from "lucide-react";
 import type { DayBucket, MetricConfig, MetricKey } from "../data/mock";
 import { getDayStatus } from "../data/mock";
 import { cn } from "../lib/cn";
@@ -103,15 +103,25 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
     cx: number;
     cy: number;
   } | null>(null);
-  const isSeriesVisible = (series: ProcessedSeriesKey) => !hiddenSeries.has(series);
+  const [hoveredSeries, setHoveredSeries] = useState<ProcessedSeriesKey | null>(null);
+  const allProcessedKeys: ProcessedSeriesKey[] = ["processed", "sortedLate", "lost", "readyToSort", "expected"];
+  const isSeriesVisible = (series: ProcessedSeriesKey) =>
+    !hiddenSeries.has(series) && (hoveredSeries == null || hoveredSeries === series);
+  const isSeriesActive = (series: ProcessedSeriesKey) => !hiddenSeries.has(series);
   const toggleSeries = (series: ProcessedSeriesKey) => {
     setHiddenSeries((current) => {
-      const next = new Set(current);
-      if (next.has(series)) next.delete(series);
-      else next.add(series);
+      if (current.has(series)) {
+        // Clicking a hidden item unhides it
+        const next = new Set(current);
+        next.delete(series);
+        return next;
+      }
+      // Clicking a visible item hides all others
+      const next = new Set(allProcessedKeys.filter((k) => k !== series));
       return next;
     });
   };
+  const hiddenCount = hiddenSeries.size;
 
   // ---- Compute y-axis max ----
   const maxValue = useMemo(() => {
@@ -157,7 +167,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
     // rounded up to the nearest 10.
     const rawMax = Math.max(...values, metric.target);
     return Math.ceil(rawMax / 10) * 10;
-  }, [chartData, metric, isProcessed, hiddenSeries]);
+  }, [chartData, metric, isProcessed, hiddenSeries, hoveredSeries]);
 
   const ticks = useMemo(() => {
     const step = maxValue / 5;
@@ -674,39 +684,49 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
 
       {/* Legend */}
       <div className="flex min-w-[180px] items-center">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
           {isProcessed ? (
             <>
               <LegendItem
                 color={COLORS.lost}
                 label={labels.lost}
-                active={isSeriesVisible("lost")}
+                active={isSeriesActive("lost")}
                 onClick={() => toggleSeries("lost")}
+                onMouseEnter={() => !hiddenSeries.has("lost") && setHoveredSeries("lost")}
+                onMouseLeave={() => setHoveredSeries(null)}
                 infoTooltip="Takes 9 days to finalize. Only days with confirmed data are shown"
               />
               <LegendItem
                 color={COLORS.sortedLate}
                 label={labels.sortedLate ?? "Sorted late"}
-                active={isSeriesVisible("sortedLate")}
+                active={isSeriesActive("sortedLate")}
                 onClick={() => toggleSeries("sortedLate")}
+                onMouseEnter={() => !hiddenSeries.has("sortedLate") && setHoveredSeries("sortedLate")}
+                onMouseLeave={() => setHoveredSeries(null)}
               />
               <LegendItem
                 color={COLORS.processed}
                 label={labels.processed}
-                active={isSeriesVisible("processed")}
+                active={isSeriesActive("processed")}
                 onClick={() => toggleSeries("processed")}
+                onMouseEnter={() => !hiddenSeries.has("processed") && setHoveredSeries("processed")}
+                onMouseLeave={() => setHoveredSeries(null)}
               />
               <LegendItem
                 color={COLORS.readyToSort}
                 label={labels.readyToSort}
-                active={isSeriesVisible("readyToSort")}
+                active={isSeriesActive("readyToSort")}
                 onClick={() => toggleSeries("readyToSort")}
+                onMouseEnter={() => !hiddenSeries.has("readyToSort") && setHoveredSeries("readyToSort")}
+                onMouseLeave={() => setHoveredSeries(null)}
               />
               <LegendItem
                 color={COLORS.expected}
                 label={labels.forecasted}
-                active={isSeriesVisible("expected")}
+                active={isSeriesActive("expected")}
                 onClick={() => toggleSeries("expected")}
+                onMouseEnter={() => !hiddenSeries.has("expected") && setHoveredSeries("expected")}
+                onMouseLeave={() => setHoveredSeries(null)}
               />
             </>
           ) : (
@@ -718,6 +738,18 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels }: Props) 
               )}
               <LegendItem targetLine label={`Target ${metric.format(metric.target)}`} />
             </>
+          )}
+          {isProcessed && (
+            <div className={cn("mt-2", hiddenCount > 0 ? "" : "invisible")}>
+              <button
+                type="button"
+                onClick={() => setHiddenSeries(new Set())}
+                className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 transition-all hover:bg-surface-hovered"
+              >
+                <Trash2 className="h-4 w-4 shrink-0 text-ink" strokeWidth={1.75} />
+                <span className="text-body-md text-ink">{hiddenCount} {hiddenCount === 1 ? "filter" : "filters"} active</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -767,6 +799,8 @@ function LegendItem({
   targetLine,
   active = true,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   infoTooltip,
 }: {
   color?: string;
@@ -776,6 +810,8 @@ function LegendItem({
   targetLine?: boolean;
   active?: boolean;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   infoTooltip?: string;
 }) {
   const [infoOpen, setInfoOpen] = useState(false);
@@ -836,8 +872,10 @@ function LegendItem({
         <button
           type="button"
           onClick={onClick}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           aria-pressed={active}
-          className="flex items-center gap-2 rounded-button text-left transition-opacity hover:opacity-80"
+          className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 text-left transition-all hover:bg-surface-hovered"
         >
           {content}
         </button>

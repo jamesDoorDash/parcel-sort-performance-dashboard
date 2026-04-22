@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   BarChart3,
@@ -41,15 +41,29 @@ const nav: NavItem[] = [
 const VERSION_OPTIONS = [
   { value: "V1", label: "V1: Original", hidden: true },
   { value: "V2", label: "V2: Rate separated", hidden: true },
-  { value: "V3", label: "V3: One page" },
+  { value: "V3", label: "V3: One page", hidden: true },
   { value: "V4", label: "V4: Tabbed", hidden: true },
   { value: "V5", label: "V5: Chart on top", hidden: true },
-  { value: "V6", label: "V6: Sectioned" },
-  { value: "V7", label: "V7: Metrics above chart" },
+  { value: "V6", label: "V6: Sectioned", hidden: true },
+  { value: "V7", label: "V7: Metrics above chart", hidden: true },
   { value: "V8", label: "V8: Red left border", hidden: true },
   { value: "V9", label: "V9: Status pill", hidden: true },
   { value: "V10", label: "V10: Delta tag", hidden: true },
-  { value: "V11", label: "V11: Tag w/ hover" },
+  { value: "V11", label: "V11: Tag w/ hover", hidden: true },
+  { value: "V12", label: "V12: Post Crit", hidden: true },
+  { value: "V13", label: "V13: Off track tag", hidden: true },
+  { value: "V14", label: "V14: Metric cards", hidden: true },
+  { value: "V15", label: "V15: Status dot", hidden: true },
+  { value: "V16", label: "V16: Left color bar", hidden: true },
+  { value: "V17", label: "V17: Extreme tag call out" },
+  { value: "V18", label: "V18: Background tint", hidden: true },
+  { value: "V19", label: "V19: V7 delta sizing", hidden: true },
+  { value: "V20", label: "V20: Red-only delta", hidden: true },
+  { value: "V21", label: "V21: V12 red-only", hidden: true },
+  { value: "V22", label: "V22: Red num, gray text", hidden: true },
+  { value: "V23", label: "V23: Normal tag" },
+  { value: "V24", label: "V24: Full red bold line" },
+  { value: "V25", label: "V25: Merchant subsystem" },
 ];
 
 type Props = {
@@ -60,8 +74,23 @@ type Props = {
 };
 
 export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
-  const [trucksOpen, setTrucksOpen] = useState(true);
+  const [trucksOpen, setTrucksOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+      e.preventDefault();
+      const list = VERSION_OPTIONS.filter((o) => showAll || !o.hidden).map((o) => o.value);
+      const idx = list.indexOf(version);
+      if (e.key === "ArrowDown") onVersionChange(list[Math.min(idx + 1, list.length - 1)]);
+      else onVersionChange(list[Math.max(idx - 1, 0)]);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [version, showAll, onVersionChange]);
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-line bg-white">
@@ -72,7 +101,7 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
       </div>
 
       {/* Primary nav */}
-      <nav className="flex-1 px-4">
+      <nav className="flex-1 overflow-hidden px-4">
         {nav.map((item) => {
           const isActive =
             active === item.key || (item.key === "trucks" && active.startsWith("trucks-"));
@@ -148,11 +177,14 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
       </nav>
 
       {/* Footer — version selector + collapse */}
-      <div className="relative border-t border-line px-4 py-4 space-y-1">
+      <div className="relative z-10 border-t border-line px-4 py-4 space-y-1">
         {/* Prototype version selector — grows upward */}
-        <div className="absolute bottom-14 left-4 right-4 rounded-card bg-ink px-3 py-3 shadow-sm">
-          <div className="mb-2 flex items-baseline justify-between">
-            <p className="text-body-sm text-white/70">Prototype version</p>
+        <div className="absolute bottom-14 left-4 right-4 z-20 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-card bg-ink px-3 py-3 shadow-lg">
+          <div className="mb-2 flex items-baseline justify-between px-1">
+            <div>
+              <p className="text-body-sm-strong text-white">Prototype version</p>
+              <p className="text-body-sm text-white/50">{showAll ? "All versions" : "Top contenders"}</p>
+            </div>
             <button type="button" onClick={() => setShowAll((s) => !s)} className="text-body-sm text-white underline hover:text-white/80 transition-colors">
               {showAll ? "Show less" : "Show all"}
             </button>

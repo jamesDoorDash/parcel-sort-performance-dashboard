@@ -463,9 +463,11 @@ const processedByWeek: Record<V3WeekKey, DayBucket[]> = {
 
 /** Derive pallet volume data from parcel data (~15% of parcel volume) */
 function derivePalletVolume(parcelWeek: DayBucket[]): DayBucket[] {
-  return parcelWeek.map((d) => {
+  const latePattern = [3, 0, 5, 2, 0, 4, 0];
+  return parcelWeek.map((d, i) => {
     const scale = 0.035;
-    const dispatched = Math.round(d.processed.processed * scale);
+    const lateCount = d.isFuture ? 0 : latePattern[i % latePattern.length];
+    const dispatched = Math.max(0, Math.round(d.processed.processed * scale) - lateCount);
     const missloaded = Math.round(d.processed.lost * scale * 0.5);
     const ready = Math.round(d.processed.readyToSort * scale);
     const expected = Math.round(d.processed.expectedVolume * scale);
@@ -473,6 +475,7 @@ function derivePalletVolume(parcelWeek: DayBucket[]): DayBucket[] {
       ...d,
       processed: {
         processed: dispatched,
+        sortedLate: lateCount,
         lost: missloaded,
         readyToSort: ready,
         expectedVolume: expected,

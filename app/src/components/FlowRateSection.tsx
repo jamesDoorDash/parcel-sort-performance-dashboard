@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Info } from "lucide-react";
+import { Info, Trash2 } from "lucide-react";
 import type { FlowRateDayBucket, FlowRateCombo, FlowRateWeekData } from "../data/mockV2";
 import { cn } from "../lib/cn";
 import { chartNeutralColors, chartStateColors } from "../lib/chartColors";
@@ -79,6 +79,9 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
   const [summaryRate, setSummaryRate] = useState<SummaryRateType>("average");
   const [parcelFlowMode, setParcelFlowMode] = useState<ParcelFlowMode>("stage");
   const [hiddenSeries, setHiddenSeries] = useState<Set<"blendedAverage" | "smallOnly" | "largeOnly">>(new Set());
+  const [hoveredSeries, setHoveredSeries] = useState<"blendedAverage" | "smallOnly" | "largeOnly" | null>(null);
+  const allSeriesKeys: Array<"blendedAverage" | "smallOnly" | "largeOnly"> = ["blendedAverage", "smallOnly", "largeOnly"];
+  const hiddenCount = hiddenSeries.size;
   const [tooltipOpen, setTooltipOpen] = useState<string | null>(null);
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
@@ -110,27 +113,31 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
       const origIdx = data.indexOf(d);
       return [pointX(origIdx), yPx(d[key])];
     });
-  const isVisible = (series: "blendedAverage" | "smallOnly" | "largeOnly") => !hiddenSeries.has(series);
+  const isVisible = (series: "blendedAverage" | "smallOnly" | "largeOnly") =>
+    !hiddenSeries.has(series) && (hoveredSeries == null || hoveredSeries === series);
+  const isActive = (series: "blendedAverage" | "smallOnly" | "largeOnly") => !hiddenSeries.has(series);
   const toggleSeries = (series: "blendedAverage" | "smallOnly" | "largeOnly") => {
     setHiddenSeries((current) => {
-      const next = new Set(current);
-      if (next.has(series)) next.delete(series);
-      else next.add(series);
-      return next;
+      if (current.has(series)) {
+        const next = new Set(current);
+        next.delete(series);
+        return next;
+      }
+      return new Set(allSeriesKeys.filter((k) => k !== series));
     });
   };
 
   const tabGroupClass = "inline-flex items-center rounded-button border border-line-hovered bg-white";
   const tabBtnClass = (active: boolean) =>
     cn(
-      "relative -my-px h-[34px] rounded-button px-6 text-body-md-strong transition-colors first:-ml-px last:-mr-px",
+      "relative -my-px h-10 rounded-button px-6 text-body-md-strong transition-colors first:-ml-px last:-mr-px",
       active ? "z-10 bg-white text-ink ring-2 ring-inset ring-ink" : "text-ink-subdued hover:text-ink",
     );
 
   return (
     <section>
       {/* Tab rows */}
-      <div className="mb-6 flex items-center gap-4">
+      <div className="mb-2 flex items-center gap-4">
         {/* Group 1 — Parcels / Pallets */}
         <div className={tabGroupClass}>
           {itemTabs.map((tab) => (
@@ -339,7 +346,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
       </div>
 
       {/* Legend — vertical column to the right of chart */}
-      <div className="flex min-w-[180px] flex-col gap-4 pt-6">
+      <div className="flex min-w-[180px] flex-col gap-2 pt-6">
         {[
           { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Blended average" },
           { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Small parcels only" },
@@ -349,14 +356,16 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
             <button
               type="button"
               onClick={() => toggleSeries(key)}
-              aria-pressed={isVisible(key)}
-              className="flex items-center gap-2 rounded-button text-left transition-opacity hover:opacity-80"
+              onMouseEnter={() => !hiddenSeries.has(key) && setHoveredSeries(key)}
+              onMouseLeave={() => setHoveredSeries(null)}
+              aria-pressed={isActive(key)}
+              className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 text-left transition-all hover:bg-surface-hovered"
             >
               <span
                 className="block h-4 w-4 shrink-0 rounded-[4px]"
-                style={{ backgroundColor: color, opacity: isVisible(key) ? 1 : 0 }}
+                style={{ backgroundColor: color, opacity: isActive(key) ? 1 : 0 }}
               />
-              <span className={cn("whitespace-nowrap text-body-md text-ink", !isVisible(key) && "line-through opacity-60")}>{label}</span>
+              <span className={cn("whitespace-nowrap text-body-md text-ink", !isActive(key) && "line-through opacity-60")}>{label}</span>
             </button>
             {LEGEND_TOOLTIPS[key] && (
               <div className="relative">
@@ -378,6 +387,16 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
             )}
           </div>
         ))}
+        <div className={cn("mt-2 flex items-center gap-2", hiddenCount > 0 ? "" : "invisible")}>
+          <button
+            type="button"
+            onClick={() => setHiddenSeries(new Set())}
+            className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 transition-all hover:bg-surface-hovered"
+          >
+            <Trash2 className="h-4 w-4 shrink-0 text-ink" strokeWidth={1.75} />
+            <span className="text-body-md text-ink">{hiddenCount} {hiddenCount === 1 ? "filter" : "filters"} active</span>
+          </button>
+        </div>
       </div>
       </div>
     </section>

@@ -15,6 +15,7 @@ type Props = {
   onChange: (range: { start: Date; end: Date }) => void;
   onClose: () => void;
   anchorRef: React.RefObject<HTMLElement | null>;
+  hideRangeLabel?: boolean;
 };
 
 function startOfMonth(d: Date) {
@@ -56,7 +57,7 @@ function buildMonthGrid(monthStart: Date) {
   return cells;
 }
 
-export function DateRangePicker({ value, onChange, onClose, anchorRef }: Props) {
+export function DateRangePicker({ value, onChange, onClose, anchorRef, hideRangeLabel }: Props) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [viewMonth, setViewMonth] = useState<Date>(startOfMonth(value.start));
   const [pending, setPending] = useState<{ start: Date; end: Date | null }>({
@@ -169,39 +170,40 @@ export function DateRangePicker({ value, onChange, onClose, anchorRef }: Props) 
       </div>
 
       {/* Footer actions */}
-      <div className="mt-4 flex items-center justify-between">
-        <div className="text-body-sm text-ink-subdued">
-          {pending.end
-            ? `${pending.start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${pending.end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-            : "Select end date"}
-        </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-8 rounded-button border border-line-hovered px-3 text-body-md-strong text-ink hover:bg-surface-hovered"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={!pending.end}
-            onClick={() => {
-              if (pending.end) {
-                onChange({ start: pending.start, end: pending.end });
-                onClose();
-              }
-            }}
-            className={cn(
-              "h-8 rounded-button px-3 text-body-md-strong",
-              pending.end
-                ? "bg-ink text-white hover:bg-black"
-                : "cursor-not-allowed bg-line text-ink-subdued",
-            )}
-          >
-            Apply
-          </button>
-        </div>
+      <div className={cn("mt-4 flex items-center", hideRangeLabel ? "gap-2" : "justify-between")}>
+        {!hideRangeLabel && (
+          <div className="text-body-sm text-ink-subdued">
+            {pending.end
+              ? `${pending.start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${pending.end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+              : "Select end date"}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className={cn("h-8 rounded-button border border-line-hovered px-3 text-body-md-strong text-ink hover:bg-surface-hovered", hideRangeLabel && "flex-1")}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={!pending.end}
+          onClick={() => {
+            if (pending.end) {
+              onChange({ start: pending.start, end: pending.end });
+              onClose();
+            }
+          }}
+          className={cn(
+            "h-8 rounded-button px-3 text-body-md-strong",
+            pending.end
+              ? "bg-ink text-white hover:bg-black"
+              : "cursor-not-allowed bg-line text-ink-subdued",
+            hideRangeLabel && "flex-1",
+          )}
+        >
+          Apply
+        </button>
       </div>
     </div>
   );
