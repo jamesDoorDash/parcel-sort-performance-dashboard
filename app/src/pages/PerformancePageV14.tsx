@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Info, RefreshCw, AlertTriangle } from "lucide-react";
+import { ChevronDown, RefreshCw, AlertTriangle } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { FlowRateSection } from "../components/FlowRateSection";

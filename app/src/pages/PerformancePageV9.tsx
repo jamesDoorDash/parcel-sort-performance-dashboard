@@ -83,13 +83,7 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 /*  Section-level KPI card (non-selectable, display-only)              */
 /* ------------------------------------------------------------------ */
 
-function DeltaTriangle({ direction }: { direction: "up" | "down" }) {
-  return (
-    <svg aria-hidden viewBox="0 0 8 8" className={cn("h-2 w-2 shrink-0", direction === "down" && "rotate-180")} fill="currentColor">
-      <path d="M4 1 7 6H1z" />
-    </svg>
-  );
-}
+
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const isNeutral = card.delta?.tone === "neutral";
