@@ -19,6 +19,7 @@ type Props = {
   sorters: SorterV2[];
   hideStatusIcons?: boolean;
   showFilters?: boolean;
+  hideRateSelectors?: boolean;
 };
 
 const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
@@ -85,7 +86,7 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,6 +162,25 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters }: Props)
 
       {showFilters && (
         <>
+        {hideRateSelectors ? (
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-body-lg-strong text-ink">Active workers</span>
+              <span className="text-body-sm text-ink-subdued">{meetingCount} / {sorters.length} meeting targets</span>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subdued" strokeWidth={2} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search name"
+                className="h-10 w-[330px] rounded-button border border-line-hovered bg-white pl-9 pr-3 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink"
+              />
+            </div>
+          </div>
+        ) : (
+        <>
         <div className="mb-2 flex items-baseline justify-between">
           <span className="text-body-lg-strong text-ink">Active workers</span>
           <div className="flex items-baseline gap-1.5">
@@ -224,6 +244,8 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters }: Props)
             </div>
         </div>
         </>
+        )}
+        </>
       )}
 
       <div className="overflow-x-auto rounded-card border border-line-hovered bg-white">
@@ -231,7 +253,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters }: Props)
           <thead>
             <tr>
               <HeaderCell label="Name" sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <HeaderCell label="Pre-sort rate" sortKey="parcelPreSortRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={showFilters ? {
+              <HeaderCell label="Pre-sort rate" sortKey="parcelPreSortRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={!hideRateSelectors ? {
                 title: `${rateType === "max" ? "Max" : "Avg."} pre-sort rate · ${parcelType === "small" ? "Small" : parcelType === "large" ? "Large" : "Blended"}`,
                 body: parcelType === "blended"
                   ? "Weighted across all sizes — parcels over 2 lbs count 1.8x toward the rate."
@@ -239,7 +261,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters }: Props)
                   ? "Only parcels under 2 lbs. No weighting applied."
                   : "Only parcels 2 lbs and over, each counted at 1.8x weight.",
               } : undefined} />
-              <HeaderCell label="Sort rate" sortKey="parcelSortRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={showFilters ? {
+              <HeaderCell label="Sort rate" sortKey="parcelSortRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={!hideRateSelectors ? {
                 title: `${rateType === "max" ? "Max" : "Avg."} sort-to-pallet rate · ${parcelType === "small" ? "Small" : parcelType === "large" ? "Large" : "Blended"}`,
                 body: parcelType === "blended"
                   ? "Weighted across all sizes — parcels over 2 lbs count 1.8x toward the rate."
@@ -250,12 +272,12 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters }: Props)
               <HeaderCell label="Parcels sorted" sortKey="parcelsSorted" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <HeaderCell label="Missorted" sortKey="parcelsMissorted" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <HeaderCell label="Lost" sortKey="parcelsLost" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <HeaderCell label="Load rate" sortKey="palletRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={showFilters ? {
+              <HeaderCell label="Load rate" sortKey="palletRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo={!hideRateSelectors} infoTooltip={!hideRateSelectors ? {
                 title: `${rateType === "max" ? "Max" : "Avg."} pallet load rate`,
                 body: "Pallets loaded to truck per hour. Not affected by parcel size selection.",
-              } : "Average pallets loaded to truck per hour"} />
+              } : undefined} />
               <HeaderCell label="Pallets loaded" sortKey="palletsLoaded" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <HeaderCell label="Idle time" sortKey="idleTime" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={showFilters ? {
+              <HeaderCell label="Idle time" sortKey="idleTime" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={!hideRateSelectors ? {
                 title: "Idle time",
                 body: "Time signed in but not actively sorting, loading, or scanning. Includes breaks and wait time between tasks.",
               } : "Time a worker is signed in but not actively sorting, loading, or scanning"} />

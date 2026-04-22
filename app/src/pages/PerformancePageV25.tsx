@@ -473,7 +473,7 @@ export function PerformancePageV25() {
 
         {/* ---- Sorters table ---- */}
         <section className="mt-8">
-          <SortersTableV3 sorters={sorters} hideStatusIcons showFilters />
+          <SortersTableV3 sorters={sorters} hideStatusIcons showFilters hideRateSelectors />
         </section>
       </div>
     </div>

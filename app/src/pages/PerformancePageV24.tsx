@@ -96,7 +96,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col items-start">
       {/* Title */}
       <div
         className="relative"
@@ -112,20 +112,20 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         )}
       </div>
       {/* Value */}
-      <span className={cn("mt-1 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
+      <span className={cn("mt-3 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
         {card.value}
       </span>
       {/* Delta */}
       {card.delta && (
         isNeutral ? (
-          <span className="text-[14px] leading-[20px] font-normal text-ink-subdued">At target</span>
+          <span className="mt-1 text-[14px] leading-[20px] font-normal text-ink-subdued">At target</span>
         ) : card.delta.tone === "negative" ? (
-          <span className="inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-body-sm-strong text-negative">
+          <span className="mt-1 inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-body-sm-strong text-negative">
             <svg aria-hidden viewBox="0 0 8 7" className="h-2 w-2 rotate-180" fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
             {card.delta.value} below target
           </span>
         ) : (
-          <span className="flex items-center gap-1 text-[14px] leading-[20px] text-ink-subdued">
+          <span className="mt-1 flex items-center gap-1 text-[14px] leading-[20px] text-ink-subdued">
             <svg aria-hidden viewBox="0 0 8 7" className="h-2 w-2" fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
             <span className="font-medium">{card.delta.value}</span>
             <span className="font-normal">above target</span>
@@ -154,16 +154,17 @@ function CollapsibleSection({
   metrics: React.ReactNode;
 }) {
   return (
-    <section className="overflow-visible rounded-card border border-line-hovered bg-white shadow-card">
-      <div
-        className="flex w-full cursor-pointer items-center justify-between px-6 pt-5 pb-4"
-        onClick={onToggle}
-      >
-        <h2 className="text-body-lg-strong text-ink">{title}</h2>
-        <ChevronDown className={cn("h-5 w-5 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
+    <section>
+      <h2 className="px-1 pb-2 text-body-lg-strong text-ink">{title}</h2>
+      <div className="overflow-visible rounded-card border border-line-hovered bg-white shadow-card">
+        <div className="relative px-6 py-5">
+          {metrics}
+          <button type="button" onClick={onToggle} className="absolute top-5 right-6">
+            <ChevronDown className={cn("h-5 w-5 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
+          </button>
+        </div>
+        {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
       </div>
-      <div className="px-6 pb-5 pt-1">{metrics}</div>
-      {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
     </section>
   );
 }
@@ -198,13 +199,13 @@ function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3M
   const delta = avg - target;
 
   if (observed.length === 0) {
-    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" }, value: "-- / hr", delta: null };
+    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
   }
 
   return {
     id: "parcelPreSortRate",
     label: "Parcel pre-sort rate",
-    labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" },
+    labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -218,7 +219,7 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   const target = 140;
 
   if (observed.length === 0) {
-    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" }, value: "-- / hr", delta: null };
+    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -227,7 +228,7 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   return {
     id: "parcelSortRate",
     label: "Parcel sort to pallet rate",
-    labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" },
+    labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -241,7 +242,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   const target = 55;
 
   if (observed.length === 0) {
-    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" }, value: "-- / hr", delta: null };
+    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -250,7 +251,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   return {
     id: "palletLoadRate",
     label: "Pallet load rate",
-    labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" },
+    labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -324,9 +325,29 @@ export function PerformancePageV24() {
   const loadRateCard = useMemo(() => buildLoadRateCard(payload), [payload]);
 
   /* -- Section card groups -- */
+  const dwellCard = useMemo((): V3MetricCard => {
+    const dwellRaw = getCard("parcelDwellTime");
+    const total = payload.processedWeek.filter((d) => !d.isFuture && (!payload.visibleDays || payload.visibleDays.has(d.date))).reduce((s, d) => s + d.processed.processed + (d.processed.sortedLate ?? 0), 0);
+    const dwellCount = dwellRaw ? parseInt(dwellRaw.value) || 0 : 0;
+    const rate = total > 0 ? (dwellCount / total) * 100 : 0;
+    const target = 0.1;
+    const delta = rate - target;
+    return {
+      id: "parcelDwellTime",
+      label: "Parcel dwell rate",
+      labelTooltip: { title: "Parcel dwell rate", body: "Percentage of parcels dwelling over 24 hours relative to total parcels sorted. Lower is better." },
+      value: total > 0 ? `${rate.toFixed(2)}%` : "--",
+      delta: total > 0 ? (
+        Math.abs(delta) < 0.005
+          ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
+          : { value: `${Math.abs(delta).toFixed(2)}%`, direction: rate <= target ? "up" as const : "down" as const, tone: rate <= target ? "positive" as const : "negative" as const }
+      ) : null,
+    };
+  }, [payload, getCard]);
+
   const parcelCards = [
     getCard("parcelsSortedOnTime"),
-    getCard("parcelDwellTime"),
+    dwellCard,
     getCard("parcelsMissorted"),
     getCard("parcelsLost"),
   ].filter(Boolean) as V3MetricCard[];
@@ -375,10 +396,10 @@ export function PerformancePageV24() {
           />
         </div>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-8">
         {/* ---- Parcels ---- */}
         <CollapsibleSection
-          title="Parcels"
+          title="Parcels sorted"
           open={openSection === "parcels"}
           onToggle={() => toggleSection("parcels")}
           chart={showChart ? (
@@ -398,7 +419,7 @@ export function PerformancePageV24() {
 
         {/* ---- Pallets ---- */}
         <CollapsibleSection
-          title="Pallets"
+          title="Pallets outbounded"
           open={openSection === "pallets"}
           onToggle={() => toggleSection("pallets")}
           chart={showChart ? (
@@ -418,7 +439,7 @@ export function PerformancePageV24() {
 
         {/* ---- Returns ---- */}
         <CollapsibleSection
-          title="Returns"
+          title="Return parcels processed"
           open={openSection === "returns"}
           onToggle={() => toggleSection("returns")}
           chart={showChart ? (
@@ -453,8 +474,8 @@ export function PerformancePageV24() {
         </div>
 
         {/* ---- Sorters table ---- */}
-        <section className="mt-12">
-          <SortersTableV3 sorters={sorters} hideStatusIcons />
+        <section className="mt-8">
+          <SortersTableV3 sorters={sorters} hideStatusIcons showFilters hideRateSelectors />
         </section>
       </div>
     </div>
