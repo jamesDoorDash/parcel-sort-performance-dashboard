@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { PerformancePage } from "./pages/PerformancePage";
 import { PerformancePageV2 } from "./pages/PerformancePageV2";
@@ -40,19 +40,7 @@ function getInitialVersion() {
 
 export default function App() {
   const [active, setActive] = useState<string>("performance");
-  const [version, setVersionRaw] = useState(getInitialVersion);
-
-  const setVersion = useCallback((v: string) => {
-    setVersionRaw(v);
-    // V24 stays at / to preserve existing Pastel comments
-    if (v === "V24") {
-      window.history.replaceState(null, "", window.location.pathname);
-    } else {
-      const params = new URLSearchParams(window.location.search);
-      params.set("version", v);
-      window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
-    }
-  }, []);
+  const [version, setVersion] = useState(getInitialVersion);
 
 
   let page = <PerformancePage />;
