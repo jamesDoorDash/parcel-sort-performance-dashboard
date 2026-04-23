@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, RefreshCw } from "lucide-react";
+import { ChevronDown, Info, RefreshCw } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { FlowRateSection } from "../components/FlowRateSection";
@@ -95,6 +95,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const deltaTone = isNeutral ? "text-ink-subdued" : card.delta?.tone === "positive" ? "text-positive" : "text-negative";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [bakeTooltipOpen, setBakeTooltipOpen] = useState(false);
 
   return (
     <div className="flex flex-col items-start">
@@ -113,9 +114,27 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         )}
       </div>
       {/* Value */}
-      <span className={cn("mt-3 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
-        {card.value}
-      </span>
+      <div className="mt-3 flex items-baseline gap-2">
+        {card.bakeNote && (
+          <div
+            className="relative self-center"
+            onMouseEnter={() => setBakeTooltipOpen(true)}
+            onMouseLeave={() => setBakeTooltipOpen(false)}
+          >
+            <Info className="h-4 w-4 text-ink" strokeWidth={1.75} />
+            {bakeTooltipOpen && (
+              <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[280px] -translate-x-1/2 whitespace-normal rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+                <div className="text-body-sm-strong text-white">{card.bakeNote.title}</div>
+                <div className="mt-1 text-body-sm text-white/80">{card.bakeNote.body}</div>
+                <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
+              </div>
+            )}
+          </div>
+        )}
+        <span className={cn("text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
+          {card.value}
+        </span>
+      </div>
       {/* Delta */}
       {card.delta && (
         isNeutral ? (
@@ -153,12 +172,12 @@ function CollapsibleSection({
 }) {
   return (
     <section>
-      <h2 className="px-1 pb-2 text-body-lg-strong text-ink">{title}</h2>
+      <h2 className="px-1 pb-2 text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">{title}</h2>
       <div className="overflow-visible rounded-card border border-line-hovered bg-white shadow-card">
         <div className="relative px-6 py-5">
           {metrics}
           <button type="button" onClick={onToggle} className="absolute top-5 right-6">
-            <ChevronDown className={cn("h-5 w-5 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
+            <ChevronDown className={cn("h-6 w-6 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
           </button>
         </div>
         {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
@@ -323,29 +342,9 @@ export function PerformancePageV25() {
   const loadRateCard = useMemo(() => buildLoadRateCard(payload), [payload]);
 
   /* -- Section card groups -- */
-  const dwellCard = useMemo((): V3MetricCard => {
-    const dwellRaw = getCard("parcelDwellTime");
-    const total = payload.processedWeek.filter((d) => !d.isFuture && (!payload.visibleDays || payload.visibleDays.has(d.date))).reduce((s, d) => s + d.processed.processed + (d.processed.sortedLate ?? 0), 0);
-    const dwellCount = dwellRaw ? parseInt(dwellRaw.value) || 0 : 0;
-    const rate = total > 0 ? (dwellCount / total) * 100 : 0;
-    const target = 0.1;
-    const delta = rate - target;
-    return {
-      id: "parcelDwellTime",
-      label: "Parcel dwell rate",
-      labelTooltip: { title: "Parcel dwell rate", body: "Percentage of parcels dwelling over 24 hours relative to total parcels sorted. Lower is better." },
-      value: total > 0 ? `${rate.toFixed(2)}%` : "--",
-      delta: total > 0 ? (
-        Math.abs(delta) < 0.005
-          ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
-          : { value: `${Math.abs(delta).toFixed(2)}%`, direction: rate <= target ? "up" as const : "down" as const, tone: rate <= target ? "positive" as const : "negative" as const }
-      ) : null,
-    };
-  }, [payload, getCard]);
-
   const parcelCards = [
     getCard("parcelsSortedOnTime"),
-    dwellCard,
+    getCard("parcelDwellTime"),
     getCard("parcelsMissorted"),
     getCard("parcelsLost"),
   ].filter(Boolean) as V3MetricCard[];
@@ -382,7 +381,7 @@ export function PerformancePageV25() {
           </div>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-4">
           <DateRangeTabs
             value={range}
             onChange={setRange}

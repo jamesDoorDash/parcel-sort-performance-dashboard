@@ -64,6 +64,8 @@ const VERSION_OPTIONS = [
   { value: "V23", label: "V23: Normal tag" },
   { value: "V24", label: "V24: Full red bold line" },
   { value: "V25", label: "V25: Merchant subsystem" },
+  { value: "V26", label: "V26: Tabbed" },
+  { value: "V27", label: "V27: Show chart bttn" },
 ];
 
 type Props = {
@@ -176,10 +178,10 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
         })}
       </nav>
 
-      {/* Footer — version selector + collapse */}
-      <div className="relative z-10 border-t border-line px-4 py-4 space-y-1">
-        {/* Prototype version selector — grows upward */}
-        <div className="absolute bottom-14 left-4 right-4 z-20 max-h-[calc(100vh-8rem)] overflow-y-auto rounded-card bg-ink px-3 py-3 shadow-lg">
+      {/* Version selector + collapse */}
+      <div className="flex flex-col border-t border-line">
+        <div className="flex-1 overflow-y-auto px-4 pt-3 pb-1">
+          <div className="rounded-card bg-ink px-3 py-3">
           <div className="mb-2 flex items-baseline justify-between px-1">
             <div>
               <p className="text-body-sm-strong text-white">Prototype version</p>
@@ -217,15 +219,17 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
               );
             })}
           </fieldset>
+          </div>
         </div>
-
-        <button
-          type="button"
-          className="flex h-12 w-full items-center gap-3 rounded-button px-3 text-left text-ink-subdued hover:bg-surface-hovered hover:text-ink"
-        >
-          <PanelLeftClose className="h-[18px] w-[18px]" strokeWidth={1.75} />
-          <span className="text-body-md">Collapse menu</span>
-        </button>
+        <div className="px-4 py-1">
+          <button
+            type="button"
+            className="flex h-12 w-full items-center gap-3 rounded-button px-3 text-left text-ink-subdued hover:bg-surface-hovered hover:text-ink"
+          >
+            <PanelLeftClose className="h-[18px] w-[18px]" strokeWidth={1.75} />
+            <span className="text-body-md">Collapse menu</span>
+          </button>
+        </div>
       </div>
     </aside>
   );

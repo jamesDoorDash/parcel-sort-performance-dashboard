@@ -107,7 +107,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     id: "parcelsSortedOnTime",
     label: "Parcels sorted on time",
     description: {
-      title: "Parcels sorted on time",
+      title: "Sort SLA compliance",
       body: "Percent of parcels sorted before the sort deadline in the selected period",
     },
     unit: "percent",
@@ -305,8 +305,8 @@ const metricDefinitions: V3MetricDefinition[] = [
     id: "trucksDepartedOnTime",
     label: "Trucks departed on time",
     description: {
-      title: "Trucks departed on time",
-      body: "Percent of trucks that were loaded and left the facility before their critical pull time",
+      title: "Controllable CPT compliance",
+      body: "Percent of trucks that departed before their critical pull time. Only includes delays within the facility's control — carrier or external delays are excluded.",
     },
     unit: "percent",
     chartKind: "simple",

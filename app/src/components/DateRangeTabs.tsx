@@ -12,6 +12,7 @@ type Props = {
   onCustomRangeChange: (range: { start: Date; end: Date }) => void;
   hidePickerRangeLabel?: boolean;
   simpleCustomPill?: boolean;
+  hideNextWeek?: boolean;
 };
 
 export function DateRangeTabs({
@@ -22,6 +23,7 @@ export function DateRangeTabs({
   onCustomRangeChange,
   hidePickerRangeLabel,
   simpleCustomPill,
+  hideNextWeek,
 }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const pillRef = useRef<HTMLButtonElement>(null);
@@ -30,7 +32,7 @@ export function DateRangeTabs({
   return (
     <div className="flex items-center gap-3">
       <div className="inline-flex items-center rounded-button border border-line-hovered bg-white">
-        {dateRangeTabs.map((tab) => {
+        {dateRangeTabs.filter((tab) => !hideNextWeek || tab.key !== "nextWeek").map((tab) => {
           const active = tab.key === value;
           return (
             <button

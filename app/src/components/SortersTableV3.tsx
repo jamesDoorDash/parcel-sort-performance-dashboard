@@ -20,6 +20,7 @@ type Props = {
   hideStatusIcons?: boolean;
   showFilters?: boolean;
   hideRateSelectors?: boolean;
+  inlineHeader?: boolean;
 };
 
 const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
@@ -86,7 +87,7 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -164,10 +165,17 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
         <>
         {hideRateSelectors ? (
           <div className="mb-2 flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-body-lg-strong text-ink">Active workers</span>
-              <span className="text-body-sm text-ink-subdued">{meetingCount} / {sorters.length} meeting targets</span>
-            </div>
+            {inlineHeader ? (
+              <div className="flex flex-col">
+                <span className="text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">Active associates</span>
+                <span className="text-body-sm text-ink-subdued">{meetingCount} / {sorters.length} meeting targets</span>
+              </div>
+            ) : (
+              <div className="flex flex-col">
+                <span className="text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">Active associates</span>
+                <span className="text-body-sm text-ink-subdued">{meetingCount} / {sorters.length} meeting targets</span>
+              </div>
+            )}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subdued" strokeWidth={2} />
               <input
@@ -182,7 +190,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
         ) : (
         <>
         <div className="mb-2 flex items-baseline justify-between">
-          <span className="text-body-lg-strong text-ink">Active workers</span>
+          <span className="text-body-lg-strong text-ink">Active associates</span>
           <div className="flex items-baseline gap-1.5">
             <span className="text-body-lg-strong text-ink">{meetingCount} / {sorters.length}</span>
             <span className="text-body-sm text-ink-subdued">meeting targets</span>
