@@ -715,13 +715,14 @@ function createDelta(definition: V3MetricDefinition, value: number) {
     return { value: "on target", direction: "up" as const, tone: "neutral" as const, tooltip: `Matching target of ${targetFormatted}` };
   }
   const metTarget = definition.lowerIsBetter ? value <= definition.target : value >= definition.target;
+  const aboveTarget = value > definition.target;
   const targetFormatted = definition.formatValue(definition.target);
-  const tooltip = metTarget
+  const tooltip = aboveTarget
     ? `${formatted} above target of ${targetFormatted}`
     : `${formatted} below target of ${targetFormatted}`;
   return {
     value: formatted,
-    direction: metTarget ? "up" : "down",
+    direction: aboveTarget ? "up" : "down",
     tone: metTarget ? "positive" : "negative",
     tooltip,
   } as const;

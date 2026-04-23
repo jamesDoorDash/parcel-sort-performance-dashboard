@@ -144,7 +144,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         ) : (
           <span className={cn("mt-1 flex items-center gap-1 text-[14px] leading-[20px]", card.delta.tone === "negative" ? "font-bold text-negative" : "font-normal text-ink-subdued")}>
             <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-            {card.delta.value} {card.delta.tone === "positive" ? "above" : "below"} target
+            {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
           </span>
         )
       )}
