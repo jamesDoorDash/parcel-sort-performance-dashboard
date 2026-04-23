@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { PerformancePage } from "./pages/PerformancePage";
 import { PerformancePageV2 } from "./pages/PerformancePageV2";
@@ -30,17 +30,35 @@ import { PerformancePageV27 } from "./pages/PerformancePageV27";
 import { PerformancePageV28 } from "./pages/PerformancePageV28";
 import { PerformancePageV29 } from "./pages/PerformancePageV29";
 
+const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29"];
+
+function versionFromPath(): string | null {
+  const path = window.location.pathname.replace(/^\//, "").toLowerCase();
+  if (!path) return null;
+  return ALL_VERSIONS.find((v) => v.toLowerCase() === path) ?? null;
+}
+
 function getInitialVersion() {
-  if (typeof window === "undefined") return "V3";
-
-  const value = new URLSearchParams(window.location.search).get("version");
-  return value && ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29"].includes(value) ? value : "V24";
-
+  if (typeof window === "undefined") return "V24";
+  // Check pathname first (/v17), then query param (?version=V17), then default
+  const fromPath = versionFromPath();
+  if (fromPath) return fromPath;
+  const fromQuery = new URLSearchParams(window.location.search).get("version");
+  return fromQuery && ALL_VERSIONS.includes(fromQuery) ? fromQuery : "V24";
 }
 
 export default function App() {
   const [active, setActive] = useState<string>("performance");
-  const [version, setVersion] = useState(getInitialVersion);
+  const [versionRaw, setVersionRaw] = useState(getInitialVersion);
+
+  const setVersion = useCallback((v: string) => {
+    setVersionRaw(v);
+    // / stays as V24 to preserve existing Pastel comments
+    const path = v === "V24" ? "/" : `/${v.toLowerCase()}`;
+    window.history.replaceState(null, "", path);
+  }, []);
+
+  const version = versionRaw;
 
 
   let page = <PerformancePage />;
