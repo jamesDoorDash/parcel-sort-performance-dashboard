@@ -100,7 +100,7 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
       className={cn(
         "flex flex-col items-start rounded-[12px] border border-line-hovered bg-white px-5 py-4 text-left transition-all",
         expanded
-          ? "ring-[2.5px] ring-ink shadow-card"
+          ? "ring-[2.5px] ring-inset ring-ink shadow-card"
           : "hover:shadow-card",
       )}
     >
@@ -504,7 +504,7 @@ export function PerformancePageV30() {
             <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-3 gap-6">
                   {palletSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
                 </div>
               </div>
@@ -525,7 +525,7 @@ export function PerformancePageV30() {
             <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-3 gap-6">
                   {returnsSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
                 </div>
               </div>
