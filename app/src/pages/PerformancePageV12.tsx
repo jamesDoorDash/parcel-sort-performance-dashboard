@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { FlowRateSection } from "../components/FlowRateSection";
@@ -53,21 +53,27 @@ function formatRangeLabel(start: Date, end: Date) {
 }
 
 function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, label: string): DayBucket[] {
-  const days = data.filter((d) => !d.isFuture && (!visibleDays || visibleDays.has(d.date)));
-  if (days.length === 0) return [];
+  const visible = data.filter((d) => !visibleDays || visibleDays.has(d.date));
+  if (visible.length === 0) return [];
+  const allFuture = visible.every((d) => d.isFuture);
   const sum = { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 0 };
-  for (const d of days) {
-    sum.processed += d.processed.processed;
-    sum.sortedLate += d.processed.sortedLate ?? 0;
-    sum.lost += d.processed.lost;
-    sum.readyToSort += d.processed.readyToSort;
+  for (const d of visible) {
+    if (d.isFuture) {
+      // Roll forecasted volume into readyToSort so it appears in the stacked bar
+      sum.readyToSort += d.processed.expectedVolume;
+    } else {
+      sum.processed += d.processed.processed;
+      sum.sortedLate += d.processed.sortedLate ?? 0;
+      sum.lost += d.processed.lost;
+      sum.readyToSort += d.processed.readyToSort;
+    }
     sum.expectedVolume += d.processed.expectedVolume;
   }
   return [{
-    date: days[0].date,
+    date: visible[0].date,
     label,
-    weekday: days[0].weekday,
-    isFuture: false,
+    weekday: visible[0].weekday,
+    isFuture: allFuture,
     processed: {
       processed: sum.processed,
       sortedLate: sum.sortedLate,
@@ -89,16 +95,16 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const deltaTone = isNeutral ? "text-ink-subdued" : card.delta?.tone === "positive" ? "text-positive" : "text-negative";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
-  const [bakeTooltipOpen, setBakeTooltipOpen] = useState(false);
 
   return (
-    <div className="flex flex-col items-start">
+    <div className="flex flex-col items-start gap-1">
+      {/* Title */}
       <div
         className="relative"
         onMouseEnter={() => setTooltipOpen(true)}
         onMouseLeave={() => setTooltipOpen(false)}
       >
-        <span className="metric-label-underline text-body-sm-strong text-ink-subdued">{card.label}</span>
+        <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink">{card.label}</span>
         {tooltipOpen && card.labelTooltip.body && (
           <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[280px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
             <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
@@ -106,37 +112,24 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           </div>
         )}
       </div>
-      <div className="mt-[7px] flex items-baseline gap-[10px] whitespace-nowrap">
-        {card.bakeNote && (
-          <div
-            className="relative self-center"
-            onMouseEnter={() => setBakeTooltipOpen(true)}
-            onMouseLeave={() => setBakeTooltipOpen(false)}
-          >
-            <Info className="h-3.5 w-3.5 text-ink" strokeWidth={1.75} />
-            {bakeTooltipOpen && (
-              <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[280px] -translate-x-1/2 whitespace-normal rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
-                <div className="text-body-sm-strong text-white">{card.bakeNote.title}</div>
-                <div className="mt-1 text-body-sm text-white/80">{card.bakeNote.body}</div>
-                <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
-              </div>
-            )}
-          </div>
-        )}
-        <span className={cn("text-[1.5rem] leading-[1.1] font-semibold tracking-[-0.02em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
-          {card.value}
-        </span>
-        {card.delta && (
-          isNeutral ? (
-            <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">on target</span>
-          ) : (
-            <span className={cn("flex items-baseline gap-1", deltaTone)}>
-              <span className="text-[1.125rem] leading-[1.1] font-semibold"><svg aria-hidden viewBox="0 0 8 7" className={cn("mr-1 inline h-3 w-3 align-baseline translate-y-[1px]", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>{card.delta.value}</span>
-              <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">vs. target</span>
+      {/* Value */}
+      <span className={cn("text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
+        {card.value}
+      </span>
+      {/* Delta */}
+      {card.delta && (
+        isNeutral ? (
+          <span className="metric-label-underline text-[14px] leading-[20px] font-normal text-ink-subdued">At target</span>
+        ) : (
+          <span className="flex items-center gap-1">
+            <span className={cn("flex items-center gap-1", deltaTone)}>
+              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+              <span className="text-[14px] leading-[20px] font-medium">{card.delta.value}</span>
             </span>
-          )
-        )}
-      </div>
+            <span className="text-[14px] leading-[20px] font-normal text-ink-subdued">vs. target</span>
+          </span>
+        )
+      )}
     </div>
   );
 }
@@ -267,12 +260,23 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV7() {
-  const [range, setRange] = useState<DateRangeKey>("thisWeek");
+export function PerformancePageV12() {
+  const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
     end: new Date("2026-02-15T00:00:00"),
   });
+
+  const setRange = (next: DateRangeKey) => {
+    if (next === "custom" && range !== "custom") {
+      const bounds = rangeIsoBounds[range];
+      setCustomRange({
+        start: new Date(`${bounds.start}T00:00:00`),
+        end: new Date(`${bounds.end}T00:00:00`),
+      });
+    }
+    setRangeRaw(next);
+  };
 
   const payload = useMemo(() => {
     if (range === "custom") return resolveCustomRangeV3(customRange.start, customRange.end);
@@ -346,15 +350,26 @@ export function PerformancePageV7() {
   return (
     <div className="flex h-full flex-col overflow-y-scroll">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
-        <h1 className="text-display-lg text-ink">Performance</h1>
+        <div className="flex items-start justify-between">
+          <h1 className="text-display-lg text-ink">Performance</h1>
+          <div className="flex flex-col items-end gap-0.5 pt-1">
+            <span className="text-body-sm text-ink-subdued">Last updated &lt; 1 mins ago</span>
+            <button type="button" className="inline-flex items-center gap-1.5 text-body-sm text-ink-subdued underline hover:text-ink">
+              <RefreshCw className="h-3 w-3" strokeWidth={2} />
+              Tap to Refresh
+            </button>
+          </div>
+        </div>
 
-        <div className="mt-4">
+        <div className="mt-6">
           <DateRangeTabs
             value={range}
             onChange={setRange}
             selectedLabel={selectedLabel}
             customRange={customRange}
             onCustomRangeChange={setCustomRange}
+            hidePickerRangeLabel
+            simpleCustomPill
           />
         </div>
 
@@ -437,7 +452,7 @@ export function PerformancePageV7() {
 
         {/* ---- Sorters table ---- */}
         <section className="mt-12">
-          <SortersTableV3 sorters={sorters} />
+          <SortersTableV3 sorters={sorters} hideStatusIcons />
         </section>
       </div>
     </div>

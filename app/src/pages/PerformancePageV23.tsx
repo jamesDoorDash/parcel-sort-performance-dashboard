@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, Info, RefreshCw } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { FlowRateSection } from "../components/FlowRateSection";
@@ -53,21 +53,27 @@ function formatRangeLabel(start: Date, end: Date) {
 }
 
 function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, label: string): DayBucket[] {
-  const days = data.filter((d) => !d.isFuture && (!visibleDays || visibleDays.has(d.date)));
-  if (days.length === 0) return [];
+  const visible = data.filter((d) => !visibleDays || visibleDays.has(d.date));
+  if (visible.length === 0) return [];
+  const allFuture = visible.every((d) => d.isFuture);
   const sum = { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 0 };
-  for (const d of days) {
-    sum.processed += d.processed.processed;
-    sum.sortedLate += d.processed.sortedLate ?? 0;
-    sum.lost += d.processed.lost;
-    sum.readyToSort += d.processed.readyToSort;
+  for (const d of visible) {
+    if (d.isFuture) {
+      // Roll forecasted volume into readyToSort so it appears in the stacked bar
+      sum.readyToSort += d.processed.expectedVolume;
+    } else {
+      sum.processed += d.processed.processed;
+      sum.sortedLate += d.processed.sortedLate ?? 0;
+      sum.lost += d.processed.lost;
+      sum.readyToSort += d.processed.readyToSort;
+    }
     sum.expectedVolume += d.processed.expectedVolume;
   }
   return [{
-    date: days[0].date,
+    date: visible[0].date,
     label,
-    weekday: days[0].weekday,
-    isFuture: false,
+    weekday: visible[0].weekday,
+    isFuture: allFuture,
     processed: {
       processed: sum.processed,
       sortedLate: sum.sortedLate,
@@ -86,34 +92,38 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const isNeutral = card.delta?.tone === "neutral";
-  const deltaTone = isNeutral ? "text-ink-subdued" : card.delta?.tone === "positive" ? "text-positive" : "text-negative";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [bakeTooltipOpen, setBakeTooltipOpen] = useState(false);
 
   return (
     <div className="flex flex-col items-start">
+      {/* Title */}
       <div
         className="relative"
         onMouseEnter={() => setTooltipOpen(true)}
         onMouseLeave={() => setTooltipOpen(false)}
       >
-        <span className="metric-label-underline text-body-sm-strong text-ink-subdued">{card.label}</span>
+        <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink">{card.label}</span>
         {tooltipOpen && card.labelTooltip.body && (
           <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[280px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+            {card.labelTooltip.title && card.labelTooltip.title !== card.label && (
+              <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
+            )}
             <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
             <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
           </div>
         )}
       </div>
-      <div className="mt-[7px] flex items-baseline gap-[10px] whitespace-nowrap">
+      {/* Value */}
+      <div className="mt-3 flex items-baseline gap-2">
         {card.bakeNote && (
           <div
             className="relative self-center"
             onMouseEnter={() => setBakeTooltipOpen(true)}
             onMouseLeave={() => setBakeTooltipOpen(false)}
           >
-            <Info className="h-3.5 w-3.5 text-ink" strokeWidth={1.75} />
+            <Info className="h-4 w-4 text-ink" strokeWidth={1.75} />
             {bakeTooltipOpen && (
               <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[280px] -translate-x-1/2 whitespace-normal rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
                 <div className="text-body-sm-strong text-white">{card.bakeNote.title}</div>
@@ -123,20 +133,21 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
             )}
           </div>
         )}
-        <span className={cn("text-[1.5rem] leading-[1.1] font-semibold tracking-[-0.02em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
+        <span className={cn("text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
           {card.value}
         </span>
-        {card.delta && (
-          isNeutral ? (
-            <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">on target</span>
-          ) : (
-            <span className={cn("flex items-baseline gap-1", deltaTone)}>
-              <span className="text-[1.125rem] leading-[1.1] font-semibold"><svg aria-hidden viewBox="0 0 8 7" className={cn("mr-1 inline h-3 w-3 align-baseline translate-y-[1px]", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>{card.delta.value}</span>
-              <span className="text-[0.8125rem] leading-[1.2] font-normal text-ink-subdued">vs. target</span>
-            </span>
-          )
-        )}
       </div>
+      {/* Delta */}
+      {card.delta && (
+        isNeutral ? (
+          <span className="mt-1 text-[14px] leading-[20px] font-normal text-ink-subdued">At target</span>
+        ) : (
+          <span className={cn("mt-1 flex items-center gap-1 text-[14px] leading-[20px]", card.delta.tone === "negative" ? "font-bold text-negative" : "font-normal text-ink-subdued")}>
+            <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+            {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+          </span>
+        )
+      )}
     </div>
   );
 }
@@ -159,16 +170,17 @@ function CollapsibleSection({
   metrics: React.ReactNode;
 }) {
   return (
-    <section className="overflow-visible rounded-card border border-line-hovered bg-white shadow-card">
-      <div
-        className="flex w-full cursor-pointer items-center justify-between px-6 pt-5 pb-4"
-        onClick={onToggle}
-      >
-        <h2 className="text-body-lg-strong text-ink">{title}</h2>
-        <ChevronDown className={cn("h-5 w-5 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
+    <section>
+      <h2 className="px-1 pb-2 text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">{title}</h2>
+      <div className="overflow-visible rounded-card border border-line-hovered bg-white shadow-card">
+        <div className="relative px-6 py-5">
+          {metrics}
+          <button type="button" onClick={onToggle} className="absolute top-5 right-6">
+            <ChevronDown className={cn("h-6 w-6 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
+          </button>
+        </div>
+        {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
       </div>
-      <div className="px-6 pb-5 pt-1">{metrics}</div>
-      {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
     </section>
   );
 }
@@ -203,13 +215,13 @@ function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3M
   const delta = avg - target;
 
   if (observed.length === 0) {
-    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" }, value: "-- / hr", delta: null };
+    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
   }
 
   return {
     id: "parcelPreSortRate",
     label: "Parcel pre-sort rate",
-    labelTooltip: { title: "Parcel pre-sort rate", body: "Average parcels pre-sorted per hour across the selected period" },
+    labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -223,7 +235,7 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   const target = 140;
 
   if (observed.length === 0) {
-    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" }, value: "-- / hr", delta: null };
+    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -232,7 +244,7 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   return {
     id: "parcelSortRate",
     label: "Parcel sort to pallet rate",
-    labelTooltip: { title: "Parcel sort to pallet rate", body: "Average parcels sorted to pallet per hour across the selected period" },
+    labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -246,7 +258,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   const target = 55;
 
   if (observed.length === 0) {
-    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" }, value: "-- / hr", delta: null };
+    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -255,7 +267,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   return {
     id: "palletLoadRate",
     label: "Pallet load rate",
-    labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period" },
+    labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -267,12 +279,23 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV7() {
-  const [range, setRange] = useState<DateRangeKey>("thisWeek");
+export function PerformancePageV23() {
+  const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
     end: new Date("2026-02-15T00:00:00"),
   });
+
+  const setRange = (next: DateRangeKey) => {
+    if (next === "custom" && range !== "custom") {
+      const bounds = rangeIsoBounds[range];
+      setCustomRange({
+        start: new Date(`${bounds.start}T00:00:00`),
+        end: new Date(`${bounds.end}T00:00:00`),
+      });
+    }
+    setRangeRaw(next);
+  };
 
   const payload = useMemo(() => {
     if (range === "custom") return resolveCustomRangeV3(customRange.start, customRange.end);
@@ -346,7 +369,16 @@ export function PerformancePageV7() {
   return (
     <div className="flex h-full flex-col overflow-y-scroll">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
-        <h1 className="text-display-lg text-ink">Performance</h1>
+        <div className="flex items-start justify-between">
+          <h1 className="text-display-lg text-ink">Performance</h1>
+          <div className="flex flex-col items-end gap-0.5 pt-1">
+            <span className="text-body-sm text-ink-subdued">Last updated &lt; 1 mins ago</span>
+            <button type="button" className="inline-flex items-center gap-1.5 text-body-sm text-ink-subdued underline hover:text-ink">
+              <RefreshCw className="h-3 w-3" strokeWidth={2} />
+              Tap to Refresh
+            </button>
+          </div>
+        </div>
 
         <div className="mt-4">
           <DateRangeTabs
@@ -355,13 +387,16 @@ export function PerformancePageV7() {
             selectedLabel={selectedLabel}
             customRange={customRange}
             onCustomRangeChange={setCustomRange}
+            hidePickerRangeLabel
+            simpleCustomPill
+            hideNextWeek
           />
         </div>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8 space-y-8">
         {/* ---- Parcels ---- */}
         <CollapsibleSection
-          title="Parcels"
+          title="Parcels sorted"
           open={openSection === "parcels"}
           onToggle={() => toggleSection("parcels")}
           chart={showChart ? (
@@ -369,7 +404,7 @@ export function PerformancePageV7() {
               data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
               metric={metricConfigs.processed}
               visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Ready to sort", forecasted: "Forecasted" }}
+              seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
             />
           ) : undefined}
           metrics={
@@ -381,7 +416,7 @@ export function PerformancePageV7() {
 
         {/* ---- Pallets ---- */}
         <CollapsibleSection
-          title="Pallets"
+          title="Pallets outbounded"
           open={openSection === "pallets"}
           onToggle={() => toggleSection("pallets")}
           chart={showChart ? (
@@ -389,7 +424,7 @@ export function PerformancePageV7() {
               data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
               metric={metricConfigs.processed}
               visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Ready to outbound", forecasted: "Forecasted" }}
+              seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
             />
           ) : undefined}
           metrics={
@@ -401,7 +436,7 @@ export function PerformancePageV7() {
 
         {/* ---- Returns ---- */}
         <CollapsibleSection
-          title="Returns"
+          title="Return parcels processed"
           open={openSection === "returns"}
           onToggle={() => toggleSection("returns")}
           chart={showChart ? (
@@ -409,7 +444,7 @@ export function PerformancePageV7() {
               data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
               metric={metricConfigs.processed}
               visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Returned on time", sortedLate: "Returned late", lost: "Lost", readyToSort: "Ready to return", forecasted: "Forecasted" }}
+              seriesLabels={{ processed: "Returned on time", sortedLate: "Returned late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
             />
           ) : undefined}
           metrics={
@@ -436,8 +471,8 @@ export function PerformancePageV7() {
         </div>
 
         {/* ---- Sorters table ---- */}
-        <section className="mt-12">
-          <SortersTableV3 sorters={sorters} />
+        <section className="mt-8">
+          <SortersTableV3 sorters={sorters} hideStatusIcons showFilters hideRateSelectors inlineHeader />
         </section>
       </div>
     </div>
