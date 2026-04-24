@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Info, Trash2 } from "lucide-react";
 import type { FlowRateDayBucket, FlowRateCombo, FlowRateWeekData } from "../data/mockV2";
 import { cn } from "../lib/cn";
@@ -71,10 +71,14 @@ function smoothPath(points: [number, number][]): string {
 type Props = {
   flowRateWeek: FlowRateWeekData;
   visibleDays?: Set<string>;
+  hideTabs?: boolean;
+  defaultCombo?: FlowRateCombo;
+  defaultItemType?: ItemType;
 };
 
-export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
-  const [itemType, setItemType] = useState<ItemType>("parcels");
+export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType }: Props) {
+  const [itemType, setItemType] = useState<ItemType>(defaultItemType ?? "parcels");
+  useEffect(() => { if (defaultItemType) setItemType(defaultItemType); }, [defaultItemType]);
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
   const [summaryRate, setSummaryRate] = useState<SummaryRateType>("average");
   const [parcelFlowMode, setParcelFlowMode] = useState<ParcelFlowMode>("stage");
@@ -95,9 +99,9 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
     setParcelFlowMode("stage");
   };
 
-  const currentCombo = itemType === "pallets"
+  const currentCombo = defaultCombo ?? (itemType === "pallets"
     ? comboKey("pallets", summaryRate)
-    : comboKey("parcels", parcelFlowMode === "stage" ? parcelStage : summaryRate);
+    : comboKey("parcels", parcelFlowMode === "stage" ? parcelStage : summaryRate));
   const FUTURE_CUTOFF = "2026-02-15";
   const allData: FlowRateDayBucket[] = flowRateWeek[currentCombo];
   const singleDayMode = visibleDays?.size === 1;
@@ -137,6 +141,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
   return (
     <section>
       {/* Tab rows */}
+      {!hideTabs && (
       <div className="mb-2 flex items-center gap-4">
         {/* Group 1 — Parcels / Pallets */}
         <div className={tabGroupClass}>
@@ -183,6 +188,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
           ))}
         </div>
       </div>
+      )}
 
       {/* Chart + legend row */}
       <div className="relative z-10 flex gap-8">
@@ -258,18 +264,27 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
         ))}
 
         {/* Series lines (skip in single-day mode) */}
-        {!singleDayMode && isVisible("largeOnly") && <path d={smoothPath(points("largeOnly"))} fill="none" stroke={SERIES_COLORS.large} strokeWidth={2} />}
-        {!singleDayMode && isVisible("smallOnly") && <path d={smoothPath(points("smallOnly"))} fill="none" stroke={SERIES_COLORS.small} strokeWidth={2} />}
-        {!singleDayMode && isVisible("blendedAverage") && <path d={smoothPath(points("blendedAverage"))} fill="none" stroke={SERIES_COLORS.blended} strokeWidth={2.5} />}
-
-        {/* Data point dots */}
-        {(["blendedAverage", "smallOnly", "largeOnly"] as const).map((key) => {
-          if (!isVisible(key)) return null;
-          const color = key === "blendedAverage" ? SERIES_COLORS.blended : key === "smallOnly" ? SERIES_COLORS.small : SERIES_COLORS.large;
-          return points(key).map(([x, y], i) => (
-            <circle key={`${key}-${i}`} cx={x} cy={y} r={3} fill={color} />
-          ));
-        })}
+        {itemType === "pallets" ? (
+          <>
+            {!singleDayMode && <path d={smoothPath(points("blendedAverage"))} fill="none" stroke={SERIES_COLORS.blended} strokeWidth={2.5} />}
+            {points("blendedAverage").map(([x, y], i) => (
+              <circle key={`pallets-${i}`} cx={x} cy={y} r={3} fill={SERIES_COLORS.blended} />
+            ))}
+          </>
+        ) : (
+          <>
+            {!singleDayMode && isVisible("largeOnly") && <path d={smoothPath(points("largeOnly"))} fill="none" stroke={SERIES_COLORS.large} strokeWidth={2} />}
+            {!singleDayMode && isVisible("smallOnly") && <path d={smoothPath(points("smallOnly"))} fill="none" stroke={SERIES_COLORS.small} strokeWidth={2} />}
+            {!singleDayMode && isVisible("blendedAverage") && <path d={smoothPath(points("blendedAverage"))} fill="none" stroke={SERIES_COLORS.blended} strokeWidth={2.5} />}
+            {(["blendedAverage", "smallOnly", "largeOnly"] as const).map((key) => {
+              if (!isVisible(key)) return null;
+              const color = key === "blendedAverage" ? SERIES_COLORS.blended : key === "smallOnly" ? SERIES_COLORS.small : SERIES_COLORS.large;
+              return points(key).map(([x, y], i) => (
+                <circle key={`${key}-${i}`} cx={x} cy={y} r={3} fill={color} />
+              ));
+            })}
+          </>
+        )}
 
         {/* Hover zones per day (non-future only) */}
         {data.map((d, i) => d.date >= FUTURE_CUTOFF ? null : (
@@ -300,11 +315,13 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
         {hoveredPoint !== null && (() => {
           const d = data[hoveredPoint];
           const cx = pointX(hoveredPoint);
-          const rows = [
-            { label: "Blended average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
-            { label: "Small parcels only", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
-            { label: "Large parcels only", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
-          ].filter((r) => r.visible);
+          const rows = itemType === "pallets"
+            ? [{ label: "Pallets loaded", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: true }]
+            : [
+                { label: "Blended average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
+                { label: "Small parcels only", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
+                { label: "Large parcels only", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
+              ].filter((r) => r.visible);
           if (rows.length === 0) return null;
 
           const boxW = 210;
@@ -347,56 +364,65 @@ export function FlowRateSection({ flowRateWeek, visibleDays }: Props) {
 
       {/* Legend — vertical column to the right of chart */}
       <div className="flex min-w-[180px] flex-col gap-2 pt-6">
-        {[
-          { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Blended average" },
-          { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Small parcels only" },
-          { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Large parcels only" },
-        ].map(({ key, color, label }) => (
-          <div key={label} className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => toggleSeries(key)}
-              onMouseEnter={() => !hiddenSeries.has(key) && setHoveredSeries(key)}
-              onMouseLeave={() => setHoveredSeries(null)}
-              aria-pressed={isActive(key)}
-              className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 text-left transition-all hover:bg-surface-hovered"
-            >
-              <span
-                className="block h-4 w-4 shrink-0 rounded-[4px]"
-                style={{ backgroundColor: color, opacity: isActive(key) ? 1 : 0 }}
-              />
-              <span className={cn("whitespace-nowrap text-body-md text-ink", !isActive(key) && "line-through opacity-60")}>{label}</span>
-            </button>
-            {LEGEND_TOOLTIPS[key] && (
-              <div className="relative">
+        {itemType === "pallets" ? (
+          <div className="flex items-center gap-2">
+            <span className="block h-4 w-4 shrink-0 rounded-[4px]" style={{ backgroundColor: SERIES_COLORS.blended }} />
+            <span className="whitespace-nowrap text-body-md text-ink">Pallets loaded</span>
+          </div>
+        ) : (
+          <>
+            {[
+              { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Blended average" },
+              { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Small parcels only" },
+              { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Large parcels only" },
+            ].map(({ key, color, label }) => (
+              <div key={label} className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="flex items-center text-ink-subdued"
-                  onMouseEnter={() => setTooltipOpen(key)}
-                  onMouseLeave={() => setTooltipOpen(null)}
+                  onClick={() => toggleSeries(key)}
+                  onMouseEnter={() => !hiddenSeries.has(key) && setHoveredSeries(key)}
+                  onMouseLeave={() => setHoveredSeries(null)}
+                  aria-pressed={isActive(key)}
+                  className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 text-left transition-all hover:bg-surface-hovered"
                 >
-                  <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
+                  <span
+                    className="block h-4 w-4 shrink-0 rounded-[4px]"
+                    style={{ backgroundColor: color, opacity: isActive(key) ? 1 : 0 }}
+                  />
+                  <span className={cn("whitespace-nowrap text-body-md text-ink", !isActive(key) && "line-through opacity-60")}>{label}</span>
                 </button>
-                {tooltipOpen === key && (
-                  <div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
-                    <div className="text-body-sm text-white/80">{LEGEND_TOOLTIPS[key]}</div>
-                    <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
+                {LEGEND_TOOLTIPS[key] && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="flex items-center text-ink-subdued"
+                      onMouseEnter={() => setTooltipOpen(key)}
+                      onMouseLeave={() => setTooltipOpen(null)}
+                    >
+                      <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
+                    </button>
+                    {tooltipOpen === key && (
+                      <div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
+                        <div className="text-body-sm text-white/80">{LEGEND_TOOLTIPS[key]}</div>
+                        <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
-          </div>
-        ))}
-        <div className={cn("mt-2 flex items-center gap-2", hiddenCount > 0 ? "" : "invisible")}>
-          <button
-            type="button"
-            onClick={() => setHiddenSeries(new Set())}
-            className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 transition-all hover:bg-surface-hovered"
-          >
-            <Trash2 className="h-4 w-4 shrink-0 text-ink" strokeWidth={1.75} />
-            <span className="text-body-md text-ink">{hiddenCount} {hiddenCount === 1 ? "filter" : "filters"} active</span>
-          </button>
-        </div>
+            ))}
+            <div className={cn("mt-2 flex items-center gap-2", hiddenCount > 0 ? "" : "invisible")}>
+              <button
+                type="button"
+                onClick={() => setHiddenSeries(new Set())}
+                className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 transition-all hover:bg-surface-hovered"
+              >
+                <Trash2 className="h-4 w-4 shrink-0 text-ink" strokeWidth={1.75} />
+                <span className="text-body-md text-ink">{hiddenCount} {hiddenCount === 1 ? "filter" : "filters"} active</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
       </div>
     </section>

@@ -29,8 +29,9 @@ import { PerformancePageV26 } from "./pages/PerformancePageV26";
 import { PerformancePageV27 } from "./pages/PerformancePageV27";
 import { PerformancePageV28 } from "./pages/PerformancePageV28";
 import { PerformancePageV29 } from "./pages/PerformancePageV29";
+import { PerformancePageV30 } from "./pages/PerformancePageV30";
 
-const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29"];
+const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30"];
 
 function versionFromPath(): string | null {
   const path = window.location.pathname.replace(/^\//, "").toLowerCase();
@@ -39,7 +40,7 @@ function versionFromPath(): string | null {
 }
 
 function getInitialVersion() {
-  if (typeof window === "undefined") return "V24";
+  if (typeof window === "undefined") return "V30";
   // Check pathname first (/v17), then query param (?version=V17), then default
   const fromPath = versionFromPath();
   if (fromPath) return fromPath;
@@ -53,8 +54,7 @@ export default function App() {
 
   const setVersion = useCallback((v: string) => {
     setVersionRaw(v);
-    // / stays as V24 to preserve existing Pastel comments
-    const path = v === "V24" ? "/" : `/${v.toLowerCase()}`;
+    const path = v === "V30" ? "/" : `/${v.toLowerCase()}`;
     window.history.replaceState(null, "", path);
   }, []);
 
@@ -90,6 +90,7 @@ export default function App() {
   if (version === "V27") page = <PerformancePageV27 />;
   if (version === "V28") page = <PerformancePageV28 />;
   if (version === "V29") page = <PerformancePageV29 />;
+  if (version === "V30") page = <PerformancePageV30 />;
 
   return (
     <div className="flex h-screen w-screen bg-white text-ink">

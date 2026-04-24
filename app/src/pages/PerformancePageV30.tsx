@@ -59,7 +59,6 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
   const sum = { processed: 0, sortedLate: 0, lost: 0, readyToSort: 0, expectedVolume: 0 };
   for (const d of visible) {
     if (d.isFuture) {
-      // Roll forecasted volume into readyToSort so it appears in the stacked bar
       sum.readyToSort += d.processed.expectedVolume;
     } else {
       sum.processed += d.processed.processed;
@@ -86,9 +85,61 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 }
 
 /* ------------------------------------------------------------------ */
-/*  Section-level KPI card (non-selectable, display-only)              */
+/*  Hero card (primary metric with show more/less)                     */
 /* ------------------------------------------------------------------ */
 
+function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: boolean; onToggle: () => void }) {
+  const isNeutral = card.delta?.tone === "neutral";
+  const isPlaceholder = card.value === "--" || card.value.startsWith("--");
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        "flex flex-col items-start rounded-[12px] border border-line-hovered bg-white px-5 py-4 text-left transition-all",
+        expanded
+          ? "ring-[2.5px] ring-ink shadow-card"
+          : "hover:shadow-card",
+      )}
+    >
+      <div
+        className="relative"
+        onMouseEnter={() => setTooltipOpen(true)}
+        onMouseLeave={() => setTooltipOpen(false)}
+      >
+        <span className="metric-label-underline text-[13px] leading-[18px] font-medium tracking-[-0.01em] text-ink-subdued">{card.label}</span>
+        {tooltipOpen && card.labelTooltip.body && (
+          <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[280px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+            {card.labelTooltip.title && card.labelTooltip.title !== card.label && (
+              <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
+            )}
+            <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+            <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
+          </div>
+        )}
+      </div>
+      <span className={cn("mt-2 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
+        {card.value}
+      </span>
+      {card.delta && (
+        isNeutral ? (
+          <span className="mt-1 text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
+        ) : (
+          <span className={cn("mt-1 flex items-center gap-1 text-[13px] leading-[18px]", card.delta.tone === "negative" ? "font-bold text-negative" : "font-normal text-ink-subdued")}>
+            <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+            {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+          </span>
+        )
+      )}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Section KPI card (for secondary metrics inside detail panels)      */
+/* ------------------------------------------------------------------ */
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const isNeutral = card.delta?.tone === "neutral";
@@ -98,7 +149,6 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
 
   return (
     <div className="flex flex-col items-start">
-      {/* Title */}
       <div
         className="relative"
         onMouseEnter={() => setTooltipOpen(true)}
@@ -115,8 +165,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
           </div>
         )}
       </div>
-      {/* Value */}
-      <div className="mt-3 flex items-baseline gap-2">
+      <div className="mt-3 flex items-baseline gap-3">
         {card.bakeNote && (
           <div
             className="relative self-center"
@@ -136,62 +185,50 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         <span className={cn("text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
           {card.value}
         </span>
+        {card.delta && (
+          isNeutral ? (
+            <span className="text-[14px] leading-[20px] font-normal text-ink-subdued">At target</span>
+          ) : (
+            <span className={cn("flex items-center gap-1 text-[14px] leading-[20px]", card.delta.tone === "negative" ? "font-bold text-negative" : "font-normal text-ink-subdued")}>
+              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+              {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+            </span>
+          )
+        )}
       </div>
-      {/* Delta */}
-      {card.delta && (
-        isNeutral ? (
-          <span className="mt-1 text-[14px] leading-[20px] font-normal text-ink-subdued">At target</span>
-        ) : (
-          <span className={cn("mt-1 flex items-center gap-1 text-[14px] leading-[20px]", card.delta.tone === "negative" ? "font-bold text-negative" : "font-normal text-ink-subdued")}>
-            <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-            {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
-          </span>
-        )
-      )}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Collapsible section wrapper                                       */
+/*  Caret pointer between card and detail panel                        */
 /* ------------------------------------------------------------------ */
 
-function CollapsibleSection({
-  title,
-  open,
-  onToggle,
-  chart,
-  metrics,
-}: {
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  chart?: React.ReactNode;
-  metrics: React.ReactNode;
-}) {
+function Caret({ index, columns }: { index: number; columns: number }) {
+  const leftPercent = ((index + 0.5) / columns) * 100;
   return (
-    <section>
-      <h2 className="px-1 pb-2 text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">{title}</h2>
-      <div className="overflow-visible rounded-card border border-line-hovered bg-white shadow-card">
-        <div className="relative px-6 py-5">
-          {metrics}
-          <button type="button" onClick={onToggle} className="absolute top-5 right-6">
-            <ChevronDown className={cn("h-6 w-6 text-ink transition-transform", open && "rotate-180")} strokeWidth={2} />
-          </button>
-        </div>
-        {open && chart && <div className="px-6 pt-4 pb-6">{chart}</div>}
-      </div>
-    </section>
+    <div className="relative h-4 -mb-[1px] z-10" style={{ pointerEvents: "none" }}>
+      <svg
+        className="absolute -translate-x-1/2 bottom-0"
+        style={{ left: `${leftPercent}%` }}
+        width="32"
+        height="12"
+        viewBox="0 0 32 12"
+        fill="none"
+      >
+        {/* Upward-pointing triangle: border stroke + white fill to blend with panel */}
+        <path d="M16 0L0 12H32L16 0Z" fill="#d3d6d9" />
+        <path d="M16 1.5L1.5 12H30.5L16 1.5Z" fill="white" />
+      </svg>
+    </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Pre-sort helpers (reused from V3)                                  */
+/*  Pre-sort helpers                                                   */
 /* ------------------------------------------------------------------ */
 
-function buildPreSortSeries(
-  payload: ReturnType<typeof resolveCustomRangeV3>,
-) {
+function buildPreSortSeries(payload: ReturnType<typeof resolveCustomRangeV3>) {
   return payload.flowRateWeek["parcels-presort"].map((day): V3SimpleSeriesDay => ({
     date: day.date,
     label: day.label,
@@ -279,7 +316,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV29() {
+export function PerformancePageV30() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
@@ -309,7 +346,6 @@ export function PerformancePageV29() {
   }, [customRange.end, customRange.start, range]);
 
   const isFullWeek = isSingleCalendarWeek(range, customRange);
-  const showChart = true;
   const useAggregated = range === "custom" && !isFullWeek;
   const sorterDays = useMemo(() => dayCount(range, range === "custom" ? customRange : undefined), [customRange, range]);
 
@@ -340,31 +376,43 @@ export function PerformancePageV29() {
   const sortRateCard = useMemo(() => buildSortRateCard(payload), [payload]);
   const loadRateCard = useMemo(() => buildLoadRateCard(payload), [payload]);
 
-  /* -- Section card groups -- */
-  const parcelCards = [
-    getCard("parcelsSortedOnTime"),
+  // Hero cards for row 1
+  const parcelsHero = getCard("parcelsSortedOnTime");
+  const trucksHero = getCard("trucksDepartedOnTime");
+  const returnsHero = getCard("parcelsReturnedOnTime");
+  const associatesHero: V3MetricCard = useMemo(() => {
+    const total = sorters.length;
+    const meeting = sorters.filter((s) => s.meetsTargets).length;
+    const notMeeting = total - meeting;
+    return {
+      id: "associatesMeetingTargets",
+      label: "Associates meeting targets",
+      labelTooltip: { title: "Associates meeting targets", body: "Number of associates whose average sort rate meets or exceeds their target rate for the selected period." },
+      value: `${meeting} / ${total}`,
+      delta: notMeeting === 0
+        ? { value: "all meeting targets", direction: "up" as const, tone: "positive" as const }
+        : { value: `${notMeeting}`, direction: "down" as const, tone: "negative" as const },
+    };
+  }, [sorters]);
+
+  // Secondary cards for detail panels
+  const parcelSecondary = [
     getCard("parcelDwellTime"),
     getCard("parcelsMissorted"),
     getCard("parcelsLost"),
   ].filter(Boolean) as V3MetricCard[];
 
-  const palletCards = [
-    getCard("trucksDepartedOnTime"),
+  const palletSecondary = [
     getCard("palletsScannedToTruck"),
     getCard("palletsMissloaded"),
   ].filter(Boolean) as V3MetricCard[];
 
-  const returnsCards = [
-    getCard("parcelsReturnedOnTime"),
+  const returnsSecondary = [
     getCard("returnsScannedToPallet"),
     getCard("returnPalletScannedToTruck"),
   ].filter(Boolean) as V3MetricCard[];
 
-  const flowRateCards = [preSortCard, sortRateCard, loadRateCard];
-
-  // Accordion: only one section open at a time (null = all collapsed)
-  const [openSection, setOpenSection] = useState<string | null>("parcels");
-  // Build dwell chart data — reuse processedWeek structure for dates/weekdays
+  // Dwell chart data for dual-bar parcels chart
   const dwellChartData: DayBucket[] = useMemo(() => {
     const DWELL_COUNTS = [3, 0, 8, 12, 5, 0, 7];
     return payload.processedWeek.map((day, i) => ({
@@ -379,10 +427,16 @@ export function PerformancePageV29() {
       values: {},
     }));
   }, [payload.processedWeek]);
-  const toggleSection = (id: string) => setOpenSection((prev) => (prev === id ? null : id));
+
+  // Row-level accordion: only one expanded per row (null = all collapsed)
+  const [row1Expanded, setRow1Expanded] = useState<string | null>("parcels");
+  const [row2Expanded, setRow2Expanded] = useState<string | null>("preSortRate");
+
+  const toggleRow1 = (id: string) => setRow1Expanded((prev) => (prev === id ? null : id));
+  const toggleRow2 = (id: string) => setRow2Expanded((prev) => (prev === id ? null : id));
 
   return (
-    <div className="flex h-full flex-col overflow-y-scroll">
+    <div className="flex h-full flex-col overflow-y-scroll bg-[#F6F7F8]">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
         <div className="flex items-start justify-between">
           <h1 className="text-display-lg text-ink">Performance</h1>
@@ -408,91 +462,122 @@ export function PerformancePageV29() {
           />
         </div>
 
-        <div className="mt-8 space-y-8">
-        {/* ---- Parcels ---- */}
-        <CollapsibleSection
-          title="Parcels sorted"
-          open={openSection === "parcels"}
-          onToggle={() => toggleSection("parcels")}
-          chart={showChart ? (
-            <VolumeChart
-              data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
-              metric={metricConfigs.processed}
-              visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
-              colorOverrides={{ lost: "#7c3aed" }}
-              secondaryBars={{ values: dwellChartData.map((d) => d.processed.lost), color: "#df3480", label: "Dwelled parcels" }}
-            />
-          ) : undefined}
-          metrics={
-            <div className="grid grid-cols-4 gap-6">
-              {parcelCards.map((c) => <SectionKpiCard key={c.id} card={c} />)}
-            </div>
-          }
-        />
-
-        {/* ---- Pallets ---- */}
-        <CollapsibleSection
-          title="Pallets outbounded"
-          open={openSection === "pallets"}
-          onToggle={() => toggleSection("pallets")}
-          chart={showChart ? (
-            <VolumeChart
-              data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
-              metric={metricConfigs.processed}
-              visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
-              colorOverrides={{ lost: "#7c3aed" }}
-            />
-          ) : undefined}
-          metrics={
-            <div className="grid grid-cols-4 gap-6">
-              {palletCards.map((c) => <SectionKpiCard key={c.id} card={c} />)}
-            </div>
-          }
-        />
-
-        {/* ---- Returns ---- */}
-        <CollapsibleSection
-          title="Return parcels processed"
-          open={openSection === "returns"}
-          onToggle={() => toggleSection("returns")}
-          chart={showChart ? (
-            <VolumeChart
-              data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
-              metric={metricConfigs.processed}
-              visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Returned on time", sortedLate: "Returned late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
-              colorOverrides={{ lost: "#7c3aed" }}
-            />
-          ) : undefined}
-          metrics={
-            <div className="grid grid-cols-4 gap-6">
-              {returnsCards.map((c) => <SectionKpiCard key={c.id} card={c} />)}
-            </div>
-          }
-        />
-
-        {/* ---- Flow rates ---- */}
-        <CollapsibleSection
-          title="Flow rates"
-          open={openSection === "flowRates"}
-          onToggle={() => toggleSection("flowRates")}
-          chart={showChart ? (
-            <FlowRateSection flowRateWeek={payload.flowRateWeek} visibleDays={payload.visibleDays} />
-          ) : undefined}
-          metrics={
-            <div className="grid grid-cols-4 gap-6">
-              {flowRateCards.map((c) => <SectionKpiCard key={c.id} card={c} />)}
-            </div>
-          }
-        />
-        </div>
-
-        {/* ---- Sorters table ---- */}
+        {/* ============================================================ */}
+        {/*  Row 1 — Top level metrics                                    */}
+        {/* ============================================================ */}
         <section className="mt-8">
-          <SortersTableV3 sorters={sorters} hideStatusIcons showFilters hideRateSelectors inlineHeader />
+          <h2 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Top level metrics</h2>
+          <div className="grid grid-cols-4 gap-4">
+            {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} onToggle={() => toggleRow1("parcels")} />}
+            {trucksHero && <HeroCard card={trucksHero} expanded={row1Expanded === "trucks"} onToggle={() => toggleRow1("trucks")} />}
+            {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} onToggle={() => toggleRow1("returns")} />}
+            <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} onToggle={() => toggleRow1("associates")} />
+          </div>
+
+          {/* Caret + expanded detail */}
+          {row1Expanded && (
+            <Caret index={row1Expanded === "parcels" ? 0 : row1Expanded === "trucks" ? 1 : row1Expanded === "returns" ? 2 : 3} columns={4} />
+          )}
+          {row1Expanded === "parcels" && (
+            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
+                <div className="grid grid-cols-3 gap-6">
+                  {parcelSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
+                </div>
+              </div>
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Sort status</h3>
+                <VolumeChart
+                  data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
+                  metric={metricConfigs.processed}
+                  visibleDays={useAggregated ? undefined : payload.visibleDays}
+                  seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                  colorOverrides={{ lost: "#7c3aed" }}
+                  secondaryBars={{ values: dwellChartData.map((d) => d.processed.lost), color: "#df3480", label: "Dwelled parcels" }}
+                />
+              </div>
+            </div>
+          )}
+
+          {row1Expanded === "trucks" && (
+            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  {palletSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
+                </div>
+              </div>
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Outbound status</h3>
+                <VolumeChart
+                  data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
+                  metric={metricConfigs.processed}
+                  visibleDays={useAggregated ? undefined : payload.visibleDays}
+                  seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                  colorOverrides={{ lost: "#7c3aed" }}
+                />
+              </div>
+            </div>
+          )}
+
+          {row1Expanded === "returns" && (
+            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
+                <div className="grid grid-cols-2 gap-6">
+                  {returnsSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
+                </div>
+              </div>
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Return status</h3>
+                <VolumeChart
+                  data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
+                  metric={metricConfigs.processed}
+                  visibleDays={useAggregated ? undefined : payload.visibleDays}
+                  seriesLabels={{ processed: "Returned on time", sortedLate: "Returned late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                  colorOverrides={{ lost: "#7c3aed" }}
+                />
+              </div>
+            </div>
+          )}
+
+          {row1Expanded === "associates" && (
+            <div>
+              <SortersTableV3 sorters={sorters} hideStatusIcons hideRateSelectors hideHeader />
+            </div>
+          )}
         </section>
+
+        {/* ============================================================ */}
+        {/*  Row 2 — Flow rates                                          */}
+        {/* ============================================================ */}
+        <section className="mt-10">
+          <h2 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Flow rates</h2>
+          <div className="grid grid-cols-3 gap-4">
+            <HeroCard card={preSortCard} expanded={row2Expanded === "preSortRate"} onToggle={() => toggleRow2("preSortRate")} />
+            <HeroCard card={sortRateCard} expanded={row2Expanded === "sortRate"} onToggle={() => toggleRow2("sortRate")} />
+            <HeroCard card={loadRateCard} expanded={row2Expanded === "loadRate"} onToggle={() => toggleRow2("loadRate")} />
+          </div>
+
+          {row2Expanded && (
+            <Caret index={row2Expanded === "preSortRate" ? 0 : row2Expanded === "sortRate" ? 1 : 2} columns={3} />
+          )}
+          {row2Expanded && (
+            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5">
+              <FlowRateSection
+                key={row2Expanded}
+                flowRateWeek={payload.flowRateWeek}
+                visibleDays={payload.visibleDays}
+                hideTabs
+                defaultCombo={row2Expanded === "preSortRate" ? "parcels-presort" : row2Expanded === "sortRate" ? "parcels-sort" : "pallets-average"}
+                defaultItemType={row2Expanded === "loadRate" ? "pallets" : "parcels"}
+              />
+            </div>
+          )}
+        </section>
+
+        {/* Sorters table removed — only shown inside Associates detail panel */}
       </div>
     </div>
   );

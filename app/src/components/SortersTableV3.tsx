@@ -21,6 +21,7 @@ type Props = {
   showFilters?: boolean;
   hideRateSelectors?: boolean;
   inlineHeader?: boolean;
+  hideHeader?: boolean;
 };
 
 const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
@@ -87,7 +88,7 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -149,7 +150,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
 
   return (
     <div>
-      {!showFilters && (
+      {!showFilters && !hideHeader && (
         <div className="mb-3 flex items-end justify-between">
           <h3 className="text-body-lg-strong text-ink">{sorters.length} workers active</h3>
           <div className="flex items-end gap-1 text-body-sm text-ink-subdued">

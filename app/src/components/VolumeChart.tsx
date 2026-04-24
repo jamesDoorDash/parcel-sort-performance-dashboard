@@ -20,6 +20,7 @@ type Props = {
   seriesLabels?: SeriesLabels;
   simpleLegend?: { color: string; label: string };
   secondaryBars?: { values: number[]; color: string; label: string };
+  colorOverrides?: Partial<Record<"processed" | "sortedLate" | "lost" | "readyToSort" | "expected", string>>;
 };
 
 const COLORS = {
@@ -90,8 +91,9 @@ const DEFAULT_LABELS: SeriesLabels = {
   forecasted: "Forecasted",
 };
 
-export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLegend, secondaryBars }: Props) {
+export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLegend, secondaryBars, colorOverrides }: Props) {
   const labels = seriesLabels ?? DEFAULT_LABELS;
+  const colors = colorOverrides ? { ...COLORS, ...colorOverrides } : COLORS;
   const isProcessed = metric.key === "processed";
   const singleDayMode = visibleDays?.size === 1;
   const chartData = singleDayMode
@@ -128,7 +130,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
     });
   };
   const hiddenCount = hiddenSeries.size + (secondaryBars && secondaryHidden ? 1 : 0);
-  const anyPrimaryVisible = allProcessedKeys.some((k) => !hiddenSeries.has(k));
+  const anyPrimaryVisible = !hoveredSecondary && allProcessedKeys.some((k) => !hiddenSeries.has(k));
 
   // ---- Compute y-axis max ----
   const maxValue = useMemo(() => {
@@ -174,7 +176,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
     // rounded up to the nearest 10.
     const rawMax = Math.max(...values, metric.target);
     return Math.ceil(rawMax / 10) * 10;
-  }, [chartData, metric, isProcessed, hiddenSeries, hoveredSeries]);
+  }, [chartData, metric, isProcessed, hiddenSeries, hoveredSeries, hoveredSecondary]);
 
   const ticks = useMemo(() => {
     const step = maxValue / 5;
@@ -309,7 +311,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
           {/* Secondary bars (rendered first so primary overlaps on z) */}
           {isSecondaryVisible && secondaryBars && chartData.map((d, i) => {
             const slot = plotWidth / chartData.length;
-            const hasPrimary = !hiddenSeries.has("processed") || !hiddenSeries.has("sortedLate") || !hiddenSeries.has("lost") || !hiddenSeries.has("readyToSort");
+            const hasPrimary = !hoveredSecondary && (!hiddenSeries.has("processed") || !hiddenSeries.has("sortedLate") || !hiddenSeries.has("lost") || !hiddenSeries.has("readyToSort"));
             const barWidth = hasPrimary ? 20 : 44;
             const cx = leftPadding + slot * i + slot / 2;
             const x = hasPrimary ? cx + 2 : cx - barWidth / 2;
@@ -318,18 +320,9 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
             if (!inRange || d.isFuture || val === 0) return null;
             const y = scaleY2(val);
             const h = topPadding + plotHeight - y;
-            // Check collision with primary label
-            const primaryTotal = (isSeriesVisible("processed") ? d.processed.processed : 0) + (isSeriesVisible("sortedLate") ? (d.processed.sortedLate ?? 0) : 0) + (isSeriesVisible("lost") ? d.processed.lost : 0) + (isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0);
-            const primaryLabelY = primaryTotal > 0 ? scaleY(primaryTotal) - 8 : 0;
-            const secLabelY = y - 8;
-            const labelsCollide = hasPrimary && primaryTotal > 0 && Math.abs(secLabelY - primaryLabelY) < 16;
-            const secCenterX = x + barWidth / 2;
-            const adjustedSecX = labelsCollide ? secCenterX + 4 : secCenterX;
-            const secAnchor = labelsCollide ? "start" as const : "middle" as const;
             return (
               <g key={`sec-${d.date}`}>
                 <path d={roundedTopBarPath(x, y, barWidth, h, 4)} fill={secondaryBars.color} />
-                <text x={adjustedSecX} y={secLabelY} textAnchor={secAnchor} fill={COLORS.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>{val.toLocaleString()}</text>
               </g>
             );
           })}
@@ -391,9 +384,9 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 return (
                   <g key={d.label}>
                     <path d={roundedTopBarPath(x, y, barWidth, h, 4)} fill={COLORS.expected} />
-                    <ValueLabel cx={cx} y={y - 8} text={d.processed.expectedVolume.toLocaleString()} />
+                    <ValueLabel cx={x + barWidth / 2} y={y - 8} text={d.processed.expectedVolume.toLocaleString()} />
                     <text
-                      x={cx}
+                      x={x + barWidth / 2}
                       y={y - 8}
                       textAnchor="middle"
                       fill={COLORS.axis}
@@ -479,22 +472,24 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                   )}
                   {hLost > 0 && (
                     topSegment === "lost" ? (
-                      <path d={roundedTopBarPath(x, yLost, barWidth, hLost, 4)} fill={COLORS.lost} />
+                      <path d={roundedTopBarPath(x, yLost, barWidth, hLost, 4)} fill={colors.lost} />
                     ) : (
-                      <rect x={x} y={yLost} width={barWidth} height={hLost} fill={COLORS.lost} />
+                      <rect x={x} y={yLost} width={barWidth} height={hLost} fill={colors.lost} />
                     )
                   )}
                   {labelText && (() => {
                     const barCenterX = x + barWidth / 2;
-                    // Check collision with secondary label
                     const secVal = isSecondaryVisible && secondaryBars ? (secondaryBars.values[i] ?? 0) : 0;
                     const secY = secVal > 0 ? scaleY2(secVal) - 8 : 0;
-                    const labelsCollide = hasSec && secVal > 0 && Math.abs(labelY - secY) < 16;
-                    const adjustedX = labelsCollide ? barCenterX - 4 : barCenterX;
-                    const anchor = labelsCollide ? "end" as const : "middle" as const;
+                    const yCollide = hasSec && secVal > 0 && Math.abs(labelY - secY) < 16;
+                    // When labels are at the same height, right-align primary to its bar's right edge
+                    const adjustedX = yCollide ? x + barWidth : barCenterX;
+                    const anchor = yCollide ? "end" as const : "middle" as const;
+                    const primaryLabelBgWidth = estimateLabelWidth(labelText);
+                    const primaryLabelCenter = yCollide ? x + barWidth - primaryLabelBgWidth / 2 : barCenterX;
                     return (
                       <>
-                        <ValueLabel cx={adjustedX} y={labelY} text={labelText} />
+                        <ValueLabel cx={primaryLabelCenter} y={labelY} text={labelText} />
                         <text x={adjustedX} y={labelY} textAnchor={anchor} fill={COLORS.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>{labelText}</text>
                       </>
                     );
@@ -597,7 +592,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 ? value > metric.target // lower is better
                 : value < metric.target;
 
-            const fill = belowTarget ? COLORS.lost : COLORS.bar;
+            const fill = belowTarget ? colors.lost : COLORS.bar;
 
             return (
               <g key={d.label}>
@@ -615,6 +610,38 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                   {metric.format(value)}
                 </text>
                 {xAxisLabel}
+              </g>
+            );
+          })}
+
+          {/* Secondary bar labels (rendered after primary bars so they aren't occluded) */}
+          {isSecondaryVisible && secondaryBars && chartData.map((d, i) => {
+            const slot = plotWidth / chartData.length;
+            const hasPrimary = !hoveredSecondary && (!hiddenSeries.has("processed") || !hiddenSeries.has("sortedLate") || !hiddenSeries.has("lost") || !hiddenSeries.has("readyToSort"));
+            const barWidth = hasPrimary ? 20 : 44;
+            const cx = leftPadding + slot * i + slot / 2;
+            const x = hasPrimary ? cx + 2 : cx - barWidth / 2;
+            const inRange = !visibleDays || visibleDays.has(d.date);
+            const val = secondaryBars.values[i] ?? 0;
+            if (!inRange || d.isFuture || val === 0) return null;
+            const y = scaleY2(val);
+            const secLabelY = y - 8;
+            const primaryTotal = (isSeriesVisible("processed") ? d.processed.processed : 0) + (isSeriesVisible("sortedLate") ? (d.processed.sortedLate ?? 0) : 0) + (isSeriesVisible("lost") ? d.processed.lost : 0) + (isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0);
+            const primaryLabelY = primaryTotal > 0 ? scaleY(primaryTotal) - 8 : 0;
+            const secCenterX = x + barWidth / 2;
+            const secTextW = estimateTextWidth(val.toLocaleString());
+            const yCollide = hasPrimary && primaryTotal > 0 && Math.abs(secLabelY - primaryLabelY) < 16;
+            // When labels are at same height: left-align to bar's left edge only if text overflows bar
+            const secOverflows = secTextW > barWidth;
+            const shouldShiftSec = yCollide && secOverflows;
+            const adjustedSecX = shouldShiftSec ? x : secCenterX;
+            const secAnchor = shouldShiftSec ? "start" as const : "middle" as const;
+            const secLabelBgWidth = estimateLabelWidth(val.toLocaleString());
+            const secLabelCenter = shouldShiftSec ? x + secLabelBgWidth / 2 : secCenterX;
+            return (
+              <g key={`sec-label-${d.date}`}>
+                <ValueLabel cx={secLabelCenter} y={secLabelY} text={val.toLocaleString()} />
+                <text x={adjustedSecX} y={secLabelY} textAnchor={secAnchor} fill={COLORS.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>{val.toLocaleString()}</text>
               </g>
             );
           })}
@@ -693,13 +720,13 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                   { label: labels.forecasted, value: d.processed.expectedVolume, color: COLORS.expected },
                 ].filter((r) => isSeriesVisible("expected") && r.value > 0)
               : [
-                  { label: labels.lost, value: d.processed.lost, color: COLORS.lost },
+                  { label: labels.lost, value: d.processed.lost, color: colors.lost },
                   { label: labels.sortedLate ?? "Sorted late", value: d.processed.sortedLate ?? 0, color: COLORS.sortedLate },
                   { label: labels.processed, value: d.processed.processed, color: COLORS.processed },
                   { label: labels.readyToSort, value: d.processed.readyToSort, color: COLORS.readyToSort },
                 ].filter((r) => {
                   if (r.value <= 0) return false;
-                  if (r.color === COLORS.lost) return isSeriesVisible("lost");
+                  if (r.color === colors.lost) return isSeriesVisible("lost");
                   if (r.color === COLORS.sortedLate) return isSeriesVisible("sortedLate");
                   if (r.color === COLORS.processed) return isSeriesVisible("processed");
                   if (r.color === COLORS.readyToSort) return isSeriesVisible("readyToSort");
@@ -784,7 +811,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 />
               )}
               <LegendItem
-                color={COLORS.lost}
+                color={colors.lost}
                 label={labels.lost}
                 active={isSeriesActive("lost")}
                 onClick={() => toggleSeries("lost")}
@@ -828,7 +855,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
           ) : (
             <>
               <LegendItem color={COLORS.bar} label={metric.label} />
-              <LegendItem color={COLORS.lost} label="Below target" />
+              <LegendItem color={colors.lost} label="Below target" />
               {(metric.bakeDays ?? 0) > 0 && (
                 <LegendItem color={COLORS.pending} label="Not calculated yet" />
               )}
@@ -868,8 +895,12 @@ function ValueLabel({ cx, y, text }: { cx: number; y: number; text: string }) {
   );
 }
 
+function estimateTextWidth(text: string) {
+  return text.length * 6.8;
+}
+
 function estimateLabelWidth(text: string) {
-  return Math.max(28, text.length * 6.8 + 10);
+  return Math.max(28, estimateTextWidth(text) + 10);
 }
 
 function roundedTopBarPath(x: number, y: number, width: number, height: number, radius: number) {

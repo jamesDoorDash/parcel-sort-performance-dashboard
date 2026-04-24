@@ -427,7 +427,7 @@ export function PerformancePageV28() {
                   data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
                   metric={metricConfigs.processed}
                   visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Ready to sort", forecasted: "Forecasted" }}
+                  seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
                 />
               ) : (
                 <VolumeChart
@@ -457,7 +457,7 @@ export function PerformancePageV28() {
               data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
               metric={metricConfigs.processed}
               visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Ready to outbound", forecasted: "Forecasted" }}
+              seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
             />
           ) : undefined}
           metrics={
@@ -477,7 +477,7 @@ export function PerformancePageV28() {
               data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
               metric={metricConfigs.processed}
               visibleDays={useAggregated ? undefined : payload.visibleDays}
-              seriesLabels={{ processed: "Returned on time", sortedLate: "Returned late", lost: "Lost", readyToSort: "Ready to return", forecasted: "Forecasted" }}
+              seriesLabels={{ processed: "Returned on time", sortedLate: "Returned late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
             />
           ) : undefined}
           metrics={
