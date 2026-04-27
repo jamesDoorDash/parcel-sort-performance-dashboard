@@ -66,7 +66,7 @@ const VERSION_OPTIONS = [
   { value: "V25", label: "V25: Merchant subsystem" },
   { value: "V26", label: "V26: Tabbed" },
   { value: "V27", label: "V27: Show chart bttn" },
-  { value: "V28", label: "V28: Dwell chart" },
+  { value: "V28", label: "V28: Dwell chart", hidden: true },
   { value: "V29", label: "V29: Dwell chart combo" },
   { value: "V30", label: "V30: Condensed" },
 ];

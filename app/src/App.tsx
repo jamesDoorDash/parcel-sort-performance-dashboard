@@ -45,7 +45,7 @@ function getInitialVersion() {
   const fromPath = versionFromPath();
   if (fromPath) return fromPath;
   const fromQuery = new URLSearchParams(window.location.search).get("version");
-  return fromQuery && ALL_VERSIONS.includes(fromQuery) ? fromQuery : "V24";
+  return fromQuery && ALL_VERSIONS.includes(fromQuery) ? fromQuery : "V30";
 }
 
 export default function App() {
