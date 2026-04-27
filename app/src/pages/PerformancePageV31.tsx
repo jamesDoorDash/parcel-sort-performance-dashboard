@@ -316,7 +316,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV30() {
+export function PerformancePageV31() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
@@ -551,8 +551,8 @@ export function PerformancePageV30() {
           )}
 
           {row1Expanded === "associates" && (
-            <div className="overflow-hidden rounded-[12px] border border-line-hovered bg-white">
-              <SortersTableV3 sorters={sorters} hideStatusIcons hideRateSelectors hideHeader noBorderTable />
+            <div className="overflow-hidden rounded-[12px] border border-line-hovered bg-white pt-4">
+              <SortersTableV3 sorters={sorters} hideStatusIcons showFilters hideRateSelectors hideHeader noBorderTable searchPadding />
             </div>
           )}
         </section>
