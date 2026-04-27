@@ -126,10 +126,16 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
       {card.delta && (
         isNeutral ? (
           <span className="mt-1 text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
-        ) : (
-          <span className={cn("mt-1 flex items-center gap-1 text-[13px] leading-[18px]", card.delta.tone === "negative" ? "font-bold text-negative" : "font-normal text-ink-subdued")}>
+        ) : card.delta.tone === "negative" ? (
+          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-negative px-2.5 py-0.5 text-[13px] leading-[18px] font-bold text-white">
             <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
             {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+          </span>
+        ) : (
+          <span className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-ink-subdued">
+            <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+            <span className="font-medium">{card.delta.value}</span>
+            <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
           </span>
         )
       )}
@@ -188,10 +194,16 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         {card.delta && (
           isNeutral ? (
             <span className="text-[14px] leading-[20px] font-normal text-ink-subdued">At target</span>
-          ) : (
-            <span className={cn("flex items-center gap-1 text-[14px] leading-[20px]", card.delta.tone === "negative" ? "font-bold text-negative" : "font-normal text-ink-subdued")}>
+          ) : card.delta.tone === "negative" ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-negative px-2.5 py-0.5 text-[14px] leading-[20px] font-bold text-white">
               <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
               {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-[14px] leading-[20px] text-ink-subdued">
+              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+              <span className="font-medium">{card.delta.value}</span>
+              <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
             </span>
           )
         )}
@@ -316,7 +328,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV30() {
+export function PerformancePageV32() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),

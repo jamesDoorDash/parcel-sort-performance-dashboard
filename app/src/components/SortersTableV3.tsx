@@ -22,6 +22,8 @@ type Props = {
   hideRateSelectors?: boolean;
   inlineHeader?: boolean;
   hideHeader?: boolean;
+  noBorderTable?: boolean;
+  searchPadding?: boolean;
 };
 
 const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
@@ -88,7 +90,7 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -163,10 +165,11 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
       )}
 
       {showFilters && (
+        <div className={searchPadding ? "px-4" : ""}>
         <>
         {hideRateSelectors ? (
-          <div className="mb-2 flex items-center justify-between">
-            {inlineHeader ? (
+          <div className={`mb-4 flex items-center ${hideHeader ? "" : "justify-between"}`}>
+            {!hideHeader && (inlineHeader ? (
               <div className="flex flex-col">
                 <span className="text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">Active associates</span>
                 <span className="text-body-sm text-ink-subdued">{meetingCount} / {sorters.length} meeting targets</span>
@@ -176,15 +179,15 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
                 <span className="text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">Active associates</span>
                 <span className="text-body-sm text-ink-subdued">{meetingCount} / {sorters.length} meeting targets</span>
               </div>
-            )}
-            <div className="relative">
+            ))}
+            <div className={`relative ${hideHeader ? "w-full" : ""}`}>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subdued" strokeWidth={2} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search name"
-                className="h-10 w-[330px] rounded-button border border-line-hovered bg-white pl-9 pr-3 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink"
+                className={`h-10 rounded-button border border-line-hovered bg-white pl-9 pr-3 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink ${hideHeader ? "w-full" : "w-[330px]"}`}
               />
             </div>
           </div>
@@ -255,9 +258,10 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
         </>
         )}
         </>
+        </div>
       )}
 
-      <div className="overflow-x-auto rounded-card border border-line-hovered bg-white">
+      <div className={`overflow-x-auto ${noBorderTable ? "[&_th]:!rounded-none" : "rounded-card border border-line-hovered"} bg-white`}>
         <table className="min-w-max w-full border-separate border-spacing-0">
           <thead>
             <tr>

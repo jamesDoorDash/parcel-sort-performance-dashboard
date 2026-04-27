@@ -317,7 +317,21 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
             const x = hasPrimary ? cx + 2 : cx - barWidth / 2;
             const inRange = !visibleDays || visibleDays.has(d.date);
             const val = secondaryBars.values[i] ?? 0;
-            if (!inRange || d.isFuture || val === 0) return null;
+            if (!inRange || d.isFuture) return null;
+            if (val === 0) {
+              // Zero-bump for secondary bar when isolated (no primary showing)
+              if (!hasPrimary) {
+                const bumpH = 4;
+                const bumpY = topPadding + plotHeight - bumpH;
+                return (
+                  <g key={`sec-${d.date}`}>
+                    <path d={roundedTopBarPath(x, bumpY, barWidth, bumpH, 2)} fill={secondaryBars.color} />
+                    <text x={x + barWidth / 2} y={bumpY - 6} textAnchor="middle" fill={COLORS.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>0</text>
+                  </g>
+                );
+              }
+              return null;
+            }
             const y = scaleY2(val);
             const h = topPadding + plotHeight - y;
             return (
@@ -416,6 +430,13 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
               const lostValue = isSeriesVisible("lost") ? d.processed.lost : 0;
               const readyValue = isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0;
 
+              // Detect single-series isolation for zero-bump treatment
+              const visibleKeys = allProcessedKeys.filter((k) => k !== "expected" && isSeriesVisible(k));
+              const isSingleSeries = visibleKeys.length === 1;
+              // Bake cutoffs: lost = 9 days, sortedLate = 1 day from latest observed day
+              const BAKE_CUTOFF_LOST = "2026-02-06"; // 9 days before Feb 15
+              const BAKE_CUTOFF_LATE = "2026-02-14"; // 1 day before Feb 15
+
               // Stack order bottom→top: readyToSort, processed, sortedLate, lost
               const cumAfterReady = readyValue;
               const cumAfterProcessed = cumAfterReady + processedValue;
@@ -477,6 +498,25 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                       <rect x={x} y={yLost} width={barWidth} height={hLost} fill={colors.lost} />
                     )
                   )}
+                  {/* Zero-bump: show a tiny bar + "0" when a single series is isolated and has zero value */}
+                  {isSingleSeries && visibleTotal === 0 && !d.isFuture && (() => {
+                    const isolated = visibleKeys[0];
+                    // Don't show zero bump if the data is still baking
+                    if (isolated === "lost" && d.date > BAKE_CUTOFF_LOST) return null;
+                    if (isolated === "sortedLate" && d.date > BAKE_CUTOFF_LATE) return null;
+                    const bumpH = 4;
+                    const bumpY = topPadding + plotHeight - bumpH;
+                    const bumpColor = isolated === "processed" ? COLORS.processed
+                      : isolated === "sortedLate" ? COLORS.sortedLate
+                      : isolated === "lost" ? colors.lost
+                      : COLORS.readyToSort;
+                    return (
+                      <>
+                        <path d={roundedTopBarPath(x, bumpY, barWidth, bumpH, 2)} fill={bumpColor} />
+                        <text x={x + barWidth / 2} y={bumpY - 6} textAnchor="middle" fill={COLORS.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>0</text>
+                      </>
+                    );
+                  })()}
                   {labelText && (() => {
                     const barCenterX = x + barWidth / 2;
                     const secVal = isSecondaryVisible && secondaryBars ? (secondaryBars.values[i] ?? 0) : 0;
