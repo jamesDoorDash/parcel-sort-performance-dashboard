@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Info, Trash2 } from "lucide-react";
 import type { FlowRateDayBucket, FlowRateCombo, FlowRateWeekData } from "../data/mockV2";
 import { cn } from "../lib/cn";
@@ -67,6 +67,20 @@ function smoothPath(points: [number, number][]): string {
   return points.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x},${y}`).join(" ");
 }
 
+function roundedTopBarPath(x: number, y: number, width: number, height: number, radius: number) {
+  const r = Math.max(0, Math.min(radius, width / 2, height));
+  const bottom = y + height;
+  return [
+    `M ${x} ${bottom}`,
+    `L ${x} ${y + r}`,
+    `Q ${x} ${y} ${x + r} ${y}`,
+    `L ${x + width - r} ${y}`,
+    `Q ${x + width} ${y} ${x + width} ${y + r}`,
+    `L ${x + width} ${bottom}`,
+    "Z",
+  ].join(" ");
+}
+
 // ---- Component ----
 type Props = {
   flowRateWeek: FlowRateWeekData;
@@ -74,9 +88,10 @@ type Props = {
   hideTabs?: boolean;
   defaultCombo?: FlowRateCombo;
   defaultItemType?: ItemType;
+  aggregatedLabel?: string; // When set, switch to bar chart mode with aggregated data
 };
 
-export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType }: Props) {
+export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType, aggregatedLabel }: Props) {
   const [itemType, setItemType] = useState<ItemType>(defaultItemType ?? "parcels");
   useEffect(() => { if (defaultItemType) setItemType(defaultItemType); }, [defaultItemType]);
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
@@ -105,9 +120,23 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
   const FUTURE_CUTOFF = "2026-02-15";
   const allData: FlowRateDayBucket[] = flowRateWeek[currentCombo];
   const singleDayMode = visibleDays?.size === 1;
+  const isAggregated = !!aggregatedLabel;
   const data = singleDayMode
     ? allData.filter((d) => visibleDays.has(d.date))
     : allData;
+
+  // Aggregate flow rate data for custom range bar chart
+  const aggregated = useMemo(() => {
+    if (!isAggregated) return null;
+    const visible = allData.filter((d) => d.date < FUTURE_CUTOFF && (!visibleDays || visibleDays.has(d.date)));
+    if (visible.length === 0) return { blendedAverage: 0, smallOnly: 0, largeOnly: 0 };
+    return {
+      blendedAverage: Math.round(visible.reduce((s, d) => s + d.blendedAverage, 0) / visible.length),
+      smallOnly: Math.round(visible.reduce((s, d) => s + d.smallOnly, 0) / visible.length),
+      largeOnly: Math.round(visible.reduce((s, d) => s + d.largeOnly, 0) / visible.length),
+    };
+  }, [allData, isAggregated, visibleDays]);
+
   const n = data.length;
   const slotW = plotW / n;
   const pointX = (i: number) => PAD.left + slotW * i + slotW / 2;
@@ -193,6 +222,75 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       {/* Chart + legend row */}
       <div className="relative z-10 flex gap-8">
       <div className="flex-1">
+
+      {/* Aggregated bar chart for custom range */}
+      {isAggregated && aggregated ? (
+        <svg
+          viewBox={`0 0 ${CHART_W} ${CHART_H}`}
+          className="w-full"
+          preserveAspectRatio="xMidYMid meet"
+          overflow="visible"
+          role="img"
+          aria-label="Flow rate aggregated"
+        >
+          {/* Grid + y-axis */}
+          {Y_TICKS.map((tick, i) => {
+            const y = yPx(tick);
+            return (
+              <g key={`agg-tick-${i}`}>
+                {tick > 0 && <line x1={PAD.left} x2={CHART_W - PAD.right} y1={y} y2={y} stroke={chartNeutralColors.pending} strokeDasharray="2 4" strokeWidth={1} />}
+                <text x={PAD.left - 12} y={y + 4} textAnchor="end" fill={chartNeutralColors.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={500}>{tick}</text>
+              </g>
+            );
+          })}
+          {/* Baseline */}
+          <line x1={PAD.left} x2={CHART_W - PAD.right} y1={PAD.top + plotH} y2={PAD.top + plotH} stroke={chartNeutralColors.baseline} strokeWidth={1.5} />
+          {/* X-axis label */}
+          <text x={PAD.left + plotW / 2} y={CHART_H - 10} textAnchor="middle" fill={chartNeutralColors.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={500}>{aggregatedLabel}</text>
+          {/* Bars */}
+          {itemType === "pallets" ? (() => {
+            const barW = 44;
+            const cx = PAD.left + plotW / 2;
+            const x = cx - barW / 2;
+            const val = aggregated.blendedAverage;
+            const y = yPx(val);
+            const h = PAD.top + plotH - y;
+            return (
+              <g>
+                <path d={roundedTopBarPath(x, y, barW, h, 4)} fill={SERIES_COLORS.blended} />
+                <text x={cx} y={y - 8} textAnchor="middle" fill={chartNeutralColors.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>{val} / hr</text>
+              </g>
+            );
+          })() : (() => {
+            const barW = 36;
+            const gap = 4;
+            const groupW = barW * 3 + gap * 2;
+            const cx = PAD.left + plotW / 2;
+            const startX = cx - groupW / 2;
+            const bars = [
+              { key: "blendedAverage" as const, val: aggregated.blendedAverage, color: SERIES_COLORS.blended },
+              { key: "smallOnly" as const, val: aggregated.smallOnly, color: SERIES_COLORS.small },
+              { key: "largeOnly" as const, val: aggregated.largeOnly, color: SERIES_COLORS.large },
+            ].filter((b) => isVisible(b.key));
+            return (
+              <g>
+                {bars.map((b, bi) => {
+                  const x = startX + bi * (barW + gap);
+                  const y = yPx(b.val);
+                  const h = PAD.top + plotH - y;
+                  return (
+                    <g key={b.key}>
+                      <path d={roundedTopBarPath(x, y, barW, h, 4)} fill={b.color} />
+                      <text x={x + barW / 2} y={y - 8} textAnchor="middle" fill={chartNeutralColors.axis} fontSize={12} fontFamily="Inter, sans-serif" fontWeight={600}>{b.val} / hr</text>
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })()}
+        </svg>
+      ) : (
+
       <svg
         viewBox={`0 0 ${CHART_W} ${CHART_H}`}
         className="w-full"
@@ -360,6 +458,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
         })()}
 
       </svg>
+      )}
       </div>
 
       {/* Legend — vertical column to the right of chart */}
