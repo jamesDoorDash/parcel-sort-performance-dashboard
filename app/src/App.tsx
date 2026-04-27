@@ -54,7 +54,7 @@ export default function App() {
 
   const setVersion = useCallback((v: string) => {
     setVersionRaw(v);
-    const path = v === "V30" ? "/" : `/${v.toLowerCase()}`;
+    const path = `/${v.toLowerCase()}`;
     window.history.replaceState(null, "", path);
   }, []);
 
