@@ -552,7 +552,7 @@ export function PerformancePageV31() {
 
           {row1Expanded === "associates" && (
             <div className="overflow-hidden rounded-[12px] border border-line-hovered bg-white pt-4">
-              <SortersTableV3 sorters={sorters} hideStatusIcons showFilters hideRateSelectors hideHeader noBorderTable searchPadding />
+              <SortersTableV3 sorters={sorters} hideStatusIcons defaultSortKey="meetsTargets" defaultSortDir="desc" showFilters hideRateSelectors hideHeader noBorderTable searchPadding />
             </div>
           )}
         </section>
@@ -580,6 +580,7 @@ export function PerformancePageV31() {
                 hideTabs
                 defaultCombo={row2Expanded === "preSortRate" ? "parcels-presort" : row2Expanded === "sortRate" ? "parcels-sort" : "pallets-average"}
                 defaultItemType={row2Expanded === "loadRate" ? "pallets" : "parcels"}
+                aggregatedLabel={useAggregated ? selectedLabel : undefined}
               />
             </div>
           )}

@@ -24,6 +24,8 @@ type Props = {
   hideHeader?: boolean;
   noBorderTable?: boolean;
   searchPadding?: boolean;
+  defaultSortKey?: SortKey;
+  defaultSortDir?: "asc" | "desc";
 };
 
 const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
@@ -90,9 +92,9 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>("name");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey>(defaultSortKey ?? "name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(defaultSortDir ?? "asc");
   const [searchQuery, setSearchQuery] = useState("");
   const [rateType, setRateType] = useState<"average" | "max">("average");
   const [parcelType, setParcelType] = useState<"blended" | "small" | "large">("blended");
