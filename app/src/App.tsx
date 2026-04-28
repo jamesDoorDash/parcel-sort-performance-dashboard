@@ -33,8 +33,9 @@ import { PerformancePageV30 } from "./pages/PerformancePageV30";
 import { PerformancePageV31 } from "./pages/PerformancePageV31";
 import { PerformancePageV32 } from "./pages/PerformancePageV32";
 import { PerformancePageV33 } from "./pages/PerformancePageV33";
+import { PerformancePageV34 } from "./pages/PerformancePageV34";
 
-const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33"];
+const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34"];
 
 function versionFromPath(): string | null {
   const path = window.location.pathname.replace(/^\//, "").toLowerCase();
@@ -97,6 +98,7 @@ export default function App() {
   if (version === "V31") page = <PerformancePageV31 />;
   if (version === "V32") page = <PerformancePageV32 />;
   if (version === "V33") page = <PerformancePageV33 />;
+  if (version === "V34") page = <PerformancePageV34 />;
 
   return (
     <div className="flex h-screen w-screen bg-white text-ink">
