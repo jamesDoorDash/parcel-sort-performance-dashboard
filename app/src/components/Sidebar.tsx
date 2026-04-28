@@ -72,6 +72,7 @@ const VERSION_OPTIONS = [
   { value: "V31", label: "V31: Cond. w/ search" },
   { value: "V32", label: "V32: Cond. extreme tags" },
   { value: "V33", label: "V33: Cond. normal tags" },
+  { value: "V34", label: "V34: Cond. tag + search" },
 ];
 
 type Props = {
