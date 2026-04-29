@@ -460,18 +460,18 @@ export function PerformancePageV35() {
     const scores: { value: number; target: number; weight: number }[] = [];
 
     const sortPct = parsePercent(getCard("parcelsSortedOnTime"));
-    if (sortPct !== null) scores.push({ value: sortPct, target: 98, weight: 30 });
+    if (sortPct !== null) scores.push({ value: sortPct, target: 98, weight: 35 });
 
     const truckPct = parsePercent(getCard("trucksDepartedOnTime"));
     if (truckPct !== null) scores.push({ value: truckPct, target: 99, weight: 25 });
 
     const returnPct = parsePercent(getCard("parcelsReturnedOnTime"));
-    if (returnPct !== null) scores.push({ value: returnPct, target: 98, weight: 25 });
+    if (returnPct !== null) scores.push({ value: returnPct, target: 98, weight: 30 });
 
     // Associates: convert ratio to percentage
     const total = sorters.length;
     const meeting = sorters.filter((s) => s.meetsTargets).length;
-    if (total > 0) scores.push({ value: (meeting / total) * 100, target: 100, weight: 20 });
+    if (total > 0) scores.push({ value: (meeting / total) * 100, target: 100, weight: 10 });
 
     if (scores.length === 0) return { letter: "--", color: "#aeb1b7", bg: "#f1f1f1", border: "#d3d6d9" };
 
@@ -479,8 +479,8 @@ export function PerformancePageV35() {
     const totalWeight = scores.reduce((s, sc) => s + sc.weight, 0);
     const weightedScore = scores.reduce((s, sc) => s + Math.min(sc.value / sc.target, 1) * 100 * (sc.weight / totalWeight), 0);
 
-    if (weightedScore >= 99) return { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" };
-    if (weightedScore >= 96) return { letter: "B", color: "#a36500", bg: "#fff6d4", border: "#a36500" };
+    if (weightedScore >= 97.5) return { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" };
+    if (weightedScore >= 93) return { letter: "B", color: "#a36500", bg: "#fff6d4", border: "#a36500" };
     if (weightedScore >= 92) return { letter: "C", color: "#b71000", bg: "#fff0ed", border: "#b71000" };
     if (weightedScore >= 85) return { letter: "D", color: "#b71000", bg: "#fff0ed", border: "#b71000" };
     return { letter: "F", color: "#b71000", bg: "#fff0ed", border: "#b71000" };
