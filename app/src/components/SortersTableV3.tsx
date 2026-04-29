@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Check, AlertTriangle, Info, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, AlertTriangle, Download, Info, Search } from "lucide-react";
 import { cn } from "../lib/cn";
 import type { SorterV2 } from "../data/mockV2";
 
@@ -26,6 +26,7 @@ type Props = {
   searchPadding?: boolean;
   defaultSortKey?: SortKey;
   defaultSortDir?: "asc" | "desc";
+  showDownload?: boolean;
 };
 
 const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
@@ -92,7 +93,7 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>(defaultSortKey ?? "name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">(defaultSortDir ?? "asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -170,7 +171,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
         <div className={searchPadding ? "px-4" : ""}>
         <>
         {hideRateSelectors ? (
-          <div className={`mb-4 flex items-center ${hideHeader ? "" : "justify-between"}`}>
+          <div className={`mb-4 flex items-center gap-3 ${hideHeader ? "" : "justify-between"}`}>
             {!hideHeader && (inlineHeader ? (
               <div className="flex flex-col">
                 <span className="text-[18px] leading-[24px] font-bold tracking-[-0.01em] text-ink">Active associates</span>
@@ -182,7 +183,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
                 <span className="text-body-sm text-ink-subdued">{meetingCount} / {sorters.length} meeting targets</span>
               </div>
             ))}
-            <div className={`relative ${hideHeader ? "w-full" : ""}`}>
+            <div className={`relative ${hideHeader ? "flex-1" : ""}`}>
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subdued" strokeWidth={2} />
               <input
                 type="text"
@@ -192,6 +193,12 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
                 className={`h-10 rounded-button border border-line-hovered bg-white pl-9 pr-3 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink ${hideHeader ? "w-full" : "w-[330px]"}`}
               />
             </div>
+            {showDownload && (
+              <button type="button" className="flex h-10 shrink-0 items-center gap-1 rounded-button border border-line-hovered bg-white px-3 text-body-md-strong text-ink hover:bg-surface-hovered transition-colors">
+                <Download className="h-5 w-5" strokeWidth={2} />
+                Download
+              </button>
+            )}
           </div>
         ) : (
         <>

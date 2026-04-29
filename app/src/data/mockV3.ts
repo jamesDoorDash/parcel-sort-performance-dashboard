@@ -123,7 +123,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     id: "parcelsMissorted",
     label: "Parcel missort rate",
     description: {
-      title: "Parcels missorted",
+      title: "Parcel missort rate",
       body: "Percent of parcels that were scanned or placed into the wrong area during sorting",
     },
     unit: "percent",
@@ -141,7 +141,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     id: "parcelsLost",
     label: "Parcel loss rate",
     description: {
-      title: "Parcels lost",
+      title: "Parcel loss rate",
       body: "Percent of parcels that still have not appeared in the expected area after 9 days with no further scans",
     },
     unit: "percent",
