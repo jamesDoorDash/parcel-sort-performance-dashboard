@@ -45,7 +45,7 @@ function versionFromPath(): string | null {
 }
 
 function getInitialVersion() {
-  if (typeof window === "undefined") return "V30";
+  if (typeof window === "undefined") return "V35";
   // Check pathname first (/v17), then query param (?version=V17), then default
   const fromPath = versionFromPath();
   if (fromPath) return fromPath;

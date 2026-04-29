@@ -321,12 +321,12 @@ const metricDefinitions: V3MetricDefinition[] = [
 
 const thisWeekSimpleSeries: Record<Exclude<V3MetricId, "parcelsProcessed" | "parcelDwellTime">, V3SimpleSeriesDay[]> = {
   parcelsSortedOnTime: [
-    day("2026-02-09", "Feb 9", 98.4),
-    day("2026-02-10", "Feb 10", 98.1),
-    day("2026-02-11", "Feb 11", 98.9),
-    day("2026-02-12", "Feb 12", 96.9),
-    day("2026-02-13", "Feb 13", 98.6),
-    day("2026-02-14", "Feb 14", 97.6, { isPartial: true }),
+    day("2026-02-09", "Feb 9", 95.8),
+    day("2026-02-10", "Feb 10", 94.9),
+    day("2026-02-11", "Feb 11", 96.5),
+    day("2026-02-12", "Feb 12", 93.2),
+    day("2026-02-13", "Feb 13", 95.4),
+    day("2026-02-14", "Feb 14", 99.6, { isPartial: true }),
     day("2026-02-15", "Feb 15", 98.2, { isFuture: true }),
   ],
   parcelsMissorted: [
@@ -357,12 +357,12 @@ const thisWeekSimpleSeries: Record<Exclude<V3MetricId, "parcelsProcessed" | "par
     day("2026-02-15", "Feb 15", 137, { isFuture: true }),
   ],
   parcelsReturnedOnTime: [
-    day("2026-02-09", "Feb 9", 98.8),
-    day("2026-02-10", "Feb 10", 98.5),
-    day("2026-02-11", "Feb 11", 99.1),
-    day("2026-02-12", "Feb 12", 97.6),
-    day("2026-02-13", "Feb 13", 98.7),
-    day("2026-02-14", "Feb 14", 98.4, { isPartial: true }),
+    day("2026-02-09", "Feb 9", 95.6),
+    day("2026-02-10", "Feb 10", 95.1),
+    day("2026-02-11", "Feb 11", 96.8),
+    day("2026-02-12", "Feb 12", 93.5),
+    day("2026-02-13", "Feb 13", 95.9),
+    day("2026-02-14", "Feb 14", 99.4, { isPartial: true }),
     day("2026-02-15", "Feb 15", 98.9, { isFuture: true }),
   ],
   returnsScannedToPallet: [
@@ -420,18 +420,18 @@ const thisWeekSimpleSeries: Record<Exclude<V3MetricId, "parcelsProcessed" | "par
     day("2026-02-15", "Feb 15", 55, { isFuture: true }),
   ],
   trucksDepartedOnTime: [
-    day("2026-02-09", "Feb 9", 99.1),
-    day("2026-02-10", "Feb 10", 98.9),
-    day("2026-02-11", "Feb 11", 99.4),
-    day("2026-02-12", "Feb 12", 97.8),
-    day("2026-02-13", "Feb 13", 99.0),
-    day("2026-02-14", "Feb 14", 98.8, { isPartial: true }),
+    day("2026-02-09", "Feb 9", 96.1),
+    day("2026-02-10", "Feb 10", 95.2),
+    day("2026-02-11", "Feb 11", 97.0),
+    day("2026-02-12", "Feb 12", 93.8),
+    day("2026-02-13", "Feb 13", 96.4),
+    day("2026-02-14", "Feb 14", 99.8, { isPartial: true }),
     day("2026-02-15", "Feb 15", 99.1, { isFuture: true }),
   ],
 };
 
 const lastWeekSimpleSeries = shiftSeries(thisWeekSimpleSeries, [
-  0.2, -0.1, 0.01, 3, 0.3, 0.3, 0.2, 0.2, 0.4, 0.02, 2, 0.2,
+  -12, 0.3, 0.05, -20, -14, -3, -3, -2, -4, 0.15, -10, -16,
 ]);
 const nextWeekSimpleSeries = shiftSeries(thisWeekSimpleSeries, [
   0.1, -0.01, -0.0, 2, 0.2, 0.1, 0.15, 0.1, 0.2, -0.01, 1, 0.1,
