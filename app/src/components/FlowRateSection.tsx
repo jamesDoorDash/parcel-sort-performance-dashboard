@@ -89,9 +89,10 @@ type Props = {
   defaultCombo?: FlowRateCombo;
   defaultItemType?: ItemType;
   aggregatedLabel?: string; // When set, switch to bar chart mode with aggregated data
+  palletLabel?: string; // Override for the "Pallets loaded" series label (e.g. "Bin dispatch rate" on spoke)
 };
 
-export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType, aggregatedLabel }: Props) {
+export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallets loaded" }: Props) {
   const [itemType, setItemType] = useState<ItemType>(defaultItemType ?? "parcels");
   useEffect(() => { if (defaultItemType) setItemType(defaultItemType); }, [defaultItemType]);
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
@@ -220,7 +221,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       )}
 
       {/* Chart + legend row */}
-      <div className="relative z-10 flex gap-8">
+      <div className="relative z-10 flex items-center gap-8">
       <div className="flex-1">
 
       {/* Aggregated bar chart for custom range */}
@@ -414,7 +415,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
           const d = data[hoveredPoint];
           const cx = pointX(hoveredPoint);
           const rows = itemType === "pallets"
-            ? [{ label: "Pallets loaded", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: true }]
+            ? [{ label: palletLabel, value: d.blendedAverage, color: SERIES_COLORS.blended, visible: true }]
             : [
                 { label: "Blended average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
                 { label: "Small parcels only", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
@@ -461,13 +462,29 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       )}
       </div>
 
-      {/* Legend — vertical column to the right of chart */}
-      <div className="flex min-w-[180px] flex-col gap-2 pt-6">
+      {/* Legend — vertical column to the right of chart, vertically centered */}
+      <div className="flex min-w-[180px] flex-col gap-2">
         {itemType === "pallets" ? (
-          <div className="flex items-center gap-2">
-            <span className="block h-4 w-4 shrink-0 rounded-[4px]" style={{ backgroundColor: SERIES_COLORS.blended }} />
-            <span className="whitespace-nowrap text-body-md text-ink">Pallets loaded</span>
-          </div>
+          <>
+            <div className="flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" style={{ backgroundColor: SERIES_COLORS.blended }} />
+              <span className="whitespace-nowrap text-body-md text-ink">{palletLabel}</span>
+            </div>
+            {/* Invisible spacers so the legend column has the same height as the parcels variant
+                and ends up centered at the same vertical position relative to the chart. */}
+            <div className="invisible flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" />
+              <span className="whitespace-nowrap text-body-md text-ink">spacer</span>
+            </div>
+            <div className="invisible flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" />
+              <span className="whitespace-nowrap text-body-md text-ink">spacer</span>
+            </div>
+            <div className="invisible mt-2 flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" />
+              <span className="whitespace-nowrap text-body-md text-ink">spacer</span>
+            </div>
+          </>
         ) : (
           <>
             {[

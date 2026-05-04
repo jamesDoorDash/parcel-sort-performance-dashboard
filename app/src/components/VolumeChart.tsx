@@ -20,6 +20,8 @@ type Props = {
   seriesLabels?: SeriesLabels;
   simpleLegend?: { color: string; label: string };
   secondaryBars?: { values: number[]; color: string; label: string };
+  // An additional series stacked on top of the existing lost segment (e.g. "Runner returns" on spoke).
+  extraTopStack?: { values: number[]; color: string; label: string };
   colorOverrides?: Partial<Record<"processed" | "sortedLate" | "lost" | "readyToSort" | "expected", string>>;
 };
 
@@ -91,7 +93,7 @@ const DEFAULT_LABELS: SeriesLabels = {
   forecasted: "Forecasted",
 };
 
-export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLegend, secondaryBars, colorOverrides }: Props) {
+export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLegend, secondaryBars, extraTopStack, colorOverrides }: Props) {
   const labels = seriesLabels ?? DEFAULT_LABELS;
   const colors = colorOverrides ? { ...COLORS, ...colorOverrides } : COLORS;
   const isProcessed = metric.key === "processed";
@@ -110,11 +112,14 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
   const [hoveredSeries, setHoveredSeries] = useState<ProcessedSeriesKey | null>(null);
   const [secondaryHidden, setSecondaryHidden] = useState(false);
   const [hoveredSecondary, setHoveredSecondary] = useState(false);
+  const [extraHidden, setExtraHidden] = useState(false);
   const allProcessedKeys: ProcessedSeriesKey[] = ["processed", "sortedLate", "lost", "readyToSort", "expected"];
   const isSeriesVisible = (series: ProcessedSeriesKey) =>
     !hiddenSeries.has(series) && (hoveredSeries == null || hoveredSeries === series) && (!hoveredSecondary);
   const isSeriesActive = (series: ProcessedSeriesKey) => !hiddenSeries.has(series);
   const isSecondaryVisible = secondaryBars && !secondaryHidden && !hoveredSeries;
+  const isExtraVisible = !!extraTopStack && !extraHidden && (hoveredSeries == null || hoveredSeries === ("extra" as unknown as ProcessedSeriesKey)) && !hoveredSecondary;
+  const toggleExtra = () => setExtraHidden((h) => !h);
   const toggleSeries = (series: ProcessedSeriesKey) => {
     setHiddenSeries((current) => {
       if (current.has(series)) {
@@ -129,19 +134,20 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
       return next;
     });
   };
-  const hiddenCount = hiddenSeries.size + (secondaryBars && secondaryHidden ? 1 : 0);
+  const hiddenCount = hiddenSeries.size + (secondaryBars && secondaryHidden ? 1 : 0) + (extraTopStack && extraHidden ? 1 : 0);
   const anyPrimaryVisible = !hoveredSecondary && allProcessedKeys.some((k) => !hiddenSeries.has(k));
 
   // ---- Compute y-axis max ----
   const maxValue = useMemo(() => {
     if (isProcessed) {
         const max = Math.max(
-        ...chartData.map((d) =>
+        ...chartData.map((d, i) =>
           Math.max(
             (isSeriesVisible("processed") ? d.processed.processed : 0) +
               (isSeriesVisible("sortedLate") ? (d.processed.sortedLate ?? 0) : 0) +
               (isSeriesVisible("lost") ? d.processed.lost : 0) +
-              (isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0),
+              (isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0) +
+              (isExtraVisible && extraTopStack ? (extraTopStack.values[i] ?? 0) : 0),
             isSeriesVisible("expected") ? d.processed.expectedVolume : 0,
           ),
         ),
@@ -176,7 +182,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
     // rounded up to the nearest 10.
     const rawMax = Math.max(...values, metric.target);
     return Math.ceil(rawMax / 10) * 10;
-  }, [chartData, metric, isProcessed, hiddenSeries, hoveredSeries, hoveredSecondary]);
+  }, [chartData, metric, isProcessed, hiddenSeries, hoveredSeries, hoveredSecondary, isExtraVisible, extraTopStack]);
 
   const ticks = useMemo(() => {
     const step = maxValue / 5;
@@ -429,6 +435,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
               const sortedLateValue = isSeriesVisible("sortedLate") ? (d.processed.sortedLate ?? 0) : 0;
               const lostValue = isSeriesVisible("lost") ? d.processed.lost : 0;
               const readyValue = isSeriesVisible("readyToSort") ? d.processed.readyToSort : 0;
+              const extraValue = isExtraVisible && extraTopStack ? (extraTopStack.values[i] ?? 0) : 0;
 
               // Detect single-series isolation for zero-bump treatment
               const visibleKeys = allProcessedKeys.filter((k) => k !== "expected" && isSeriesVisible(k));
@@ -437,11 +444,12 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
               const BAKE_CUTOFF_LOST = "2026-02-06"; // 9 days before Feb 15
               const BAKE_CUTOFF_LATE = "2026-02-14"; // 1 day before Feb 15
 
-              // Stack order bottom→top: readyToSort, processed, sortedLate, lost
+              // Stack order bottom→top: readyToSort, processed, sortedLate, lost, extra
               const cumAfterReady = readyValue;
               const cumAfterProcessed = cumAfterReady + processedValue;
               const cumAfterLate = cumAfterProcessed + sortedLateValue;
-              const visibleTotal = cumAfterLate + lostValue;
+              const cumAfterLost = cumAfterLate + lostValue;
+              const visibleTotal = cumAfterLost + extraValue;
 
               const yReady = scaleY(cumAfterReady);
               const hReady = readyValue > 0 ? topPadding + plotHeight - yReady : 0;
@@ -452,8 +460,11 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
               const yLate = scaleY(cumAfterLate);
               const hLate = sortedLateValue > 0 ? scaleY(cumAfterProcessed) - yLate : 0;
 
-              const yLost = scaleY(visibleTotal);
+              const yLost = scaleY(cumAfterLost);
               const hLost = lostValue > 0 ? scaleY(cumAfterLate) - yLost : 0;
+
+              const yExtra = scaleY(visibleTotal);
+              const hExtra = extraValue > 0 ? scaleY(cumAfterLost) - yExtra : 0;
 
               const labelValue = visibleTotal;
               const labelY = labelValue > 0 ? scaleY(labelValue) - 8 : topPadding + plotHeight - 8;
@@ -461,6 +472,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
 
               // Determine which segment is on top (gets rounded corners)
               const segments = [
+                { key: "extra", h: hExtra },
                 { key: "lost", h: hLost },
                 { key: "late", h: hLate },
                 { key: "processed", h: hProcessed },
@@ -496,6 +508,13 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                       <path d={roundedTopBarPath(x, yLost, barWidth, hLost, 4)} fill={colors.lost} />
                     ) : (
                       <rect x={x} y={yLost} width={barWidth} height={hLost} fill={colors.lost} />
+                    )
+                  )}
+                  {hExtra > 0 && extraTopStack && (
+                    topSegment === "extra" ? (
+                      <path d={roundedTopBarPath(x, yExtra, barWidth, hExtra, 4)} fill={extraTopStack.color} />
+                    ) : (
+                      <rect x={x} y={yExtra} width={barWidth} height={hExtra} fill={extraTopStack.color} />
                     )
                   )}
                   {/* Zero-bump: show a tiny bar + "0" when a single series is isolated and has zero value */}
@@ -831,6 +850,14 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
             </div>
           ) : isProcessed ? (
             <>
+              {extraTopStack && (
+                <LegendItem
+                  color={extraTopStack.color}
+                  label={extraTopStack.label}
+                  active={!extraHidden}
+                  onClick={toggleExtra}
+                />
+              )}
               {secondaryBars && (
                 <LegendItem
                   color={secondaryBars.color}
@@ -906,7 +933,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
             <div className={cn("mt-2", hiddenCount > 0 ? "" : "invisible")}>
               <button
                 type="button"
-                onClick={() => { setHiddenSeries(new Set()); setSecondaryHidden(false); }}
+                onClick={() => { setHiddenSeries(new Set()); setSecondaryHidden(false); setExtraHidden(false); }}
                 className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 transition-all hover:bg-surface-hovered"
               >
                 <Trash2 className="h-4 w-4 shrink-0 text-ink" strokeWidth={1.75} />

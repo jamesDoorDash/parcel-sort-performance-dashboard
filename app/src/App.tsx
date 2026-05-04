@@ -35,32 +35,84 @@ import { PerformancePageV32 } from "./pages/PerformancePageV32";
 import { PerformancePageV33 } from "./pages/PerformancePageV33";
 import { PerformancePageV34 } from "./pages/PerformancePageV34";
 import { PerformancePageV35 } from "./pages/PerformancePageV35";
+import { PerformancePageV36 } from "./pages/PerformancePageV36";
+import { PerformancePageV37 } from "./pages/PerformancePageV37";
+import { PerformancePageV38 } from "./pages/PerformancePageV38";
+import { PerformancePageV39 } from "./pages/PerformancePageV39";
+import { PerformancePageV40 } from "./pages/PerformancePageV40";
+import { PerformancePageV41 } from "./pages/PerformancePageV41";
+import { PerformancePageV42 } from "./pages/PerformancePageV42";
+import { PerformancePageV43 } from "./pages/PerformancePageV43";
+import { PerformancePageV44 } from "./pages/PerformancePageV44";
+import { PerformancePageV45 } from "./pages/PerformancePageV45";
+import { PerformancePageV46 } from "./pages/PerformancePageV46";
+import { PerformancePageSpokeV35 } from "./pages/PerformancePageSpokeV35";
+import { PerformancePageSpokeV46 } from "./pages/PerformancePageSpokeV46";
+import { AdminPage } from "./pages/AdminPage";
 
-const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34", "V35"];
+const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V38", "V39", "V40", "V41", "V42", "V43", "V44", "V45", "V46"];
+const SPOKE_VERSIONS = ["V35", "V46"];
 
-function versionFromPath(): string | null {
-  const path = window.location.pathname.replace(/^\//, "").toLowerCase();
-  if (!path) return null;
-  return ALL_VERSIONS.find((v) => v.toLowerCase() === path) ?? null;
+export type Facility = "hub" | "spoke";
+
+function parseRoute(): { facility: Facility; version: string | null; admin: boolean } {
+  if (typeof window === "undefined") return { facility: "hub", version: null, admin: false };
+  const parts = window.location.pathname.replace(/^\//, "").toLowerCase().split("/").filter(Boolean);
+  if (parts[0] === "admin") {
+    return { facility: "hub", version: null, admin: true };
+  }
+  if (parts[0] === "spk") {
+    const v = parts[1] ? SPOKE_VERSIONS.find((x) => x.toLowerCase() === parts[1]) ?? null : null;
+    return { facility: "spoke", version: v, admin: false };
+  }
+  const v = parts[0] ? ALL_VERSIONS.find((x) => x.toLowerCase() === parts[0]) ?? null : null;
+  return { facility: "hub", version: v, admin: false };
 }
 
-function getInitialVersion() {
-  if (typeof window === "undefined") return "V35";
-  // Check pathname first (/v17), then query param (?version=V17), then default
-  const fromPath = versionFromPath();
-  if (fromPath) return fromPath;
+function getInitial(): { facility: Facility; version: string; admin: boolean } {
+  if (typeof window === "undefined") return { facility: "hub", version: "V35", admin: false };
+  const fromPath = parseRoute();
+  if (fromPath.admin) return { facility: "hub", version: "V46", admin: true };
+  if (fromPath.version) return { facility: fromPath.facility, version: fromPath.version, admin: false };
   const fromQuery = new URLSearchParams(window.location.search).get("version");
-  return fromQuery && ALL_VERSIONS.includes(fromQuery) ? fromQuery : "V35";
+  if (fromQuery && ALL_VERSIONS.includes(fromQuery)) return { facility: fromPath.facility, version: fromQuery, admin: false };
+  return { facility: fromPath.facility, version: fromPath.facility === "spoke" ? "V35" : "V35", admin: false };
+}
+
+function buildPath(facility: Facility, version: string) {
+  return facility === "spoke" ? `/spk/${version.toLowerCase()}` : `/${version.toLowerCase()}`;
 }
 
 export default function App() {
   const [active, setActive] = useState<string>("performance");
-  const [versionRaw, setVersionRaw] = useState(getInitialVersion);
+  const initial = getInitial();
+  const [facility, setFacilityRaw] = useState<Facility>(initial.facility);
+  const [versionRaw, setVersionRaw] = useState(initial.version);
+  const [adminMode, setAdminMode] = useState<boolean>(initial.admin);
 
   const setVersion = useCallback((v: string) => {
+    setAdminMode(false);
     setVersionRaw(v);
-    const path = `/${v.toLowerCase()}`;
-    window.history.replaceState(null, "", path);
+    setFacilityRaw((f) => {
+      window.history.replaceState(null, "", buildPath(f, v));
+      return f;
+    });
+  }, []);
+
+  const setFacility = useCallback((f: Facility) => {
+    setAdminMode(false);
+    setFacilityRaw(f);
+    setVersionRaw((current) => {
+      const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
+      const nextVersion = validList.includes(current) ? current : (f === "spoke" ? "V35" : "V35");
+      window.history.replaceState(null, "", buildPath(f, nextVersion));
+      return nextVersion;
+    });
+  }, []);
+
+  const goToAdmin = useCallback(() => {
+    setAdminMode(true);
+    window.history.replaceState(null, "", "/admin");
   }, []);
 
   const version = versionRaw;
@@ -101,12 +153,35 @@ export default function App() {
   if (version === "V33") page = <PerformancePageV33 />;
   if (version === "V34") page = <PerformancePageV34 />;
   if (version === "V35") page = <PerformancePageV35 />;
+  if (version === "V36") page = <PerformancePageV36 />;
+  if (version === "V37") page = <PerformancePageV37 />;
+  if (version === "V38") page = <PerformancePageV38 />;
+  if (version === "V39") page = <PerformancePageV39 />;
+  if (version === "V40") page = <PerformancePageV40 />;
+  if (version === "V41") page = <PerformancePageV41 />;
+  if (version === "V42") page = <PerformancePageV42 />;
+  if (version === "V43") page = <PerformancePageV43 />;
+  if (version === "V44") page = <PerformancePageV44 />;
+  if (version === "V45") page = <PerformancePageV45 />;
+  if (version === "V46") page = <PerformancePageV46 />;
+
+  if (facility === "spoke" && version === "V35") page = <PerformancePageSpokeV35 />;
+  if (facility === "spoke" && version === "V46") page = <PerformancePageSpokeV46 />;
 
   return (
     <div className="flex h-screen w-screen bg-white text-ink">
-      <Sidebar active={active} onSelect={setActive} version={version} onVersionChange={setVersion} />
+      <Sidebar
+        active={adminMode ? "admin" : active}
+        onSelect={(k) => { setAdminMode(false); setActive(k); }}
+        version={version}
+        onVersionChange={setVersion}
+        facility={facility}
+        onFacilityChange={setFacility}
+        adminMode={adminMode}
+        onGoToAdmin={goToAdmin}
+      />
       <main className="min-w-0 flex-1 overflow-hidden bg-white">
-        {page}
+        {adminMode || active === "admin" ? <AdminPage /> : page}
       </main>
     </div>
   );

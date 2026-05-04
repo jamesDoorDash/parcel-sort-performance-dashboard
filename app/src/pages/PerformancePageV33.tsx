@@ -98,12 +98,13 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex flex-col items-start rounded-[12px] border border-line-hovered bg-white px-5 py-4 text-left transition-all",
+        "flex items-stretch justify-between rounded-[12px] border border-line-hovered bg-white px-5 py-4 text-left transition-all",
         expanded
           ? "ring-[2.5px] ring-inset ring-ink shadow-card"
           : "hover:shadow-card",
       )}
     >
+      <div className="flex min-w-0 flex-col items-start">
       <div
         className="relative"
         onMouseEnter={() => setTooltipOpen(true)}
@@ -139,6 +140,23 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
           </span>
         )
       )}
+      </div>
+      <div className="flex shrink-0 items-center pl-3">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+          className={cn("text-ink", expanded && "rotate-180")}
+        >
+          <path
+            transform="translate(4.5, 7.75)"
+            d="M13.2929 0.292893C13.6834 -0.0975788 14.3164 -0.0975034 14.707 0.292893C15.0975 0.683425 15.0975 1.31644 14.707 1.70696L8.20696 8.20696C7.81643 8.59747 7.18341 8.59748 6.79289 8.20696L0.292893 1.70696C-0.0976311 1.31643 -0.0976311 0.683418 0.292893 0.292893C0.683418 -0.0976311 1.31643 -0.0976311 1.70696 0.292893L7.49992 6.08586L13.2929 0.292893Z"
+            fill="currentColor"
+          />
+        </svg>
+      </div>
     </button>
   );
 }
@@ -160,7 +178,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
         onMouseEnter={() => setTooltipOpen(true)}
         onMouseLeave={() => setTooltipOpen(false)}
       >
-        <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink">{card.label}</span>
+        <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink-subdued">{card.label}</span>
         {tooltipOpen && card.labelTooltip.body && (
           <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[280px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
             {card.labelTooltip.title && card.labelTooltip.title !== card.label && (
@@ -410,7 +428,7 @@ export function PerformancePageV33() {
       labelTooltip: { title: "Associates meeting targets", body: "Number of associates whose average sort rate meets or exceeds their target rate for the selected period." },
       value: `${meeting} / ${total}`,
       delta: notMeeting === 0
-        ? { value: "all meeting targets", direction: "up" as const, tone: "positive" as const }
+        ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
         : { value: `${notMeeting}`, direction: "down" as const, tone: "negative" as const },
     };
   }, [sorters]);

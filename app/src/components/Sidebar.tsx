@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   BarChart3,
@@ -9,9 +9,11 @@ import {
   ChevronUp,
   ChevronDown,
   PanelLeftClose,
+  Search,
 } from "lucide-react";
 import { cn } from "../lib/cn";
 import { hubMeta } from "../data/mock";
+import type { Facility } from "../App";
 
 type NavItem = {
   key: string;
@@ -68,24 +70,63 @@ const VERSION_OPTIONS = [
   { value: "V27", label: "V27: Show chart bttn", hidden: true },
   { value: "V28", label: "V28: Dwell chart", hidden: true },
   { value: "V29", label: "V29: Dwell chart combo", hidden: true },
-  { value: "V30", label: "V30: Condensed" },
-  { value: "V31", label: "V31: Cond. w/ search" },
-  { value: "V32", label: "V32: Cond. extreme tags" },
-  { value: "V33", label: "V33: Cond. normal tags" },
-  { value: "V34", label: "V34: Cond. tag + search" },
-  { value: "V35", label: "V35: Facility grade" },
+  { value: "V30", label: "V30: Condensed", hidden: true },
+  { value: "V31", label: "V31: Cond. w/ search", hidden: true },
+  { value: "V32", label: "V32: Cond. extreme tags", hidden: true },
+  { value: "V33", label: "V33: Cond. normal tags", hidden: true },
+  { value: "V34", label: "V34: Cond. tag + search", hidden: true },
+  { value: "V35", label: "V35: Facility grade", hidden: true },
+  { value: "V36", label: "V36: Associates insights", hidden: true },
+  { value: "V37", label: "V37: Associates KPIs", hidden: true },
+  { value: "V38", label: "V38: Facility grade giant", hidden: true },
+  { value: "V39", label: "V39: Below-target count", hidden: true },
+  { value: "V40", label: "V40: Top 3 div", hidden: true },
+  { value: "V41", label: "V41: Top 3 containers", hidden: true },
+  { value: "V42", label: "V42: Enlarged grade", hidden: true },
+  { value: "V43", label: "V43: Giant grade", hidden: true },
+  { value: "V44", label: "V44: Original grade", hidden: true },
+  { value: "V45", label: "V45: 24px headers", hidden: true },
+  { value: "V46", label: "V46: May4 feedback" },
 ];
+
+const SPOKE_VERSION_VALUES = ["V35", "V46"];
 
 type Props = {
   active: string;
   onSelect: (key: string) => void;
   version: string;
   onVersionChange: (v: string) => void;
+  facility: Facility;
+  onFacilityChange: (f: Facility) => void;
+  adminMode?: boolean;
+  onGoToAdmin?: () => void;
 };
 
-export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
+const FACILITY_SITES: { id: string; facility: Facility; address: string }[] = [
+  { id: "HUB-5", facility: "hub", address: "1450 Marietta Blvd NW, Atlanta, GA 30318" },
+  { id: "SPK-1", facility: "spoke", address: "3500 Lenox Rd NE, Atlanta, GA 30326" },
+];
+
+export function Sidebar({ active, onSelect, version, onVersionChange, facility, onFacilityChange, adminMode, onGoToAdmin }: Props) {
   const [trucksOpen, setTrucksOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [facilityOpen, setFacilityOpen] = useState(false);
+  const [siteQuery, setSiteQuery] = useState("");
+  const facilityRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!facilityOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (facilityRef.current && !facilityRef.current.contains(e.target as Node)) setFacilityOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [facilityOpen]);
+
+  const currentSite = FACILITY_SITES.find((s) => s.facility === facility) ?? FACILITY_SITES[0];
+  const filteredSites = FACILITY_SITES.filter((s) =>
+    s.id.toLowerCase().includes(siteQuery.toLowerCase()) || s.address.toLowerCase().includes(siteQuery.toLowerCase()),
+  );
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -93,25 +134,108 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
       const target = e.target as HTMLElement;
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
       e.preventDefault();
-      const list = VERSION_OPTIONS.filter((o) => showAll || !o.hidden).map((o) => o.value);
+      const baseList = facility === "spoke" ? VERSION_OPTIONS.filter((o) => SPOKE_VERSION_VALUES.includes(o.value)) : VERSION_OPTIONS;
+      const list = baseList.filter((o) => showAll || !o.hidden).map((o) => o.value);
       const idx = list.indexOf(version);
       if (e.key === "ArrowDown") onVersionChange(list[Math.min(idx + 1, list.length - 1)]);
       else onVersionChange(list[Math.max(idx - 1, 0)]);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [version, showAll, onVersionChange]);
+  }, [version, showAll, onVersionChange, facility]);
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-line bg-white">
-      {/* Header — hub + time */}
-      <div className="px-8 pt-8 pb-6">
-        <div className="text-title-md text-ink">{hubMeta.id}</div>
-        <div className="mt-1 text-body-md text-ink-subdued">{hubMeta.localTime}</div>
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 px-6 pt-5 pb-7">
+        <svg width="29" height="16" viewBox="0 0 29 16" fill="none" aria-hidden>
+          <path
+            d="M27.3457 3.79469C26.0871 1.44425 23.6271 0 20.9669 0H0.686503C0.314647 0 0 0.311504 0 0.707965C0 0.877876 0.0858129 1.04779 0.20023 1.18938L4.60529 5.57876C5.00575 5.97522 5.52063 6.20177 6.06411 6.17345H20.3377C21.3674 6.17345 22.1969 6.96637 22.1969 7.98584C22.1969 9.00531 21.396 9.82655 20.3663 9.82655H10.555C10.1831 9.82655 9.86848 10.1381 9.86848 10.5345C9.86848 10.7044 9.9543 10.8743 10.0687 11.0159L14.4738 15.4053C14.8742 15.8018 15.3891 16 15.9612 16H20.4235C26.2015 16 30.578 9.88319 27.3457 3.79469Z"
+            fill="#EB1700"
+          />
+        </svg>
+        <span className="text-body-md-strong text-ink">DashLink Parcels</span>
+      </div>
+
+      {/* Facility selector */}
+      <div ref={facilityRef} className="relative border-y border-line">
+        <button
+          type="button"
+          onClick={() => setFacilityOpen((v) => !v)}
+          className="flex w-full items-center gap-3 px-6 pt-6 pb-6 text-left hover:bg-surface-hovered"
+        >
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#0c8a4e]" />
+          <div className="flex-1">
+            <div className="text-body-md-strong text-ink">{currentSite.id}</div>
+            <div className="text-body-sm text-ink-subdued">{hubMeta.localTime}</div>
+          </div>
+          <ChevronDown
+            className={cn("h-4 w-4 text-icon-subdued transition-transform", facilityOpen && "rotate-180")}
+            strokeWidth={2}
+          />
+        </button>
+
+        {facilityOpen && (
+          <div className="absolute top-full left-3 z-30 mt-1 w-[320px] rounded-[10px] border border-line bg-white shadow-lg">
+            <div className="px-4 py-4">
+              <div className="flex h-10 items-center gap-2 rounded-[8px] border border-line px-3">
+                <Search className="h-4 w-4 text-icon-subdued" strokeWidth={2} />
+                <input
+                  type="text"
+                  value={siteQuery}
+                  onChange={(e) => setSiteQuery(e.target.value)}
+                  placeholder="Search for facility"
+                  className="flex-1 bg-transparent text-body-sm text-ink outline-none placeholder:text-ink-subdued"
+                />
+              </div>
+            </div>
+            <div className="border-t border-line px-4 py-4">
+              <button
+                type="button"
+                className="flex h-10 w-full items-center justify-center rounded-[8px] border border-line text-body-md-strong text-ink hover:bg-surface-hovered"
+              >
+                Network view
+              </button>
+            </div>
+            <div className="border-t border-line py-2">
+              <div className="px-4 pt-3 pb-2 text-body-sm text-ink-subdued">Your sites</div>
+              <ul className="pb-2">
+                {filteredSites.map((site) => {
+                  const isCurrent = site.facility === facility;
+                  return (
+                    <li key={site.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!isCurrent) onFacilityChange(site.facility);
+                          setFacilityOpen(false);
+                          setSiteQuery("");
+                        }}
+                        className={cn(
+                          "flex w-full items-start gap-3 px-4 py-2.5 text-left",
+                          isCurrent ? "bg-surface-hovered" : "hover:bg-surface-hovered",
+                        )}
+                      >
+                        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[#0c8a4e]" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-body-md-strong text-ink">{site.id}</div>
+                          <div className="truncate text-body-sm text-ink-subdued">{site.address}</div>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+                {filteredSites.length === 0 && (
+                  <li className="px-4 py-3 text-body-sm text-ink-subdued">No sites match "{siteQuery}"</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Primary nav */}
-      <nav className="flex-1 overflow-hidden px-4">
+      <nav className="flex-1 overflow-hidden px-4 pt-3">
         {nav.map((item) => {
           const isActive =
             active === item.key || (item.key === "trucks" && active.startsWith("trucks-"));
@@ -189,6 +313,21 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
       {/* Version selector + collapse */}
       <div className="flex flex-col border-t border-line">
         <div className="flex-1 overflow-y-auto px-4 pt-3 pb-1">
+          <div className="mb-2 rounded-card bg-ink px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="px-1 text-body-sm-strong text-white">Metrics & tooltips alignment</p>
+              <button
+                type="button"
+                onClick={onGoToAdmin}
+                className={cn(
+                  "flex h-8 shrink-0 items-center justify-center rounded-button px-3 text-body-sm-strong transition-colors",
+                  adminMode ? "bg-white text-ink" : "bg-white/10 text-white hover:bg-white/20",
+                )}
+              >
+                View
+              </button>
+            </div>
+          </div>
           <div className="rounded-card bg-ink px-3 py-3">
           <div className="mb-2 flex items-baseline justify-between px-1">
             <div>
@@ -199,8 +338,13 @@ export function Sidebar({ active, onSelect, version, onVersionChange }: Props) {
               {showAll ? "Show less" : "Show all"}
             </button>
           </div>
-          <fieldset className="space-y-1">
-            {VERSION_OPTIONS.filter((o) => showAll || !o.hidden).map((option) => {
+          <fieldset className="max-h-[50vh] space-y-1 overflow-y-auto pr-1">
+            {(facility === "spoke"
+              ? VERSION_OPTIONS
+                  .filter((o) => SPOKE_VERSION_VALUES.includes(o.value))
+                  .filter((o) => showAll || !o.hidden)
+                  .map((o) => o.value === "V46" ? { ...o, label: "V46: May4 feedback" } : o)
+              : VERSION_OPTIONS.filter((o) => showAll || !o.hidden)).map((option) => {
               const checked = option.value === version;
               return (
                 <label

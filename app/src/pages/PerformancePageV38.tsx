@@ -105,41 +105,41 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
       )}
     >
       <div className="flex min-w-0 flex-col items-start">
-      <div
-        className="relative"
-        onMouseEnter={() => setTooltipOpen(true)}
-        onMouseLeave={() => setTooltipOpen(false)}
-      >
-        <span className="metric-label-underline text-[13px] leading-[18px] font-medium tracking-[-0.01em] text-ink-subdued">{card.label}</span>
-        {tooltipOpen && card.labelTooltip.body && (
-          <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[280px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
-            {card.labelTooltip.title && card.labelTooltip.title !== card.label && (
-              <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
-            )}
-            <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
-            <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
-          </div>
+        <div
+          className="relative"
+          onMouseEnter={() => setTooltipOpen(true)}
+          onMouseLeave={() => setTooltipOpen(false)}
+        >
+          <span className="metric-label-underline text-[13px] leading-[18px] font-medium tracking-[-0.01em] text-ink-subdued">{card.label}</span>
+          {tooltipOpen && card.labelTooltip.body && (
+            <div className="pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[280px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+              {card.labelTooltip.title && card.labelTooltip.title !== card.label && (
+                <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
+              )}
+              <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+              <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
+            </div>
+          )}
+        </div>
+        <span className={cn("mt-2 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
+          {card.value}
+        </span>
+        {card.delta && (
+          isNeutral ? (
+            <span className="mt-1 text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
+          ) : card.delta.tone === "negative" ? (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-[13px] leading-[18px] font-bold text-negative">
+              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+              {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+            </span>
+          ) : (
+            <span className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-ink-subdued">
+              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+              <span className="font-medium">{card.delta.value}</span>
+              <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
+            </span>
+          )
         )}
-      </div>
-      <span className={cn("mt-2 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
-        {card.value}
-      </span>
-      {card.delta && (
-        isNeutral ? (
-          <span className="mt-1 text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
-        ) : card.delta.tone === "negative" ? (
-          <span className="mt-1 inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-[13px] leading-[18px] font-bold text-negative">
-            <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-            {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
-          </span>
-        ) : (
-          <span className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-ink-subdued">
-            <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-            <span className="font-medium">{card.delta.value}</span>
-            <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
-          </span>
-        )
-      )}
       </div>
       <div className="flex shrink-0 items-center pl-3">
         <svg
@@ -346,7 +346,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV34() {
+export function PerformancePageV38() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
@@ -390,7 +390,10 @@ export function PerformancePageV34() {
       isoStart = bounds.start;
       isoEnd = bounds.end;
     }
-    return applySorterTargetStatuses(getSortersForRange(isoStart, isoEnd).map((s) => toSorterV2(s, sorterDays)));
+    const base = applySorterTargetStatuses(getSortersForRange(isoStart, isoEnd).map((s) => toSorterV2(s, sorterDays)));
+    // Demo: today's roster all meet target so the day lands on an A grade
+    if (range === "today") return base.map((s) => ({ ...s, meetsTargets: true, belowTargetMetric: null }));
+    return base;
   }, [customRange, range, sorterDays]);
 
   // Build cards from payload
@@ -417,7 +420,10 @@ export function PerformancePageV34() {
   // Hero cards for row 1
   const parcelsHero = promoteTitle(getCard("parcelsSortedOnTime"));
   const trucksHero = promoteTitle(getCard("trucksDepartedOnTime"));
-  const returnsHero = getCard("parcelsReturnedOnTime");
+  const returnsHero = (() => {
+    const c = getCard("parcelsReturnedOnTime");
+    return c ? { ...c, label: "On time returns to merchant" } : c;
+  })();
   const associatesHero: V3MetricCard = useMemo(() => {
     const total = sorters.length;
     const meeting = sorters.filter((s) => s.meetsTargets).length;
@@ -466,7 +472,35 @@ export function PerformancePageV34() {
     }));
   }, [payload.processedWeek]);
 
+  // Facility grade — count of top-level metrics that hit target
+  // (placeholder logic; finalize with team)
+  const facilityGrade = useMemo(() => {
+    const cardHit = (id: V3MetricId) => {
+      const c = getCard(id);
+      return !!c?.delta && c.delta.tone !== "negative";
+    };
+
+    let hits = 0;
+    if (cardHit("parcelsSortedOnTime")) hits += 1;
+    if (cardHit("trucksDepartedOnTime")) hits += 1;
+    if (cardHit("parcelsReturnedOnTime")) hits += 1;
+
+    const total = sorters.length;
+    const meeting = sorters.filter((s) => s.meetsTargets).length;
+    if (total > 0 && meeting === total) hits += 1;
+
+    const grades = [
+      { letter: "F", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 0
+      { letter: "D", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 1
+      { letter: "C", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 2
+      { letter: "B", color: "#a36500", bg: "#fff6d4", border: "#a36500" }, // 3
+      { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" }, // 4
+    ];
+    return { ...grades[hits], hits };
+  }, [payload, sorters]);
+
   // Row-level accordion: only one expanded per row (null = all collapsed)
+  const [gradeTooltipOpen, setGradeTooltipOpen] = useState(false);
   const [row1Expanded, setRow1Expanded] = useState<string | null>("parcels");
   const [row2Expanded, setRow2Expanded] = useState<string | null>("preSortRate");
 
@@ -504,7 +538,38 @@ export function PerformancePageV34() {
         {/*  Row 1 — Top level metrics                                    */}
         {/* ============================================================ */}
         <section className="mt-8">
-          <h2 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Top level metrics</h2>
+          <div className="relative pb-4">
+            <h2 className="text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Top level metrics</h2>
+            <span className="absolute right-0 bottom-[16px] inline-flex items-baseline gap-[10px]">
+              <span
+                className="relative"
+                onMouseEnter={() => setGradeTooltipOpen(true)}
+                onMouseLeave={() => setGradeTooltipOpen(false)}
+              >
+                <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink-subdued">Overall grade</span>
+                {gradeTooltipOpen && (
+                  <div className="pointer-events-none absolute top-full right-0 z-20 mt-2 w-[300px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+                    <div className="text-body-sm-strong text-white">Overall facility grade</div>
+                    <div className="mt-1 text-body-sm text-white/80">
+                      Based on how many of the 4 top-level metrics are at or above target for the selected period.
+                    </div>
+                    <div className="mt-2 space-y-0.5 text-body-sm text-white/80">
+                      <div><span className="font-bold text-white">A</span> · 4 of 4 at target</div>
+                      <div><span className="font-bold text-white">B</span> · 3 at target</div>
+                      <div><span className="font-bold text-white">C</span> · 2 at target</div>
+                      <div><span className="font-bold text-white">D</span> · 1 at target</div>
+                      <div><span className="font-bold text-white">F</span> · 0 at target</div>
+                    </div>
+                    <div className="absolute bottom-full right-4 h-0 w-0 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent" />
+                  </div>
+                )}
+              </span>
+              <span
+                className="inline-flex items-center justify-center rounded-[4px] border-2 px-[12px] text-[72px] leading-[1] font-bold tracking-[-0.01em]"
+                style={{ backgroundColor: facilityGrade.bg, borderColor: facilityGrade.border, color: facilityGrade.color, paddingTop: 4, paddingBottom: 4 }}
+              >{facilityGrade.letter}</span>
+            </span>
+          </div>
           <div className="grid grid-cols-4 gap-4">
             {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} onToggle={() => toggleRow1("parcels")} />}
             {trucksHero && <HeroCard card={trucksHero} expanded={row1Expanded === "trucks"} onToggle={() => toggleRow1("trucks")} />}
@@ -525,7 +590,7 @@ export function PerformancePageV34() {
                 </div>
               </div>
               <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Sort status</h3>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Parcel sort status</h3>
                 <VolumeChart
                   data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
                   metric={metricConfigs.processed}
@@ -547,7 +612,7 @@ export function PerformancePageV34() {
                 </div>
               </div>
               <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Outbound status</h3>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet outbound status</h3>
                 <VolumeChart
                   data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
                   metric={metricConfigs.processed}
@@ -568,7 +633,7 @@ export function PerformancePageV34() {
                 </div>
               </div>
               <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Return status</h3>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Parcel return status</h3>
                 <VolumeChart
                   data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
                   metric={metricConfigs.processed}

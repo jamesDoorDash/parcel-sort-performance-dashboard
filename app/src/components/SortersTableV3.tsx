@@ -27,6 +27,8 @@ type Props = {
   defaultSortKey?: SortKey;
   defaultSortDir?: "asc" | "desc";
   showDownload?: boolean;
+  loadRateLabel?: string;
+  palletsLoadedLabel?: string;
 };
 
 const WEIGHTED_RATE_TOOLTIP = "Parcels greater than 2 lbs count 1.8x towards sort rate";
@@ -93,7 +95,7 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload, loadRateLabel = "Load rate", palletsLoadedLabel = "Pallets loaded" }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>(defaultSortKey ?? "name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">(defaultSortDir ?? "asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -294,11 +296,11 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
               <HeaderCell label="Parcels sorted" sortKey="parcelsSorted" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <HeaderCell label="Missorted" sortKey="parcelsMissorted" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <HeaderCell label="Lost" sortKey="parcelsLost" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-              <HeaderCell label="Load rate" sortKey="palletRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo={!hideRateSelectors} infoTooltip={!hideRateSelectors ? {
+              <HeaderCell label={loadRateLabel} sortKey="palletRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo={!hideRateSelectors} infoTooltip={!hideRateSelectors ? {
                 title: `${rateType === "max" ? "Max" : "Avg."} pallet load rate`,
                 body: "Pallets loaded to truck per hour. Not affected by parcel size selection.",
               } : undefined} />
-              <HeaderCell label="Pallets loaded" sortKey="palletsLoaded" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+              <HeaderCell label={palletsLoadedLabel} sortKey="palletsLoaded" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
               <HeaderCell label="Idle time" sortKey="idleTime" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} showInfo infoTooltip={!hideRateSelectors ? {
                 title: "Idle time",
                 body: "Time signed in but not actively sorting, loading, or scanning. Includes breaks and wait time between tasks.",
