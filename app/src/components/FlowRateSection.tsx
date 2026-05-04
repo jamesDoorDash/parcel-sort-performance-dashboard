@@ -92,7 +92,7 @@ type Props = {
   palletLabel?: string; // Override for the "Pallets loaded" series label (e.g. "Bin dispatch rate" on spoke)
 };
 
-export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallets loaded" }: Props) {
+export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallet load rate" }: Props) {
   const [itemType, setItemType] = useState<ItemType>(defaultItemType ?? "parcels");
   useEffect(() => { if (defaultItemType) setItemType(defaultItemType); }, [defaultItemType]);
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
@@ -492,7 +492,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
               { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Smalls" },
               { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Larges" },
             ].map(({ key, color, label }) => (
-              <div key={label} className="flex items-center gap-2">
+              <div key={label} className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => toggleSeries(key)}

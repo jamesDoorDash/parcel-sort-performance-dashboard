@@ -660,7 +660,7 @@ export function PerformancePageV46() {
             <Caret index={row1Expanded === "parcels" ? 0 : row1Expanded === "trucks" ? 1 : row1Expanded === "returns" ? 2 : 3} columns={4} />
           )}
           {row1Expanded === "parcels" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 [&>*+*]:pt-8">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
@@ -686,7 +686,7 @@ export function PerformancePageV46() {
           )}
 
           {row1Expanded === "trucks" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 [&>*+*]:pt-8">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
@@ -711,7 +711,7 @@ export function PerformancePageV46() {
           )}
 
           {row1Expanded === "returns" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 [&>*+*]:pt-8">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
@@ -780,7 +780,7 @@ export function PerformancePageV46() {
             <Caret index={row2Expanded === "preSortRate" ? 0 : row2Expanded === "sortRate" ? 1 : 2} columns={3} />
           )}
           {row2Expanded && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5">
               <FlowRateSection
                 key={row2Expanded}
                 flowRateWeek={payload.flowRateWeek}

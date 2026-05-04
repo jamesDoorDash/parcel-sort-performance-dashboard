@@ -119,22 +119,51 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
   const isSeriesActive = (series: ProcessedSeriesKey) => !hiddenSeries.has(series);
   const isSecondaryVisible = secondaryBars && !secondaryHidden && !hoveredSeries;
   const isExtraVisible = !!extraTopStack && !extraHidden && (hoveredSeries == null || hoveredSeries === ("extra" as unknown as ProcessedSeriesKey)) && !hoveredSecondary;
-  const toggleExtra = () => setExtraHidden((h) => !h);
+  const hiddenCount = hiddenSeries.size + (secondaryBars && secondaryHidden ? 1 : 0) + (extraTopStack && extraHidden ? 1 : 0);
+  const anyFilterActive = hiddenCount > 0;
+  const visibleCount = (allProcessedKeys.length - hiddenSeries.size) +
+    (secondaryBars && !secondaryHidden ? 1 : 0) +
+    (extraTopStack && !extraHidden ? 1 : 0);
+
+  const toggleExtra = () => {
+    if (extraHidden) {
+      setExtraHidden(false);
+      return;
+    }
+    if (visibleCount <= 1) return;
+    if (!anyFilterActive) {
+      // First action: isolate to extra
+      setHiddenSeries(new Set(allProcessedKeys));
+      if (secondaryBars) setSecondaryHidden(true);
+      setExtraHidden(false);
+      return;
+    }
+    setExtraHidden(true);
+  };
   const toggleSeries = (series: ProcessedSeriesKey) => {
-    setHiddenSeries((current) => {
-      if (current.has(series)) {
-        // Clicking a hidden item unhides it
+    if (hiddenSeries.has(series)) {
+      // Clicking a hidden item unhides it
+      setHiddenSeries((current) => {
         const next = new Set(current);
         next.delete(series);
         return next;
-      }
-      // Clicking a visible item hides all others + hide secondary
+      });
+      return;
+    }
+    if (visibleCount <= 1) return;
+    if (!anyFilterActive) {
+      // First action: isolate to this series
       if (secondaryBars) setSecondaryHidden(true);
-      const next = new Set(allProcessedKeys.filter((k) => k !== series));
+      if (extraTopStack) setExtraHidden(true);
+      setHiddenSeries(new Set(allProcessedKeys.filter((k) => k !== series)));
+      return;
+    }
+    setHiddenSeries((current) => {
+      const next = new Set(current);
+      next.add(series);
       return next;
     });
   };
-  const hiddenCount = hiddenSeries.size + (secondaryBars && secondaryHidden ? 1 : 0) + (extraTopStack && extraHidden ? 1 : 0);
   const anyPrimaryVisible = !hoveredSecondary && allProcessedKeys.some((k) => !hiddenSeries.has(k));
 
   // ---- Compute y-axis max ----
@@ -865,15 +894,20 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                   active={!secondaryHidden}
                   onClick={() => {
                     if (secondaryHidden) {
-                      // Unhide secondary
                       setSecondaryHidden(false);
-                    } else {
-                      // Isolate: hide all primary, show only secondary
-                      setHiddenSeries(new Set(allProcessedKeys));
-                      setSecondaryHidden(false);
+                      return;
                     }
+                    if (visibleCount <= 1) return;
+                    if (!anyFilterActive) {
+                      // First action: isolate to secondary
+                      setHiddenSeries(new Set(allProcessedKeys));
+                      if (extraTopStack) setExtraHidden(true);
+                      setSecondaryHidden(false);
+                      return;
+                    }
+                    setSecondaryHidden(true);
                   }}
-                  onMouseEnter={() => !secondaryHidden && setHoveredSecondary(true)}
+                  onMouseEnter={() => !secondaryHidden && !anyFilterActive && setHoveredSecondary(true)}
                   onMouseLeave={() => setHoveredSecondary(false)}
                 />
               )}
@@ -882,7 +916,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 label={labels.lost}
                 active={isSeriesActive("lost")}
                 onClick={() => toggleSeries("lost")}
-                onMouseEnter={() => !hiddenSeries.has("lost") && setHoveredSeries("lost")}
+                onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("lost") && setHoveredSeries("lost")}
                 onMouseLeave={() => setHoveredSeries(null)}
                 infoTooltip="Takes 9 days to finalize. Only days with confirmed data are shown"
               />
@@ -891,7 +925,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 label={labels.sortedLate ?? "Sorted late"}
                 active={isSeriesActive("sortedLate")}
                 onClick={() => toggleSeries("sortedLate")}
-                onMouseEnter={() => !hiddenSeries.has("sortedLate") && setHoveredSeries("sortedLate")}
+                onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("sortedLate") && setHoveredSeries("sortedLate")}
                 onMouseLeave={() => setHoveredSeries(null)}
               />
               <LegendItem
@@ -899,7 +933,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 label={labels.processed}
                 active={isSeriesActive("processed")}
                 onClick={() => toggleSeries("processed")}
-                onMouseEnter={() => !hiddenSeries.has("processed") && setHoveredSeries("processed")}
+                onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("processed") && setHoveredSeries("processed")}
                 onMouseLeave={() => setHoveredSeries(null)}
               />
               <LegendItem
@@ -907,7 +941,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 label={labels.readyToSort}
                 active={isSeriesActive("readyToSort")}
                 onClick={() => toggleSeries("readyToSort")}
-                onMouseEnter={() => !hiddenSeries.has("readyToSort") && setHoveredSeries("readyToSort")}
+                onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("readyToSort") && setHoveredSeries("readyToSort")}
                 onMouseLeave={() => setHoveredSeries(null)}
               />
               <LegendItem
@@ -915,7 +949,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 label={labels.forecasted}
                 active={isSeriesActive("expected")}
                 onClick={() => toggleSeries("expected")}
-                onMouseEnter={() => !hiddenSeries.has("expected") && setHoveredSeries("expected")}
+                onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("expected") && setHoveredSeries("expected")}
                 onMouseLeave={() => setHoveredSeries(null)}
               />
             </>
@@ -1062,7 +1096,7 @@ function LegendItem({
 
   if (onClick) {
     return (
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={onClick}
@@ -1079,7 +1113,7 @@ function LegendItem({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1">
       {content}
       {infoIcon}
     </div>

@@ -488,7 +488,7 @@ export function PerformancePageSpokeV46() {
       labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets" },
       value: `${meeting} / ${total}`,
       delta: notMeeting === 0
-        ? { value: "all meeting targets", direction: "up" as const, tone: "positive" as const }
+        ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
         : { value: `${notMeeting}`, direction: "down" as const, tone: "negative" as const },
     };
   }, [sorters]);
@@ -630,7 +630,7 @@ export function PerformancePageSpokeV46() {
 
           {/* Bins ready by 9 a.m. — related metrics + Sort status chart */}
           {row1Expanded === "parcels" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 [&>*+*]:pt-8">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
@@ -657,7 +657,7 @@ export function PerformancePageSpokeV46() {
 
           {/* On-time delivery — chart only, no related metrics */}
           {row1Expanded === "trucks" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5">
               <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Parcel delivery status</h3>
               <VolumeChart
                 data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
@@ -672,7 +672,7 @@ export function PerformancePageSpokeV46() {
 
           {/* On time returns to merchant — unchanged from hub */}
           {row1Expanded === "returns" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 [&>*+*]:pt-8">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
@@ -743,7 +743,7 @@ export function PerformancePageSpokeV46() {
             <Caret index={row2Expanded === "preSortRate" ? 0 : row2Expanded === "sortRate" ? 1 : 2} columns={3} />
           )}
           {row2Expanded && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-4 py-5">
               <FlowRateSection
                 key={row2Expanded}
                 flowRateWeek={payload.flowRateWeek}

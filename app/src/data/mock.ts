@@ -456,8 +456,8 @@ export const hubMeta = {
 
 export const dateRangeTabs: { key: DateRangeKey; label: string }[] = [
   { key: "lastWeek", label: "Last week" },
-  { key: "today", label: "Today" },
   { key: "thisWeek", label: "This week" },
+  { key: "today", label: "Today" },
   { key: "nextWeek", label: "Next week" },
   { key: "custom", label: "Custom" },
 ];

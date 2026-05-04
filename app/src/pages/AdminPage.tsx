@@ -80,9 +80,9 @@ function NoDocWarning() {
     >
       <AlertTriangle className="h-3.5 w-3.5 text-[#b71000]" strokeWidth={2} fill="#fff0ed" />
       {open && (
-        <div className="pointer-events-none absolute top-full left-1/2 z-30 mt-2 w-[200px] -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
-          <div className="text-body-sm text-white/80">No documentation available</div>
-          <div className="absolute bottom-full left-1/2 h-0 w-0 -translate-x-1/2 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent" />
+        <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-[200px] -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
+          <div className="text-body-sm text-white/80">Target not specified in brief</div>
+          <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
         </div>
       )}
     </span>
@@ -91,7 +91,7 @@ function NoDocWarning() {
 
 function CatalogTable({ rows }: { rows: CatalogRow[] }) {
   return (
-    <div className="rounded-[12px] border border-line-hovered bg-white">
+    <div className="overflow-hidden rounded-[12px] border border-line-hovered bg-white">
       <table className="w-full border-separate border-spacing-0">
         <thead>
           <tr>
@@ -100,7 +100,7 @@ function CatalogTable({ rows }: { rows: CatalogRow[] }) {
             <th className="w-[120px] border-b border-line-hovered bg-[#f6f7f8] px-4 py-3 text-left text-body-sm-strong text-ink">Target</th>
             <th className="w-[80px] border-b border-line-hovered bg-[#f6f7f8] px-4 py-3 text-center text-body-sm-strong text-ink">Hub</th>
             <th className="w-[80px] border-b border-line-hovered bg-[#f6f7f8] px-4 py-3 text-center text-body-sm-strong text-ink">Spoke</th>
-            <th className="w-[120px] border-b border-line-hovered bg-[#f6f7f8] px-4 py-3 text-center text-body-sm-strong text-ink">Included in doc</th>
+            <th className="w-[120px] border-b border-line-hovered bg-[#f6f7f8] px-4 py-3 text-center text-body-sm-strong text-ink">Included in brief</th>
           </tr>
         </thead>
         <tbody>
@@ -156,9 +156,9 @@ export function AdminPage() {
   return (
     <div className="flex h-full flex-col overflow-y-scroll bg-[#F6F7F8]">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
-        <h1 className="text-display-lg text-ink">Metrics & tooltips reference</h1>
-        <p className="mt-2 max-w-[720px] text-body-md text-ink-subdued">
-          Exhaustive list of every underlined metric label and info tooltip currently in V46. Hover any UI element to preview its live tooltip. Use this to align on definitions and targets across the team.
+        <h1 className="text-display-lg text-ink">Metrics & tooltip alignment</h1>
+        <p className="mt-2 text-body-md text-ink-subdued">
+          Exhaustive list of every underlined metric label and info tooltip currently in V46. Hover any UI element to preview its live tooltip.
         </p>
 
         <section className="mt-10">
@@ -167,7 +167,7 @@ export function AdminPage() {
         </section>
 
         <section className="mt-10">
-          <h2 className="pb-3 text-[20px] leading-[26px] font-bold tracking-[-0.01em] text-ink">Info tooltips</h2>
+          <h2 className="pb-3 text-[20px] leading-[26px] font-bold tracking-[-0.01em] text-ink">Additional tooltips</h2>
           <CatalogTable rows={infoTooltipRows} />
         </section>
       </div>
