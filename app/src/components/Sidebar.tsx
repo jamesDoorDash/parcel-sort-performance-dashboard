@@ -319,10 +319,7 @@ export function Sidebar({ active, onSelect, version, onVersionChange, facility, 
               <button
                 type="button"
                 onClick={onGoToAdmin}
-                className={cn(
-                  "flex h-8 shrink-0 items-center justify-center rounded-button px-3 text-body-sm-strong transition-colors",
-                  adminMode ? "bg-white text-ink" : "bg-white/10 text-white hover:bg-white/20",
-                )}
+                className="flex h-8 shrink-0 items-center justify-center rounded-button bg-white px-3 text-body-sm-strong text-ink"
               >
                 View
               </button>

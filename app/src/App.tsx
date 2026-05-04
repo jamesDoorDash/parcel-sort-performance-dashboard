@@ -58,7 +58,7 @@ export type Facility = "hub" | "spoke";
 function parseRoute(): { facility: Facility; version: string | null; admin: boolean } {
   if (typeof window === "undefined") return { facility: "hub", version: null, admin: false };
   const parts = window.location.pathname.replace(/^\//, "").toLowerCase().split("/").filter(Boolean);
-  if (parts[0] === "admin") {
+  if (parts[0] === "metrics-reference") {
     return { facility: "hub", version: null, admin: true };
   }
   if (parts[0] === "spk") {
@@ -112,7 +112,20 @@ export default function App() {
 
   const goToAdmin = useCallback(() => {
     setAdminMode(true);
-    window.history.replaceState(null, "", "/admin");
+    window.history.replaceState(null, "", "/metrics-reference");
+  }, []);
+
+  const exitAdmin = useCallback(() => {
+    setAdminMode(false);
+    setFacilityRaw((f) => {
+      setVersionRaw((current) => {
+        const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
+        const next = validList.includes(current) ? current : "V46";
+        window.history.replaceState(null, "", buildPath(f, next));
+        return next;
+      });
+      return f;
+    });
   }, []);
 
   const version = versionRaw;
@@ -168,20 +181,44 @@ export default function App() {
   if (facility === "spoke" && version === "V35") page = <PerformancePageSpokeV35 />;
   if (facility === "spoke" && version === "V46") page = <PerformancePageSpokeV46 />;
 
+  if (adminMode) {
+    return (
+      <div className="relative flex h-screen w-screen bg-white text-ink">
+        <main className="min-w-0 flex-1 overflow-hidden bg-white">
+          <AdminPage />
+        </main>
+        <div className="pointer-events-none absolute bottom-0 left-0 w-64 px-4 pb-1 pt-3">
+          <div className="pointer-events-auto rounded-card bg-ink px-3 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="px-1 text-body-sm-strong text-white">Metrics & tooltips alignment</p>
+              <button
+                type="button"
+                onClick={exitAdmin}
+                className="flex h-8 shrink-0 items-center justify-center rounded-button bg-white px-3 text-body-sm-strong text-ink"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-screen bg-white text-ink">
       <Sidebar
-        active={adminMode ? "admin" : active}
-        onSelect={(k) => { setAdminMode(false); setActive(k); }}
+        active={active}
+        onSelect={setActive}
         version={version}
         onVersionChange={setVersion}
         facility={facility}
         onFacilityChange={setFacility}
-        adminMode={adminMode}
+        adminMode={false}
         onGoToAdmin={goToAdmin}
       />
       <main className="min-w-0 flex-1 overflow-hidden bg-white">
-        {adminMode || active === "admin" ? <AdminPage /> : page}
+        {page}
       </main>
     </div>
   );

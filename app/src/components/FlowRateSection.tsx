@@ -20,9 +20,9 @@ const SERIES_COLORS = {
 };
 
 const LEGEND_TOOLTIPS: Record<string, string> = {
-  blendedAverage: "Parcels greater than 2 lbs count 1.8x towards sort rate",
-  smallOnly: "Parcels under 2 lbs",
-  largeOnly: "Parcels over 2 lbs",
+  blendedAverage: "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode",
+  smallOnly: "Parcels pre-sorted that ultimately go into gaylord containers",
+  largeOnly: "Parcels pre-sorted that ultimately go into wooden pallets",
 };
 
 // ---- Tab definitions ----
@@ -417,9 +417,9 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
           const rows = itemType === "pallets"
             ? [{ label: palletLabel, value: d.blendedAverage, color: SERIES_COLORS.blended, visible: true }]
             : [
-                { label: "Blended average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
-                { label: "Small parcels only", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
-                { label: "Large parcels only", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
+                { label: "Average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
+                { label: "Smalls", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
+                { label: "Larges", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
               ].filter((r) => r.visible);
           if (rows.length === 0) return null;
 
@@ -488,9 +488,9 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
         ) : (
           <>
             {[
-              { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Blended average" },
-              { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Small parcels only" },
-              { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Large parcels only" },
+              { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Average" },
+              { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Smalls" },
+              { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Larges" },
             ].map(({ key, color, label }) => (
               <div key={label} className="flex items-center gap-2">
                 <button

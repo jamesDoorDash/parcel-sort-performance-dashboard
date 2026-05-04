@@ -279,17 +279,18 @@ function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3M
   const days = buildPreSortSeries(payload).filter((d) => !payload.visibleDays || payload.visibleDays.has(d.date));
   const observed = days.filter((d) => !d.isFuture);
   const avg = averageObservedValue(days);
-  const target = 145;
+  const target = 160;
   const delta = avg - target;
+  const tooltipBody = "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode";
 
   if (observed.length === 0) {
-    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
+    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "", body: tooltipBody }, value: "-- / hr", delta: null };
   }
 
   return {
     id: "parcelPreSortRate",
     label: "Parcel pre-sort rate",
-    labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." },
+    labelTooltip: { title: "", body: tooltipBody },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -300,10 +301,11 @@ function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3M
 function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3MetricCard {
   const days = (payload.simpleSeries.parcelSortRate ?? []).filter((d) => !payload.visibleDays || payload.visibleDays.has(d.date));
   const observed = days.filter((d) => !d.isFuture);
-  const target = 140;
+  const target = 160;
+  const tooltipBody = "Average hourly rate at which parcels were actively scanned to pallet";
 
   if (observed.length === 0) {
-    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
+    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "", body: tooltipBody }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -312,7 +314,7 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   return {
     id: "parcelSortRate",
     label: "Parcel sort to pallet rate",
-    labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." },
+    labelTooltip: { title: "", body: tooltipBody },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -323,10 +325,11 @@ function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
 function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3MetricCard {
   const days = (payload.simpleSeries.palletLoadRate ?? []).filter((d) => !payload.visibleDays || payload.visibleDays.has(d.date));
   const observed = days.filter((d) => !d.isFuture);
-  const target = 55;
+  const target = 30;
+  const tooltipBody = "Average hourly rate at which pallets were actively scanned to truck";
 
   if (observed.length === 0) {
-    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." }, value: "-- / hr", delta: null };
+    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "", body: tooltipBody }, value: "-- / hr", delta: null };
   }
 
   const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
@@ -335,7 +338,7 @@ function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3
   return {
     id: "palletLoadRate",
     label: "Pallet load rate",
-    labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." },
+    labelTooltip: { title: "", body: tooltipBody },
     value: `${Math.round(avg)} / hr`,
     delta: Math.round(delta) === 0
       ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -419,11 +422,86 @@ export function PerformancePageV46() {
   };
 
   // Hero cards for row 1
-  const parcelsHero = promoteTitle(getCard("parcelsSortedOnTime"));
-  const trucksHero = promoteTitle(getCard("trucksDepartedOnTime"));
+  // V46 override: Sort SLA compliance — target 100%, custom tooltip
+  const parcelsHero = (() => {
+    const c = getCard("parcelsSortedOnTime");
+    if (!c) return c;
+    const value = parseFloat(c.value);
+    const target = 100;
+    let delta: V3MetricCard["delta"];
+    if (isNaN(value)) {
+      delta = c.delta;
+    } else {
+      const diff = value - target;
+      const rounded = Math.abs(Math.round(diff * 10) / 10);
+      if (rounded === 0) {
+        delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
+      } else if (value >= target) {
+        delta = { value: `${rounded.toFixed(1)}%`, direction: "up" as const, tone: "positive" as const };
+      } else {
+        delta = { value: `${rounded.toFixed(1)}%`, direction: "down" as const, tone: "negative" as const };
+      }
+    }
+    return {
+      ...c,
+      label: "Sort SLA compliance",
+      labelTooltip: { title: "", body: "% of parcels sorted at least 15m before the first truck CPT of the day" },
+      delta,
+    };
+  })();
+  // V46 override: Controllable CPT compliance — target 100%, custom tooltip
+  const trucksHero = (() => {
+    const c = getCard("trucksDepartedOnTime");
+    if (!c) return c;
+    const value = parseFloat(c.value);
+    const target = 100;
+    let delta: V3MetricCard["delta"];
+    if (isNaN(value)) {
+      delta = c.delta;
+    } else {
+      const diff = value - target;
+      const rounded = Math.abs(Math.round(diff * 10) / 10);
+      if (rounded === 0) {
+        delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
+      } else if (value >= target) {
+        delta = { value: `${rounded.toFixed(1)}%`, direction: "up" as const, tone: "positive" as const };
+      } else {
+        delta = { value: `${rounded.toFixed(1)}%`, direction: "down" as const, tone: "negative" as const };
+      }
+    }
+    return {
+      ...c,
+      label: "Controllable CPT compliance",
+      labelTooltip: { title: "", body: "% of pallets loaded to truck by the truck's CPT — only for trucks that arrived on time or early" },
+      delta,
+    };
+  })();
+  // V46 override: On time returns to merchant — target 100%, custom tooltip
   const returnsHero = (() => {
     const c = getCard("parcelsReturnedOnTime");
-    return c ? { ...c, label: "On time returns to merchant" } : c;
+    if (!c) return c;
+    const value = parseFloat(c.value);
+    const target = 100;
+    let delta: V3MetricCard["delta"];
+    if (isNaN(value)) {
+      delta = c.delta;
+    } else {
+      const diff = value - target;
+      const rounded = Math.abs(Math.round(diff * 10) / 10);
+      if (rounded === 0) {
+        delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
+      } else if (value >= target) {
+        delta = { value: `${rounded.toFixed(1)}%`, direction: "up" as const, tone: "positive" as const };
+      } else {
+        delta = { value: `${rounded.toFixed(1)}%`, direction: "down" as const, tone: "negative" as const };
+      }
+    }
+    return {
+      ...c,
+      label: "On time returns to merchant",
+      labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" },
+      delta,
+    };
   })();
   const associatesHero: V3MetricCard = useMemo(() => {
     const total = sorters.length;
@@ -432,7 +510,7 @@ export function PerformancePageV46() {
     return {
       id: "associatesMeetingTargets",
       label: "Associates meeting targets",
-      labelTooltip: { title: "Associates meeting targets", body: "Number of associates whose average sort rate meets or exceeds their target rate for the selected period." },
+      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets" },
       value: `${meeting} / ${total}`,
       delta: notMeeting === 0
         ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -482,9 +560,9 @@ export function PerformancePageV46() {
     };
 
     let hits = 0;
-    if (cardHit("parcelsSortedOnTime")) hits += 1;
-    if (cardHit("trucksDepartedOnTime")) hits += 1;
-    if (cardHit("parcelsReturnedOnTime")) hits += 1;
+    if (parcelsHero?.delta && parcelsHero.delta.tone !== "negative") hits += 1;
+    if (trucksHero?.delta && trucksHero.delta.tone !== "negative") hits += 1;
+    if (returnsHero?.delta && returnsHero.delta.tone !== "negative") hits += 1;
 
     const total = sorters.length;
     const meeting = sorters.filter((s) => s.meetsTargets).length;
@@ -498,7 +576,7 @@ export function PerformancePageV46() {
       { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" }, // 4
     ];
     return { ...grades[hits], hits };
-  }, [payload, sorters]);
+  }, [payload, sorters, parcelsHero, trucksHero, returnsHero]);
 
   // Row-level accordion: only one expanded per row (null = all collapsed)
   const [gradeTooltipOpen, setGradeTooltipOpen] = useState(false);
@@ -550,12 +628,11 @@ export function PerformancePageV46() {
                 <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink-subdued">Overall grade</span>
                 {gradeTooltipOpen && (
                   <div className="pointer-events-none absolute top-full right-0 z-20 mt-2 w-[300px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
-                    <div className="text-body-sm-strong text-white">Overall facility grade</div>
-                    <div className="mt-1 text-body-sm text-white/80">
-                      Based on how many of the 4 top-level metrics are at or above target for the selected period.
+                    <div className="text-body-sm text-white/80">
+                      Based on how many of the top level four metrics are at or above:
                     </div>
                     <div className="mt-2 space-y-0.5 text-body-sm text-white/80">
-                      <div><span className="font-bold text-white">A</span> · 4 of 4 at target</div>
+                      <div><span className="font-bold text-white">A</span> · 4 at target</div>
                       <div><span className="font-bold text-white">B</span> · 3 at target</div>
                       <div><span className="font-bold text-white">C</span> · 2 at target</div>
                       <div><span className="font-bold text-white">D</span> · 1 at target</div>
@@ -661,7 +738,29 @@ export function PerformancePageV46() {
           {row1Expanded === "associates" && (
             <div className="overflow-hidden rounded-[12px] border border-line-hovered bg-white pt-4">
               <AssociatesInsightsV41 sorters={sorters} />
-              <SortersTableV3 sorters={sorters} hideStatusIcons defaultSortKey="meetsTargets" defaultSortDir="desc" showFilters hideRateSelectors hideHeader noBorderTable searchPadding showDownload />
+              <SortersTableV3
+                sorters={sorters}
+                hideStatusIcons
+                defaultSortKey="meetsTargets"
+                defaultSortDir="desc"
+                showFilters
+                hideRateSelectors
+                hideHeader
+                noBorderTable
+                searchPadding
+                showDownload
+                columnTooltips={{
+                  preSortRate: { body: "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode", target: "160 / hr" },
+                  sortRate: { body: "Average hourly rate at which parcels were actively scanned to pallet", target: "160 / hr" },
+                  parcelsSorted: { body: "Total parcels this associate sorted in the selected period" },
+                  missorted: { body: "Parcels this associate last scanned in the selected period that were next scanned at the wrong location", target: "0" },
+                  lost: { body: "Parcels this associate last scanned in the selected period that were lost and not scanned again for 10 days", target: "0" },
+                  loadRate: { body: "Average hourly rate at which pallets were actively scanned to truck", target: "30 / hr" },
+                  palletsLoaded: { body: "Total pallets this associate loaded onto trucks in the selected period" },
+                  idleTime: { body: "Time signed in but not actively sorting, loading, or scanning" },
+                  targetStatus: { body: "Whether this associate is meeting all individual performance targets" },
+                }}
+              />
             </div>
           )}
         </section>

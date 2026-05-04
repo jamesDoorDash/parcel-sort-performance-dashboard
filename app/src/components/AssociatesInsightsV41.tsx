@@ -70,7 +70,7 @@ export function AssociatesInsightsV41({ sorters, loadRateLabel = "Load rate" }: 
   const loadersTooltip =
     loadRateLabel === "Dispatch rate"
       ? "The 3 associates ranked best on a combination of dispatch rate, bins dispatched, and pallet load quality (missloaded pallets)."
-      : "The 3 associates ranked best on a combination of load rate, pallets loaded, and load quality (missloaded pallets).";
+      : "The 3 associates ranked best on a combination of load rate, pallets loaded, and load quality";
 
   return (
     <div className="grid grid-cols-3 gap-4 px-4 pb-4">
