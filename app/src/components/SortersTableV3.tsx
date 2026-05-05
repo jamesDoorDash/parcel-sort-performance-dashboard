@@ -67,7 +67,7 @@ function HeaderCell({
   const [tooltipOpen, setTooltipOpen] = useState(false);
 
   return (
-    <th className="border-b border-line bg-[#fafafa] px-4 py-3 text-left text-body-sm-strong text-ink first:rounded-tl-[12px] last:rounded-tr-[12px]">
+    <th className="border-b border-line bg-[#fafafa] px-2.5 py-3 text-left text-body-sm-strong text-ink first:rounded-tl-[12px] last:rounded-tr-[12px]">
       <div className="flex items-center gap-1">
         <div
           className="relative inline-flex items-center"
@@ -279,7 +279,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
       )}
 
       <div className={`overflow-x-auto ${noBorderTable ? "[&_th]:!rounded-none" : "rounded-card border border-line-hovered"} bg-white`}>
-        <table className="min-w-max w-full border-separate border-spacing-0">
+        <table className="w-full border-separate border-spacing-0">
           <thead>
             <tr>
               <HeaderCell label="Name" sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
@@ -297,41 +297,41 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
           <tbody>
             {sorted.map((sorter, index) => (
               <tr key={sorter.id} className={cn("transition-colors hover:bg-surface-hovered", index > 0 && "border-t border-line")}>
-                <td className="whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink">{sorter.name}</td>
+                <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.name}</td>
                 <td className={cn(
-                  "whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink",
+                  "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",
                   sorter.belowTargetMetric === "parcelPreSortRate" && "font-bold text-negative",
                 )}>
                   {getPreSortRate(sorter)} / hr
                 </td>
                 <td className={cn(
-                  "whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink",
+                  "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",
                   sorter.belowTargetMetric === "parcelSortRate" && "font-bold text-negative",
                 )}>
                   {getSortRate(sorter)} / hr
                 </td>
-                <td className="whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink">{sorter.parcelsSorted.toLocaleString()}</td>
+                <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.parcelsSorted.toLocaleString()}</td>
                 <td className={cn(
-                  "whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink",
+                  "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",
                   sorter.belowTargetMetric === "parcelsMissorted" && "font-bold text-negative",
                 )}>
                   {sorter.parcelsMissorted}
                 </td>
                 <td className={cn(
-                  "whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink",
+                  "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",
                   sorter.belowTargetMetric === "parcelsLost" && "font-bold text-negative",
                 )}>
                   {sorter.parcelsLost}
                 </td>
                 <td className={cn(
-                  "whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink",
+                  "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",
                   sorter.belowTargetMetric === "palletRate" && "font-bold text-negative",
                 )}>
                   {getLoadRate(sorter)} / hr
                 </td>
-                <td className="whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink">{sorter.palletsLoaded}</td>
-                <td className="whitespace-nowrap border-b border-line px-4 py-3 text-body-sm text-ink">{sorter.idleTime} hrs</td>
-                <td className="whitespace-nowrap border-b border-line px-4 py-3">
+                <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.palletsLoaded}</td>
+                <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.idleTime} hrs</td>
+                <td className="whitespace-nowrap border-b border-line px-2.5 py-3">
                   {sorter.meetsTargets ? (
                     <span className="inline-flex items-center gap-1 rounded-tag bg-positive-bg px-2 py-0.5 text-body-sm-strong text-positive">
                       {!hideStatusIcons && <Check className="h-3 w-3" strokeWidth={2.5} />}
