@@ -125,22 +125,24 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
         <span className={cn("mt-2 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
           {card.value}
         </span>
-        {card.delta && (
-          isNeutral ? (
-            <span className="mt-1 text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
-          ) : card.delta.tone === "negative" ? (
-            <span className="mt-1 inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-[13px] leading-[18px] font-bold text-negative">
-              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-              {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
-            </span>
-          ) : (
-            <span className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-ink-subdued">
-              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-              <span className="font-medium">{card.delta.value}</span>
-              <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
-            </span>
-          )
-        )}
+        <div className="mt-1 flex h-[26px] items-center">
+          {card.delta && (
+            isNeutral ? (
+              <span className="text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
+            ) : card.delta.tone === "negative" ? (
+              <span className="inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-[13px] leading-[18px] font-bold text-negative">
+                <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+                {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[13px] leading-[18px] text-ink-subdued">
+                <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+                <span className="font-medium">{card.delta.value}</span>
+                <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
+              </span>
+            )
+          )}
+        </div>
       </div>
       <div className="flex shrink-0 items-center pl-3">
         <svg
@@ -439,9 +441,9 @@ export function PerformancePageSpokeV46() {
       if (rounded === 0) {
         delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
       } else if (value >= target) {
-        delta = { value: `${rounded.toFixed(1)}%`, direction: "up" as const, tone: "positive" as const };
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
       } else {
-        delta = { value: `${rounded.toFixed(1)}%`, direction: "down" as const, tone: "negative" as const };
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
       }
     }
     return {
@@ -466,9 +468,9 @@ export function PerformancePageSpokeV46() {
       if (rounded === 0) {
         delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
       } else if (value >= target) {
-        delta = { value: `${rounded.toFixed(1)}%`, direction: "up" as const, tone: "positive" as const };
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
       } else {
-        delta = { value: `${rounded.toFixed(1)}%`, direction: "down" as const, tone: "negative" as const };
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
       }
     }
     return {
@@ -508,7 +510,9 @@ export function PerformancePageSpokeV46() {
 
   // Dwell chart data for dual-bar parcels chart (Sort status secondary bars + Runner returned)
   const dwellChartData: DayBucket[] = useMemo(() => {
-    const DWELL_COUNTS = [3, 0, 8, 12, 5, 0, 7];
+    const DWELL_COUNTS = range === "lastWeek"
+      ? [3, 5, 8, 12, 4, 6, 9]
+      : [1, 2, 3, 1, 2, 1, 2];
     return payload.processedWeek.map((day, i) => ({
       ...day,
       processed: {
@@ -520,7 +524,7 @@ export function PerformancePageSpokeV46() {
       },
       values: {},
     }));
-  }, [payload.processedWeek]);
+  }, [payload.processedWeek, range]);
 
   // Facility grade — count of top-level metrics that hit target
   const facilityGrade = useMemo(() => {

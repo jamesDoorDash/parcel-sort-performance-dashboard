@@ -10,8 +10,23 @@ const CHART_H = 260;
 const PAD = { top: 24, right: 16, bottom: 32, left: 56 };
 const plotH = CHART_H - PAD.top - PAD.bottom;
 const plotW = CHART_W - PAD.left - PAD.right;
-const Y_MAX = 250;
-const Y_TICKS = [0, 50, 100, 150, 200, 250];
+
+function computeYAxis(data: FlowRateDayBucket[], aggregated: { blendedAverage: number; smallOnly: number; largeOnly: number } | null) {
+  const values: number[] = [];
+  for (const d of data) {
+    values.push(d.blendedAverage, d.smallOnly, d.largeOnly);
+  }
+  if (aggregated) {
+    values.push(aggregated.blendedAverage, aggregated.smallOnly, aggregated.largeOnly);
+  }
+  const dataMax = values.length ? Math.max(...values) : 0;
+  // Round up to next 50, with at least 100 floor (so empty data still has axis), padded ~10% above peak
+  const target = Math.max(100, Math.ceil(dataMax * 1.1 / 50) * 50);
+  const step = target / 5;
+  const ticks: number[] = [];
+  for (let v = 0; v <= target; v += step) ticks.push(Math.round(v));
+  return { yMax: target, yTicks: ticks };
+}
 
 const SERIES_COLORS = {
   blended: chartStateColors.primary,
@@ -58,8 +73,8 @@ function comboKey(item: ItemType, rate: ParcelStageType | SummaryRateType): Flow
 }
 
 // ---- SVG helpers ----
-function yPx(val: number) {
-  return PAD.top + plotH - (val / Y_MAX) * plotH;
+function makeYPx(yMax: number) {
+  return (val: number) => PAD.top + plotH - (val / yMax) * plotH;
 }
 
 function smoothPath(points: [number, number][]): string {
@@ -137,6 +152,9 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       largeOnly: Math.round(visible.reduce((s, d) => s + d.largeOnly, 0) / visible.length),
     };
   }, [allData, isAggregated, visibleDays]);
+
+  const { yTicks: Y_TICKS } = computeYAxis(data, aggregated);
+  const yPx = makeYPx(computeYAxis(data, aggregated).yMax);
 
   const n = data.length;
   const slotW = plotW / n;

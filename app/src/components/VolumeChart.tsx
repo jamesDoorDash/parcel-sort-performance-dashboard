@@ -582,11 +582,11 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                       </>
                     );
                   })()}
-                  {/* Hover zone */}
+                  {/* Hover zone — covers both primary and (when present) secondary bars */}
                   <rect
-                    x={x}
+                    x={hasSec ? x : x}
                     y={topPadding}
-                    width={barWidth}
+                    width={hasSec ? barWidth * 2 + 4 : barWidth}
                     height={plotHeight}
                     fill="transparent"
                     onMouseEnter={() => setHoveredBar({ idx: i, cx, topY: labelValue > 0 ? scaleY(labelValue) : topPadding + plotHeight })}
@@ -803,15 +803,19 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
           (() => {
             const d = chartData[hoveredBar.idx];
             if (!d) return null;
+            const secondaryValue = isSecondaryVisible && secondaryBars ? (secondaryBars.values[hoveredBar.idx] ?? 0) : 0;
+            const extraValue = isExtraVisible && extraTopStack ? (extraTopStack.values[hoveredBar.idx] ?? 0) : 0;
             const rows = d.isFuture
               ? [
                   { label: labels.forecasted, value: d.processed.expectedVolume, color: COLORS.expected },
                 ].filter((r) => isSeriesVisible("expected") && r.value > 0)
               : [
+                  ...(extraTopStack && extraValue > 0 ? [{ label: extraTopStack.label, value: extraValue, color: extraTopStack.color }] : []),
                   { label: labels.lost, value: d.processed.lost, color: colors.lost },
                   { label: labels.sortedLate ?? "Sorted late", value: d.processed.sortedLate ?? 0, color: COLORS.sortedLate },
                   { label: labels.processed, value: d.processed.processed, color: COLORS.processed },
                   { label: labels.readyToSort, value: d.processed.readyToSort, color: COLORS.readyToSort },
+                  ...(secondaryBars && secondaryValue > 0 ? [{ label: secondaryBars.label, value: secondaryValue, color: secondaryBars.color }] : []),
                 ].filter((r) => {
                   if (r.value <= 0) return false;
                   if (r.color === colors.lost) return isSeriesVisible("lost");

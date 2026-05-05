@@ -162,9 +162,9 @@ function genFlowWeek(
   return dates.map((d, i) => ({
     date: d.date,
     label: d.label,
-    blendedAverage: Math.max(60, Math.round(base.blended + noise[i] * 2)),
-    smallOnly: Math.max(60, Math.round(base.small + noise[i] * 1.5)),
-    largeOnly: Math.max(40, Math.round(base.large + noise[i])),
+    blendedAverage: Math.max(1, Math.round(base.blended + noise[i] * 2)),
+    smallOnly: Math.max(1, Math.round(base.small + noise[i] * 1.5)),
+    largeOnly: Math.max(1, Math.round(base.large + noise[i])),
   }));
 }
 
@@ -176,21 +176,21 @@ const lastWeekDates = waitingWeekLast.map((d) => ({ date: d.date, label: d.label
 const nextWeekDates = waitingWeekNext.map((d) => ({ date: d.date, label: d.label }));
 
 export const flowRateThisWeek: FlowRateWeekData = {
-  "parcels-presort":  genFlowWeek(thisWeekDates, { blended: 132, small: 138, large: 110 }, noiseA),
-  "parcels-sort":     genFlowWeek(thisWeekDates, { blended: 148, small: 155, large: 124 }, noiseB),
-  "parcels-average":  genFlowWeek(thisWeekDates, { blended: 140, small: 133, large: 108 }, noiseA),
-  "parcels-max":      genFlowWeek(thisWeekDates, { blended: 172, small: 180, large: 148 }, noiseB),
-  "pallets-average":  genFlowWeek(thisWeekDates, { blended: 130, small: 127, large: 108 }, noiseA),
-  "pallets-max":      genFlowWeek(thisWeekDates, { blended: 162, small: 158, large: 136 }, noiseB),
+  "parcels-presort":  genFlowWeek(thisWeekDates, { blended: 175, small: 282, large: 78 }, noiseA),
+  "parcels-sort":     genFlowWeek(thisWeekDates, { blended: 168, small: 278, large: 76 }, noiseB),
+  "parcels-average":  genFlowWeek(thisWeekDates, { blended: 170, small: 280, large: 77 }, noiseA),
+  "parcels-max":      genFlowWeek(thisWeekDates, { blended: 192, small: 305, large: 92 }, noiseB),
+  "pallets-average":  genFlowWeek(thisWeekDates, { blended: 34, small: 33, large: 31 }, noiseA),
+  "pallets-max":      genFlowWeek(thisWeekDates, { blended: 42, small: 40, large: 38 }, noiseB),
 };
 
 export const flowRateLastWeek: FlowRateWeekData = {
-  "parcels-presort":  genFlowWeek(lastWeekDates, { blended: 130, small: 136, large: 108 }, noiseB),
-  "parcels-sort":     genFlowWeek(lastWeekDates, { blended: 145, small: 152, large: 121 }, noiseA),
-  "parcels-average":  genFlowWeek(lastWeekDates, { blended: 137, small: 130, large: 105 }, noiseB),
-  "parcels-max":      genFlowWeek(lastWeekDates, { blended: 168, small: 176, large: 144 }, noiseA),
-  "pallets-average":  genFlowWeek(lastWeekDates, { blended: 128, small: 124, large: 105 }, noiseB),
-  "pallets-max":      genFlowWeek(lastWeekDates, { blended: 158, small: 154, large: 132 }, noiseA),
+  "parcels-presort":  genFlowWeek(lastWeekDates, { blended: 130, small: 220, large: 60 }, noiseB),
+  "parcels-sort":     genFlowWeek(lastWeekDates, { blended: 145, small: 240, large: 65 }, noiseA),
+  "parcels-average":  genFlowWeek(lastWeekDates, { blended: 137, small: 230, large: 62 }, noiseB),
+  "parcels-max":      genFlowWeek(lastWeekDates, { blended: 168, small: 270, large: 78 }, noiseA),
+  "pallets-average":  genFlowWeek(lastWeekDates, { blended: 33, small: 32, large: 30 }, noiseB),
+  "pallets-max":      genFlowWeek(lastWeekDates, { blended: 40, small: 38, large: 36 }, noiseA),
 };
 
 export const flowRateNextWeek: FlowRateWeekData = {
