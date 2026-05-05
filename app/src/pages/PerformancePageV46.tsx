@@ -620,14 +620,14 @@ export function PerformancePageV46() {
                 {gradeTooltipOpen && (
                   <div className="pointer-events-none absolute top-full right-0 z-20 mt-2 w-[300px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
                     <div className="text-body-sm text-white/80">
-                      Based on how many of the top level four metrics are at or above:
+                      Determined by the number of top-level metrics at or above target:
                     </div>
                     <div className="mt-2 space-y-0.5 text-body-sm text-white/80">
-                      <div><span className="font-bold text-white">A</span> · 4 at target</div>
-                      <div><span className="font-bold text-white">B</span> · 3 at target</div>
-                      <div><span className="font-bold text-white">C</span> · 2 at target</div>
-                      <div><span className="font-bold text-white">D</span> · 1 at target</div>
-                      <div><span className="font-bold text-white">F</span> · 0 at target</div>
+                      <div><span className="font-bold text-white">A</span> · 4</div>
+                      <div><span className="font-bold text-white">B</span> · 3</div>
+                      <div><span className="font-bold text-white">C</span> · 2</div>
+                      <div><span className="font-bold text-white">D</span> · 1</div>
+                      <div><span className="font-bold text-white">F</span> · 0</div>
                     </div>
                     <div className="absolute bottom-full right-4 h-0 w-0 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent" />
                   </div>
