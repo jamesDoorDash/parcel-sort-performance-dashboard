@@ -70,13 +70,13 @@ function parseRoute(): { facility: Facility; version: string | null; admin: bool
 }
 
 function getInitial(): { facility: Facility; version: string; admin: boolean } {
-  if (typeof window === "undefined") return { facility: "hub", version: "V35", admin: false };
+  if (typeof window === "undefined") return { facility: "hub", version: "V46", admin: false };
   const fromPath = parseRoute();
   if (fromPath.admin) return { facility: "hub", version: "V46", admin: true };
   if (fromPath.version) return { facility: fromPath.facility, version: fromPath.version, admin: false };
   const fromQuery = new URLSearchParams(window.location.search).get("version");
   if (fromQuery && ALL_VERSIONS.includes(fromQuery)) return { facility: fromPath.facility, version: fromQuery, admin: false };
-  return { facility: fromPath.facility, version: fromPath.facility === "spoke" ? "V35" : "V35", admin: false };
+  return { facility: fromPath.facility, version: fromPath.facility === "spoke" ? "V46" : "V46", admin: false };
 }
 
 function buildPath(facility: Facility, version: string) {
@@ -104,7 +104,7 @@ export default function App() {
     setFacilityRaw(f);
     setVersionRaw((current) => {
       const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
-      const nextVersion = validList.includes(current) ? current : (f === "spoke" ? "V35" : "V35");
+      const nextVersion = validList.includes(current) ? current : (f === "spoke" ? "V46" : "V46");
       window.history.replaceState(null, "", buildPath(f, nextVersion));
       return nextVersion;
     });

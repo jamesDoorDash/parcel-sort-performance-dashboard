@@ -107,7 +107,7 @@ const FACILITY_SITES: { id: string; facility: Facility; address: string }[] = [
   { id: "SPK-1", facility: "spoke", address: "3500 Lenox Rd NE, Atlanta, GA 30326" },
 ];
 
-export function Sidebar({ active, onSelect, version, onVersionChange, facility, onFacilityChange, adminMode, onGoToAdmin }: Props) {
+export function Sidebar({ active, onSelect, version, onVersionChange, facility, onFacilityChange, onGoToAdmin }: Props) {
   const [trucksOpen, setTrucksOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [facilityOpen, setFacilityOpen] = useState(false);

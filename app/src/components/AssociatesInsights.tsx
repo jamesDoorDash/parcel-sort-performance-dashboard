@@ -7,14 +7,6 @@ type Props = {
   loadRateLabel?: string;
 };
 
-const METRIC_LABEL: Record<string, string> = {
-  parcelPreSortRate: "Pre-sort rate",
-  parcelSortRate: "Sort rate",
-  palletRate: "Load rate",
-  parcelsMissorted: "Missort count",
-  parcelsLost: "Lost count",
-};
-
 function SectionLabel({ label, tooltip }: { label: string; tooltip: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -51,12 +43,6 @@ export function AssociatesInsights({ sorters, loadRateLabel = "Load rate" }: Pro
   const toCoach = sorters
     .filter((s) => !s.meetsTargets && s.belowTargetMetric)
     .sort((a, b) => a.name.localeCompare(b.name));
-
-  const metricLabel = (key: string | null | undefined) => {
-    if (!key) return "";
-    if (key === "palletRate") return loadRateLabel;
-    return METRIC_LABEL[key] ?? key;
-  };
 
   const loadersLabel = loadRateLabel === "Dispatch rate" ? "Top dispatchers" : "Top loaders";
 

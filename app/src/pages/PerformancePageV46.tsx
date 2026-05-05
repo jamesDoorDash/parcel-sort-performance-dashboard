@@ -415,14 +415,6 @@ export function PerformancePageV46() {
   const sortRateCard = useMemo(() => buildSortRateCard(payload), [payload]);
   const loadRateCard = useMemo(() => buildLoadRateCard(payload), [payload]);
 
-  // Promote tooltip title to card label (Wintha's feedback: use industry terms as labels)
-  const promoteTitle = (card: V3MetricCard | undefined): V3MetricCard | undefined => {
-    if (!card) return card;
-    const { title, body } = card.labelTooltip;
-    if (!title || title === card.label) return { ...card, labelTooltip: { title: "", body } };
-    return { ...card, label: title, labelTooltip: { title: "", body } };
-  };
-
   // Hero cards for row 1
   // V46 override: Sort SLA compliance — target 100%, custom tooltip
   const parcelsHero = (() => {
@@ -558,11 +550,6 @@ export function PerformancePageV46() {
   // Facility grade — count of top-level metrics that hit target
   // (placeholder logic; finalize with team)
   const facilityGrade = useMemo(() => {
-    const cardHit = (id: V3MetricId) => {
-      const c = getCard(id);
-      return !!c?.delta && c.delta.tone !== "negative";
-    };
-
     let hits = 0;
     if (parcelsHero?.delta && parcelsHero.delta.tone !== "negative") hits += 1;
     if (trucksHero?.delta && trucksHero.delta.tone !== "negative") hits += 1;
