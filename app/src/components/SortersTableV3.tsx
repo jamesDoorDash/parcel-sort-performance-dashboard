@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Check, AlertTriangle, Download, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Check, AlertTriangle, Download, Search } from "lucide-react";
 import { cn } from "../lib/cn";
 import type { SorterV2 } from "../data/mockV2";
 
@@ -68,13 +68,13 @@ function HeaderCell({
 
   return (
     <th className="border-b border-line bg-[#fafafa] px-4 py-3 text-left text-body-sm-strong text-ink first:rounded-tl-[12px] last:rounded-tr-[12px]">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1">
         <div
           className="relative inline-flex items-center"
           onMouseEnter={() => tooltip && setTooltipOpen(true)}
           onMouseLeave={() => setTooltipOpen(false)}
         >
-          <button type="button" onClick={() => onSort(sortKey)} className="inline-flex items-center gap-1.5">
+          <button type="button" onClick={() => onSort(sortKey)} className="inline-flex items-center gap-1">
             <span className={underline ? "metric-label-underline" : ""}>{label}</span>
           </button>
           {tooltipOpen && tooltip && (
@@ -87,12 +87,15 @@ function HeaderCell({
             </div>
           )}
         </div>
-        {active &&
-          (sortDir === "asc" ? (
+        {active ? (
+          sortDir === "asc" ? (
             <ArrowUp className="h-3.5 w-3.5 text-ink" strokeWidth={2.5} />
           ) : (
             <ArrowDown className="h-3.5 w-3.5 text-ink" strokeWidth={2.5} />
-          ))}
+          )
+        ) : (
+          <ChevronsUpDown className="h-3.5 w-3.5 text-icon-subdued" strokeWidth={2} />
+        )}
       </div>
     </th>
   );
