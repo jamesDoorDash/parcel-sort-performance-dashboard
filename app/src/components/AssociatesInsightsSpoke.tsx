@@ -51,7 +51,7 @@ export function AssociatesInsightsSpoke({ sorters }: Props) {
     .slice(0, 3);
 
   return (
-    <div className="grid grid-cols-2 gap-4 px-4 pb-4">
+    <div className="grid grid-cols-2 gap-4 px-5 pb-5">
       <div className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
         <SectionLabel
           label="Top sorters"

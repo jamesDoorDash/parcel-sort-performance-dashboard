@@ -73,7 +73,7 @@ export function AssociatesInsightsV41({ sorters, loadRateLabel = "Load rate" }: 
       : "The 3 associates ranked best on a combination of load rate, pallets loaded, and load quality";
 
   return (
-    <div className="grid grid-cols-3 gap-4 px-4 pb-4">
+    <div className="grid grid-cols-3 gap-4 px-5 pb-5">
       <div className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
         <SectionLabel
           label="Top sorters"

@@ -176,7 +176,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     chartLabel: "Dwelled parcels",
     formatValue: (value) => `${Math.round(value)}`,
     formatDelta: (value) => `${Math.abs(Math.round(value))}`,
-    summarize: averageSummary,
+    summarize: sumSummary,
   },
   {
     id: "parcelSortRate",
@@ -745,6 +745,11 @@ function averageSummary(days: V3SimpleSeriesDay[]) {
   if (days.length === 0) return { value: 0 };
   const total = days.reduce((sum, day) => sum + day.value, 0);
   return { value: total / days.length };
+}
+
+function sumSummary(days: V3SimpleSeriesDay[]) {
+  const total = days.reduce((sum, day) => sum + day.value, 0);
+  return { value: total };
 }
 
 function day(

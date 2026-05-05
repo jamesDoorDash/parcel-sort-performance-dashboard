@@ -21,7 +21,9 @@ function computeYAxis(data: FlowRateDayBucket[], aggregated: { blendedAverage: n
   }
   const dataMax = values.length ? Math.max(...values) : 0;
   // Round up to next 50, with at least 100 floor (so empty data still has axis), padded ~10% above peak
-  const target = Math.max(100, Math.ceil(dataMax * 1.1 / 50) * 50);
+  const target = dataMax < 50
+    ? Math.max(10, Math.ceil(dataMax * 1.2 / 5) * 5)
+    : Math.max(100, Math.ceil(dataMax * 1.1 / 50) * 50);
   const step = target / 5;
   const ticks: number[] = [];
   for (let v = 0; v <= target; v += step) ticks.push(Math.round(v));
@@ -101,13 +103,21 @@ type Props = {
   flowRateWeek: FlowRateWeekData;
   visibleDays?: Set<string>;
   hideTabs?: boolean;
+  // Show ONLY the Pre-sort / Sort to pallet selector. Hides item-type tabs and rate-summary tabs.
+  showStageTabsOnly?: boolean;
+  // Override the label for the "sort" stage tab (e.g. "Sort to bin" on spoke).
+  sortStageLabel?: string;
+  // Render a single line/series — hides Smalls and Larges and shows only the blendedAverage data
+  // with the provided label and (optional) info tooltip. valueSuffix overrides the default "/ hr"
+  // unit shown in tooltips and bar labels.
+  singleSeriesMode?: { label: string; infoTooltip?: string; valueSuffix?: string };
   defaultCombo?: FlowRateCombo;
   defaultItemType?: ItemType;
   aggregatedLabel?: string; // When set, switch to bar chart mode with aggregated data
   palletLabel?: string; // Override for the "Pallets loaded" series label (e.g. "Bin dispatch rate" on spoke)
 };
 
-export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallet load rate" }: Props) {
+export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStageTabsOnly, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallet load rate", singleSeriesMode }: Props) {
   const [itemType, setItemType] = useState<ItemType>(defaultItemType ?? "parcels");
   useEffect(() => { if (defaultItemType) setItemType(defaultItemType); }, [defaultItemType]);
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
@@ -166,8 +176,8 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       return [pointX(origIdx), yPx(d[key])];
     });
   const isVisible = (series: "blendedAverage" | "smallOnly" | "largeOnly") =>
-    !hiddenSeries.has(series) && (hoveredSeries == null || hoveredSeries === series);
-  const isActive = (series: "blendedAverage" | "smallOnly" | "largeOnly") => !hiddenSeries.has(series);
+    !hiddenSeries.has(series) && (hoveredSeries == null || hoveredSeries === series) && !(singleSeriesMode && series !== "blendedAverage");
+  const isActive = (series: "blendedAverage" | "smallOnly" | "largeOnly") => !hiddenSeries.has(series) && !(singleSeriesMode && series !== "blendedAverage");
   const toggleSeries = (series: "blendedAverage" | "smallOnly" | "largeOnly") => {
     setHiddenSeries((current) => {
       if (current.has(series)) {
@@ -189,7 +199,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
   return (
     <section>
       {/* Tab rows */}
-      {!hideTabs && (
+      {!hideTabs && !showStageTabsOnly && (
       <div className="mb-2 flex items-center gap-4">
         {/* Group 1 — Parcels / Pallets */}
         <div className={tabGroupClass}>
@@ -236,6 +246,26 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
           ))}
         </div>
       </div>
+      )}
+
+      {showStageTabsOnly && (
+        <div className="mb-2 flex items-center gap-4">
+          <div className={tabGroupClass}>
+            {parcelStageTabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setParcelStage(tab.key);
+                  setParcelFlowMode("stage");
+                }}
+                className={tabBtnClass(parcelStage === tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Chart + legend row */}
@@ -434,6 +464,8 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
           const cx = pointX(hoveredPoint);
           const rows = itemType === "pallets"
             ? [{ label: palletLabel, value: d.blendedAverage, color: SERIES_COLORS.blended, visible: true }]
+            : singleSeriesMode
+            ? [{ label: singleSeriesMode.label, value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") }].filter((r) => r.visible)
             : [
                 { label: "Average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
                 { label: "Smalls", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
@@ -464,7 +496,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
                     {r.label}
                   </text>
                   <text x={tx + boxW - padX} y={ty + padY + 22 + ri * rowH + 12} fill="white" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={600} textAnchor="end">
-                    {Math.round(r.value)} / hr
+                    {Math.round(r.value)}{singleSeriesMode?.valueSuffix ?? " / hr"}
                   </text>
                 </g>
               ))}
@@ -505,11 +537,14 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
           </>
         ) : (
           <>
-            {[
-              { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Average" },
-              { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Smalls" },
-              { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Larges" },
-            ].map(({ key, color, label }) => (
+            {(singleSeriesMode
+              ? [{ key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: singleSeriesMode.label }]
+              : [
+                  { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Average" },
+                  { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Smalls" },
+                  { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Larges" },
+                ]
+            ).map(({ key, color, label }) => (
               <div key={label} className="flex items-center gap-1">
                 <button
                   type="button"
@@ -525,7 +560,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
                   />
                   <span className={cn("whitespace-nowrap text-body-md text-ink", !isActive(key) && "line-through opacity-60")}>{label}</span>
                 </button>
-                {LEGEND_TOOLTIPS[key] && (
+                {(singleSeriesMode?.infoTooltip ?? LEGEND_TOOLTIPS[key]) && (
                   <div className="relative">
                     <button
                       type="button"
@@ -537,7 +572,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
                     </button>
                     {tooltipOpen === key && (
                       <div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
-                        <div className="text-body-sm text-white/80">{LEGEND_TOOLTIPS[key]}</div>
+                        <div className="text-body-sm text-white/80">{singleSeriesMode?.infoTooltip ?? LEGEND_TOOLTIPS[key]}</div>
                         <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
                       </div>
                     )}

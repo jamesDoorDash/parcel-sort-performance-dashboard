@@ -87,9 +87,10 @@ const VERSION_OPTIONS = [
   { value: "V44", label: "V44: Original grade", hidden: true },
   { value: "V45", label: "V45: 24px headers", hidden: true },
   { value: "V46", label: "V46: May4 feedback" },
+  { value: "V47", label: "V47: May5 update" },
 ];
 
-const SPOKE_VERSION_VALUES = ["V35", "V46"];
+const SPOKE_VERSION_VALUES = ["V35", "V46", "V47"];
 
 type Props = {
   active: string;
@@ -340,7 +341,7 @@ export function Sidebar({ active, onSelect, version, onVersionChange, facility, 
               ? VERSION_OPTIONS
                   .filter((o) => SPOKE_VERSION_VALUES.includes(o.value))
                   .filter((o) => showAll || !o.hidden)
-                  .map((o) => o.value === "V46" ? { ...o, label: "V46: May4 feedback" } : o)
+                  .map((o) => o.value === "V46" ? { ...o, label: "V46: May4 feedback" } : o.value === "V47" ? { ...o, label: "V47: May5 update" } : o)
               : VERSION_OPTIONS.filter((o) => showAll || !o.hidden)).map((option) => {
               const checked = option.value === version;
               return (

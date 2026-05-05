@@ -29,6 +29,7 @@ type Props = {
   showDownload?: boolean;
   loadRateLabel?: string;
   palletsLoadedLabel?: string;
+  hideLoadColumns?: boolean;
   columnTooltips?: {
     preSortRate?: ColumnTooltip;
     sortRate?: ColumnTooltip;
@@ -68,25 +69,23 @@ function HeaderCell({
 
   return (
     <th className="border-b border-line bg-[#fafafa] px-2.5 py-3 text-left text-body-sm-strong text-ink first:rounded-tl-[12px] last:rounded-tr-[12px]">
-      <div className="flex items-center gap-1">
-        <div
+      <button type="button" onClick={() => onSort(sortKey)} className="flex items-center gap-1 text-left">
+        <span
           className="relative inline-flex items-center"
           onMouseEnter={() => tooltip && setTooltipOpen(true)}
           onMouseLeave={() => setTooltipOpen(false)}
         >
-          <button type="button" onClick={() => onSort(sortKey)} className="inline-flex items-center gap-1">
-            <span className={underline ? "metric-label-underline" : ""}>{label}</span>
-          </button>
+          <span className={underline ? "metric-label-underline" : ""}>{label}</span>
           {tooltipOpen && tooltip && (
-            <div className={`pointer-events-none absolute top-full ${tooltipAlign === "right" ? "right-0" : "left-0"} z-30 mt-2 w-[260px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg`}>
-              <div className="text-body-sm text-white/80">{tooltip.body}</div>
+            <span className={`pointer-events-none absolute top-full ${tooltipAlign === "right" ? "right-0" : "left-0"} z-30 mt-2 w-[260px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg`}>
+              <span className="block text-body-sm text-white/80">{tooltip.body}</span>
               {tooltip.target && (
-                <div className="mt-1.5 text-body-sm text-white">Target: <span className="font-bold">{tooltip.target}</span></div>
+                <span className="mt-1.5 block text-body-sm text-white">Target: <span className="font-bold">{tooltip.target}</span></span>
               )}
-              <div className={`absolute bottom-full ${tooltipAlign === "right" ? "right-4" : "left-4"} h-0 w-0 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent`} />
-            </div>
+              <span className={`absolute bottom-full ${tooltipAlign === "right" ? "right-4" : "left-4"} h-0 w-0 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent`} />
+            </span>
           )}
-        </div>
+        </span>
         {active ? (
           sortDir === "asc" ? (
             <ArrowUp className="h-3.5 w-3.5 text-ink" strokeWidth={2.5} />
@@ -96,12 +95,12 @@ function HeaderCell({
         ) : (
           <ChevronsUpDown className="h-3.5 w-3.5 text-icon-subdued" strokeWidth={2} />
         )}
-      </div>
+      </button>
     </th>
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload, loadRateLabel = "Load rate", palletsLoadedLabel = "Pallets loaded", columnTooltips }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload, loadRateLabel = "Load rate", palletsLoadedLabel = "Pallets loaded", hideLoadColumns, columnTooltips }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>(defaultSortKey ?? "name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">(defaultSortDir ?? "asc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -176,7 +175,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
       )}
 
       {showFilters && (
-        <div className={searchPadding ? "px-4" : ""}>
+        <div className={searchPadding ? "px-5" : ""}>
         <>
         {hideRateSelectors ? (
           <div className={`mb-4 flex items-center gap-3 ${hideHeader ? "" : "justify-between"}`}>
@@ -279,7 +278,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
       )}
 
       <div className={`overflow-x-auto ${noBorderTable ? "[&_th]:!rounded-none" : "rounded-card border border-line-hovered"} bg-white`}>
-        <table className="w-full border-separate border-spacing-0">
+        <table className="w-full border-separate border-spacing-0 [&_th:first-child]:pl-5 [&_td:first-child]:pl-5 [&_th:last-child]:pr-5 [&_td:last-child]:pr-5">
           <thead>
             <tr>
               <HeaderCell label="Name" sortKey="name" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} />
@@ -288,8 +287,8 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
               <HeaderCell label="Parcels sorted" sortKey="parcelsSorted" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.parcelsSorted} underline={!!columnTooltips?.parcelsSorted} />
               <HeaderCell label="Missorted" sortKey="parcelsMissorted" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.missorted} underline={!!columnTooltips?.missorted} />
               <HeaderCell label="Lost" sortKey="parcelsLost" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.lost} underline={!!columnTooltips?.lost} />
-              <HeaderCell label={loadRateLabel} sortKey="palletRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.loadRate} underline={!!columnTooltips?.loadRate} />
-              <HeaderCell label={palletsLoadedLabel} sortKey="palletsLoaded" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.palletsLoaded} underline={!!columnTooltips?.palletsLoaded} />
+              {!hideLoadColumns && <HeaderCell label={loadRateLabel} sortKey="palletRate" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.loadRate} underline={!!columnTooltips?.loadRate} />}
+              {!hideLoadColumns && <HeaderCell label={palletsLoadedLabel} sortKey="palletsLoaded" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.palletsLoaded} underline={!!columnTooltips?.palletsLoaded} />}
               <HeaderCell label="Idle time" sortKey="idleTime" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.idleTime} underline={!!columnTooltips?.idleTime} tooltipAlign="right" />
               <HeaderCell label="Target status" sortKey="meetsTargets" activeSortKey={sortKey} sortDir={sortDir} onSort={onSort} tooltip={columnTooltips?.targetStatus} underline={!!columnTooltips?.targetStatus} tooltipAlign="right" />
             </tr>
@@ -323,13 +322,17 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
                 )}>
                   {sorter.parcelsLost}
                 </td>
-                <td className={cn(
-                  "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",
-                  sorter.belowTargetMetric === "palletRate" && "font-bold text-negative",
-                )}>
-                  {getLoadRate(sorter)} / hr
-                </td>
-                <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.palletsLoaded}</td>
+                {!hideLoadColumns && (
+                  <td className={cn(
+                    "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",
+                    sorter.belowTargetMetric === "palletRate" && "font-bold text-negative",
+                  )}>
+                    {getLoadRate(sorter)} / hr
+                  </td>
+                )}
+                {!hideLoadColumns && (
+                  <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.palletsLoaded}</td>
+                )}
                 <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.idleTime} hrs</td>
                 <td className="whitespace-nowrap border-b border-line px-2.5 py-3">
                   {sorter.meetsTargets ? (
