@@ -475,7 +475,7 @@ export function PerformancePageSpokeV46() {
     }
     return {
       ...c,
-      label: "On time returns to merchant",
+      label: "On time returns",
       labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" },
       delta,
     };

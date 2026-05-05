@@ -69,7 +69,7 @@ export const metricRows: CatalogRow[] = [
   },
   {
     id: "onTimeReturnsToMerchant",
-    element: { kind: "underline", label: "On time returns to merchant" },
+    element: { kind: "underline", label: "On time returns" },
     tooltip: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return",
     target: "100%",
     hub: true,
