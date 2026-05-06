@@ -635,7 +635,7 @@ export function PerformancePageV47() {
                   lost: { body: "Parcels this associate last scanned in the selected period that were lost and not scanned again for 10 days", target: "0" },
                   loadRate: { body: "Average hourly rate at which pallets were actively scanned to truck", target: "30 / hr" },
                   palletsLoaded: { body: "Total pallets this associate loaded onto trucks in the selected period" },
-                  idleTime: { body: "Time signed in but not actively sorting, loading, or scanning" },
+                  idleTime: { body: "Cumulative idle time — any 10+ minute gap between scans. All other time-based metrics pause while idle." },
                   targetStatus: { body: "Whether this associate is meeting all individual performance targets" },
                 }}
               />

@@ -365,7 +365,7 @@ export const infoTooltipRows: CatalogRow[] = [
     id: "tableIdleTime",
     group: "Associates meeting targets table",
     element: { kind: "underline", label: "Idle time" },
-    tooltip: "Time signed in but not actively sorting, loading, or scanning",
+    tooltip: "Cumulative idle time — any 10+ minute gap between scans. All other time-based metrics pause while idle.",
     target: "—",
     hub: true,
     spoke: true,
