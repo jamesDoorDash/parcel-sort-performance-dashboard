@@ -102,6 +102,9 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
                 <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
               )}
               <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+              {card.labelTooltip.target && (
+                <div className="mt-2 text-body-sm-strong text-white">Target: {card.labelTooltip.target}</div>
+              )}
               <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
             </div>
           )}
@@ -156,6 +159,9 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
               <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
             )}
             <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+            {card.labelTooltip.target && (
+              <div className="mt-2 text-body-sm-strong text-white">Target: {card.labelTooltip.target}</div>
+            )}
             <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
           </div>
         )}
@@ -300,12 +306,12 @@ export function PerformancePageSpokeV48() {
   const cardMap = useMemo(() => new Map(payload.cards.map((c) => [c.id, c])), [payload]);
   const getCard = (id: V3MetricId) => cardMap.get(id);
 
-  const relabel = (card: V3MetricCard | undefined, label: string, body?: string): V3MetricCard | undefined => {
+  const relabel = (card: V3MetricCard | undefined, label: string, body?: string, target?: string): V3MetricCard | undefined => {
     if (!card) return card;
-    return { ...card, label, labelTooltip: { title: "", body: body ?? card.labelTooltip.body } };
+    return { ...card, label, labelTooltip: { title: "", body: body ?? card.labelTooltip.body, ...(target ? { target } : {}) } };
   };
 
-  const parcelsHero = relabel(getCard("parcelsSortedOnTime"), "QA by 9am", "% of bins that are fully sorted for runner pickup by 9am");
+  const parcelsHero = relabel(getCard("parcelsSortedOnTime"), "QA by 9am", "% of bins that are fully sorted for runner pickup by 9am", "100%");
   const returnsHero = (() => {
     const c = getCard("parcelsReturnedOnTime");
     if (!c) return c;
@@ -321,7 +327,7 @@ export function PerformancePageSpokeV48() {
       else if (value >= target) delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
       else delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
     }
-    return { ...c, label: "On time returns", labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" }, delta };
+    return { ...c, label: "On time returns", labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return", target: "100%" }, delta };
   })();
   const associatesHero: V3MetricCard = useMemo(() => {
     const total = sorters.length;
@@ -330,7 +336,7 @@ export function PerformancePageSpokeV48() {
     return {
       id: "associatesMeetingTargets",
       label: "Associates meeting targets",
-      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets" },
+      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets", target: `${total} / ${total}` },
       value: `${meeting} / ${total}`,
       delta: notMeeting === 0
         ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
