@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { Info, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, RefreshCw } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { FlowRateSection } from "../components/FlowRateSection";
+import { AssociatesInsightsSpoke } from "../components/AssociatesInsightsSpoke";
 import { VolumeChart } from "../components/VolumeChart";
 import type { DateRangeKey, DayBucket } from "../data/mock";
 import { metricConfigs, rangeIsoBounds } from "../data/mock";
+import type { FlowRateDayBucket, FlowRateWeekData } from "../data/mockV2";
 import { applySorterTargetStatuses, toSorterV2 } from "../data/mockV2";
 import {
   rangePayloadsV3,
@@ -18,7 +20,9 @@ import { getSortersForRange } from "../data/sortersData";
 import { cn } from "../lib/cn";
 
 /* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
+/*  Spoke V35 — terminology-customized copy of hub V35.                */
+/*  Tooltips and underlying data still match hub for now; will diverge */
+/*  in subsequent edits.                                               */
 /* ------------------------------------------------------------------ */
 
 function toIso(date: Date) {
@@ -85,10 +89,10 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hero card (primary metric with show more/less)                     */
+/*  Hero card                                                          */
 /* ------------------------------------------------------------------ */
 
-function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: boolean; onToggle: () => void }) {
+function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; expanded: boolean; dimmed?: boolean; onToggle: () => void }) {
   const isNeutral = card.delta?.tone === "neutral";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -98,10 +102,13 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex items-stretch justify-between rounded-[12px] border border-line-hovered bg-white px-5 py-4 text-left transition-all",
-        expanded
-          ? "ring-[2.5px] ring-inset ring-ink shadow-card"
-          : "hover:shadow-card",
+        "flex flex-col items-stretch text-left border-line-hovered",
+        dimmed
+          ? "bg-[#F6F7F8] border-t border-b-2 border-r first:border-l pt-[17px] pb-[15px] first:pl-[21px] [&:not(:first-child)]:pl-5 pr-[21px]"
+          : "bg-white border-t-2 border-r-2 first:border-l-2",
+        !dimmed && !expanded && "border-b-2 first:rounded-bl-[12px] last:rounded-br-[12px] py-4 px-5",
+        !dimmed && expanded && "border-l-2 first:ml-0 [&:not(:first-child)]:-ml-px pt-4 pb-[17px] first:px-5 [&:not(:first-child)]:pl-[19px] [&:not(:first-child)]:pr-[19px]",
+        "first:rounded-tl-[12px] last:rounded-tr-[12px]",
       )}
     >
       <div className="flex min-w-0 flex-col items-start">
@@ -124,45 +131,35 @@ function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: 
         <span className={cn("mt-2 text-[24px] leading-[28px] font-bold tracking-[-0.01em]", isPlaceholder ? "text-ink-subdued" : "text-ink")}>
           {card.value}
         </span>
-        {card.delta && (
-          isNeutral ? (
-            <span className="mt-1 text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
-          ) : card.delta.tone === "negative" ? (
-            <span className="mt-1 inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-[13px] leading-[18px] font-bold text-negative">
-              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-              {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
-            </span>
-          ) : (
-            <span className="mt-1 flex items-center gap-1 text-[13px] leading-[18px] text-ink-subdued">
-              <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
-              <span className="font-medium">{card.delta.value}</span>
-              <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
-            </span>
-          )
-        )}
+        <div className="mt-1 flex h-[26px] items-center">
+          {card.delta && (
+            isNeutral ? (
+              <span className="text-[13px] leading-[18px] font-normal text-ink-subdued">At target</span>
+            ) : card.delta.tone === "negative" ? (
+              <span className="inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-[13px] leading-[18px] font-bold text-negative">
+                <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+                {card.delta.value} {card.delta.direction === "up" ? "above" : "below"} target
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[13px] leading-[18px] text-ink-subdued">
+                <svg aria-hidden viewBox="0 0 8 7" className={cn("h-2 w-2", card.delta.direction === "down" && "rotate-180")} fill="currentColor"><path d="M4 0 8 7H0z" /></svg>
+                <span className="font-medium">{card.delta.value}</span>
+                <span className="font-normal">{card.delta.direction === "up" ? "above" : "below"} target</span>
+              </span>
+            )
+          )}
+        </div>
       </div>
-      <div className="flex shrink-0 items-center pl-3">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          aria-hidden
-          className={cn("text-ink", expanded && "rotate-180")}
-        >
-          <path
-            transform="translate(4.5, 7.75)"
-            d="M13.2929 0.292893C13.6834 -0.0975788 14.3164 -0.0975034 14.707 0.292893C15.0975 0.683425 15.0975 1.31644 14.707 1.70696L8.20696 8.20696C7.81643 8.59747 7.18341 8.59748 6.79289 8.20696L0.292893 1.70696C-0.0976311 1.31643 -0.0976311 0.683418 0.292893 0.292893C0.683418 -0.0976311 1.31643 -0.0976311 1.70696 0.292893L7.49992 6.08586L13.2929 0.292893Z"
-            fill="currentColor"
-          />
-        </svg>
+      <div className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-button border border-line-hovered bg-white text-body-sm-strong text-ink">
+        {expanded ? <ChevronUp className="h-4 w-4" strokeWidth={2} /> : <ChevronDown className="h-4 w-4" strokeWidth={2} />}
+        {expanded ? "View less" : "View more"}
       </div>
     </button>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/*  Section KPI card (for secondary metrics inside detail panels)      */
+/*  Section KPI card                                                   */
 /* ------------------------------------------------------------------ */
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
@@ -231,6 +228,38 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Runner dwell — synthetic FlowRateWeekData (single line chart)     */
+/* ------------------------------------------------------------------ */
+
+const RUNNER_DWELL_VALUES: { date: string; label: string; value: number }[] = [
+  { date: "2026-02-09", label: "Feb 9", value: 21 },
+  { date: "2026-02-10", label: "Feb 10", value: 19 },
+  { date: "2026-02-11", label: "Feb 11", value: 22 },
+  { date: "2026-02-12", label: "Feb 12", value: 18 },
+  { date: "2026-02-13", label: "Feb 13", value: 20 },
+  { date: "2026-02-14", label: "Feb 14", value: 20 },
+  { date: "2026-02-15", label: "Feb 15", value: 0 },
+];
+
+function buildRunnerDwellWeek(): FlowRateWeekData {
+  const series: FlowRateDayBucket[] = RUNNER_DWELL_VALUES.map((d) => ({
+    date: d.date,
+    label: d.label,
+    blendedAverage: d.value,
+    smallOnly: 0,
+    largeOnly: 0,
+  }));
+  return {
+    "parcels-presort": series,
+    "parcels-sort": series,
+    "parcels-average": series,
+    "parcels-max": series,
+    "pallets-average": series,
+    "pallets-max": series,
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  Caret pointer between card and detail panel                        */
 /* ------------------------------------------------------------------ */
 
@@ -246,7 +275,6 @@ function Caret({ index, columns }: { index: number; columns: number }) {
         viewBox="0 0 32 12"
         fill="none"
       >
-        {/* Upward-pointing triangle: border stroke + white fill to blend with panel */}
         <path d="M16 0L0 12H32L16 0Z" fill="#d3d6d9" />
         <path d="M16 1.5L1.5 12H30.5L16 1.5Z" fill="white" />
       </svg>
@@ -255,98 +283,10 @@ function Caret({ index, columns }: { index: number; columns: number }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Pre-sort helpers                                                   */
-/* ------------------------------------------------------------------ */
-
-function buildPreSortSeries(payload: ReturnType<typeof resolveCustomRangeV3>) {
-  return payload.flowRateWeek["parcels-presort"].map((day): V3SimpleSeriesDay => ({
-    date: day.date,
-    label: day.label,
-    value: day.blendedAverage,
-    isFuture: day.date > "2026-02-14" || undefined,
-    isPartial: day.date === "2026-02-14" || undefined,
-  }));
-}
-
-function averageObservedValue(days: V3SimpleSeriesDay[]) {
-  const observed = days.filter((d) => !d.isFuture);
-  if (observed.length === 0) return 0;
-  return observed.reduce((sum, d) => sum + d.value, 0) / observed.length;
-}
-
-function buildPreSortCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3MetricCard {
-  const days = buildPreSortSeries(payload).filter((d) => !payload.visibleDays || payload.visibleDays.has(d.date));
-  const observed = days.filter((d) => !d.isFuture);
-  const avg = averageObservedValue(days);
-  const target = 145;
-  const delta = avg - target;
-
-  if (observed.length === 0) {
-    return { id: "parcelPreSortRate", label: "Parcel pre-sort rate", labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
-  }
-
-  return {
-    id: "parcelPreSortRate",
-    label: "Parcel pre-sort rate",
-    labelTooltip: { title: "Parcel pre-sort rate", body: "Blended average parcels pre-sorted per hour. Parcels over 2 lbs are weighted at 1.8x." },
-    value: `${Math.round(avg)} / hr`,
-    delta: Math.round(delta) === 0
-      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
-      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
-  };
-}
-
-function buildSortRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3MetricCard {
-  const days = (payload.simpleSeries.parcelSortRate ?? []).filter((d) => !payload.visibleDays || payload.visibleDays.has(d.date));
-  const observed = days.filter((d) => !d.isFuture);
-  const target = 140;
-
-  if (observed.length === 0) {
-    return { id: "parcelSortRate", label: "Parcel sort to pallet rate", labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." }, value: "-- / hr", delta: null };
-  }
-
-  const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
-  const delta = avg - target;
-
-  return {
-    id: "parcelSortRate",
-    label: "Parcel sort to pallet rate",
-    labelTooltip: { title: "Parcel sort to pallet rate", body: "Blended average parcels sorted to pallet per hour. Parcels over 2 lbs are weighted at 1.8x." },
-    value: `${Math.round(avg)} / hr`,
-    delta: Math.round(delta) === 0
-      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
-      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
-  };
-}
-
-function buildLoadRateCard(payload: ReturnType<typeof resolveCustomRangeV3>): V3MetricCard {
-  const days = (payload.simpleSeries.palletLoadRate ?? []).filter((d) => !payload.visibleDays || payload.visibleDays.has(d.date));
-  const observed = days.filter((d) => !d.isFuture);
-  const target = 55;
-
-  if (observed.length === 0) {
-    return { id: "palletLoadRate", label: "Pallet load rate", labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." }, value: "-- / hr", delta: null };
-  }
-
-  const avg = observed.reduce((s, d) => s + d.value, 0) / observed.length;
-  const delta = avg - target;
-
-  return {
-    id: "palletLoadRate",
-    label: "Pallet load rate",
-    labelTooltip: { title: "Pallet load rate", body: "Average pallets loaded to truck per hour across the selected period." },
-    value: `${Math.round(avg)} / hr`,
-    delta: Math.round(delta) === 0
-      ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
-      : { value: `${Math.abs(Math.round(delta))}`, direction: avg >= target ? "up" as const : "down" as const, tone: avg >= target ? "positive" as const : "negative" as const },
-  };
-}
-
-/* ------------------------------------------------------------------ */
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageV35() {
+export function PerformancePageSpokeV47() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
@@ -391,12 +331,10 @@ export function PerformancePageV35() {
       isoEnd = bounds.end;
     }
     const base = applySorterTargetStatuses(getSortersForRange(isoStart, isoEnd).map((s) => toSorterV2(s, sorterDays)));
-    // Demo: today's roster all meet target so the day lands on an A grade
     if (range === "today") return base.map((s) => ({ ...s, meetsTargets: true, belowTargetMetric: null }));
     return base;
   }, [customRange, range, sorterDays]);
 
-  // Build cards from payload
   const cardMap = useMemo(() => {
     const m = new Map(payload.cards.map((c) => [c.id, c]));
     return m;
@@ -404,25 +342,44 @@ export function PerformancePageV35() {
 
   const getCard = (id: V3MetricId) => cardMap.get(id);
 
-  // Pre-sort / sort / load rate cards
-  const preSortCard = useMemo(() => buildPreSortCard(payload), [payload]);
-  const sortRateCard = useMemo(() => buildSortRateCard(payload), [payload]);
-  const loadRateCard = useMemo(() => buildLoadRateCard(payload), [payload]);
 
-  // Promote tooltip title to card label (Wintha's feedback: use industry terms as labels)
-  const promoteTitle = (card: V3MetricCard | undefined): V3MetricCard | undefined => {
+  // Spoke labels + tooltips for top-level metrics.
+  const relabel = (card: V3MetricCard | undefined, label: string, body?: string): V3MetricCard | undefined => {
     if (!card) return card;
-    const { title, body } = card.labelTooltip;
-    if (!title || title === card.label) return { ...card, labelTooltip: { title: "", body } };
-    return { ...card, label: title, labelTooltip: { title: "", body } };
+    return { ...card, label, labelTooltip: { title: "", body: body ?? card.labelTooltip.body } };
   };
 
-  // Hero cards for row 1
-  const parcelsHero = promoteTitle(getCard("parcelsSortedOnTime"));
-  const trucksHero = promoteTitle(getCard("trucksDepartedOnTime"));
+  const parcelsHero = relabel(
+    getCard("parcelsSortedOnTime"),
+    "Bins ready by 9am",
+    "% of bins that are fully sorted for runner pickup by 9am",
+  );
+  // V46 override: On time returns to merchant — target 100%, custom tooltip
   const returnsHero = (() => {
     const c = getCard("parcelsReturnedOnTime");
-    return c ? { ...c, label: "On time returns to merchant" } : c;
+    if (!c) return c;
+    const value = parseFloat(c.value);
+    const target = 100;
+    let delta: V3MetricCard["delta"];
+    if (isNaN(value)) {
+      delta = c.delta;
+    } else {
+      const diff = value - target;
+      const rounded = Math.abs(Math.round(diff * 10) / 10);
+      if (rounded === 0) {
+        delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
+      } else if (value >= target) {
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
+      } else {
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
+      }
+    }
+    return {
+      ...c,
+      label: "On time returns",
+      labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" },
+      delta,
+    };
   })();
   const associatesHero: V3MetricCard = useMemo(() => {
     const total = sorters.length;
@@ -431,7 +388,7 @@ export function PerformancePageV35() {
     return {
       id: "associatesMeetingTargets",
       label: "Associates meeting targets",
-      labelTooltip: { title: "Associates meeting targets", body: "Number of associates whose average sort rate meets or exceeds their target rate for the selected period." },
+      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets" },
       value: `${meeting} / ${total}`,
       delta: notMeeting === 0
         ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -439,16 +396,12 @@ export function PerformancePageV35() {
     };
   }, [sorters]);
 
-  // Secondary cards for detail panels
+  // Secondary cards — only kept for "Bins ready by 9 a.m." (parcels) and returns.
+  // "On-time delivery" expanded panel has no related metrics in spoke.
   const parcelSecondary = [
     getCard("parcelDwellTime"),
     getCard("parcelsMissorted"),
     getCard("parcelsLost"),
-  ].filter(Boolean) as V3MetricCard[];
-
-  const palletSecondary = [
-    getCard("palletsScannedToTruck"),
-    getCard("palletsMissloaded"),
   ].filter(Boolean) as V3MetricCard[];
 
   const returnsSecondary = [
@@ -456,9 +409,11 @@ export function PerformancePageV35() {
     getCard("returnPalletScannedToTruck"),
   ].filter(Boolean) as V3MetricCard[];
 
-  // Dwell chart data for dual-bar parcels chart
+  // Dwell chart data for dual-bar parcels chart (Sort status secondary bars + Runner returned)
   const dwellChartData: DayBucket[] = useMemo(() => {
-    const DWELL_COUNTS = [3, 0, 8, 12, 5, 0, 7];
+    const DWELL_COUNTS = range === "lastWeek"
+      ? [3, 5, 8, 12, 4, 6, 9]
+      : [1, 2, 3, 1, 2, 1, 2];
     return payload.processedWeek.map((day, i) => ({
       ...day,
       processed: {
@@ -470,10 +425,9 @@ export function PerformancePageV35() {
       },
       values: {},
     }));
-  }, [payload.processedWeek]);
+  }, [payload.processedWeek, range]);
 
   // Facility grade — count of top-level metrics that hit target
-  // (placeholder logic; finalize with team)
   const facilityGrade = useMemo(() => {
     const cardHit = (id: V3MetricId) => {
       const c = getCard(id);
@@ -482,33 +436,29 @@ export function PerformancePageV35() {
 
     let hits = 0;
     if (cardHit("parcelsSortedOnTime")) hits += 1;
-    if (cardHit("trucksDepartedOnTime")) hits += 1;
-    if (cardHit("parcelsReturnedOnTime")) hits += 1;
+    if (returnsHero?.delta && returnsHero.delta.tone !== "negative") hits += 1;
 
     const total = sorters.length;
     const meeting = sorters.filter((s) => s.meetsTargets).length;
     if (total > 0 && meeting === total) hits += 1;
 
     const grades = [
-      { letter: "F", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 0
-      { letter: "D", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 1
-      { letter: "C", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 2
-      { letter: "B", color: "#a36500", bg: "#fff6d4", border: "#a36500" }, // 3
-      { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" }, // 4
+      { letter: "F", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
+      { letter: "D", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
+      { letter: "C", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
+      { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" },
     ];
     return { ...grades[hits], hits };
-  }, [payload, sorters]);
+  }, [payload, sorters, returnsHero]);
 
-  // Row-level accordion: only one expanded per row (null = all collapsed)
   const [gradeTooltipOpen, setGradeTooltipOpen] = useState(false);
   const [row1Expanded, setRow1Expanded] = useState<string | null>("parcels");
-  const [row2Expanded, setRow2Expanded] = useState<string | null>("preSortRate");
+  const [sortStage, setSortStage] = useState<"presort" | "sort" | "runner">("presort");
 
   const toggleRow1 = (id: string) => setRow1Expanded((prev) => (prev === id ? null : id));
-  const toggleRow2 = (id: string) => setRow2Expanded((prev) => (prev === id ? null : id));
 
   return (
-    <div className="flex h-full flex-col overflow-y-scroll bg-[#F6F7F8]">
+    <div className="flex h-full flex-col overflow-y-scroll bg-white">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
         <div className="flex items-start justify-between">
           <h1 className="text-display-lg text-ink">Performance</h1>
@@ -531,6 +481,7 @@ export function PerformancePageV35() {
             hidePickerRangeLabel
             simpleCustomPill
             hideNextWeek
+            hideToday
           />
         </div>
 
@@ -549,44 +500,43 @@ export function PerformancePageV35() {
                 <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink-subdued">Overall grade</span>
                 {gradeTooltipOpen && (
                   <div className="pointer-events-none absolute top-full right-0 z-20 mt-2 w-[300px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
-                    <div className="text-body-sm-strong text-white">Overall facility grade</div>
-                    <div className="mt-1 text-body-sm text-white/80">
-                      Based on how many of the 4 top-level metrics are at or above target for the selected period.
+                    <div className="text-body-sm text-white/80">
+                      Determined by the number of top-level metrics at or above target:
                     </div>
                     <div className="mt-2 space-y-0.5 text-body-sm text-white/80">
-                      <div><span className="font-bold text-white">A</span> · 4 of 4 at target</div>
-                      <div><span className="font-bold text-white">B</span> · 3 at target</div>
-                      <div><span className="font-bold text-white">C</span> · 2 at target</div>
-                      <div><span className="font-bold text-white">D</span> · 1 at target</div>
-                      <div><span className="font-bold text-white">F</span> · 0 at target</div>
+                      <div><span className="font-bold text-white">A</span> · 3</div>
+                      <div><span className="font-bold text-white">C</span> · 2</div>
+                      <div><span className="font-bold text-white">D</span> · 1</div>
+                      <div><span className="font-bold text-white">F</span> · 0</div>
                     </div>
                     <div className="absolute bottom-full right-4 h-0 w-0 border-r-[6px] border-b-[6px] border-l-[6px] border-r-transparent border-b-[#111318] border-l-transparent" />
                   </div>
                 )}
               </span>
               <span
-                className="inline-flex items-center justify-center rounded-[4px] border-2 px-[12px] text-[54px] leading-[1] font-bold tracking-[-0.01em]"
+                className="inline-flex items-center justify-center rounded-[4px] border-2 px-[12px] text-[48px] leading-[1] font-bold tracking-[-0.01em]"
                 style={{ backgroundColor: facilityGrade.bg, borderColor: facilityGrade.border, color: facilityGrade.color, paddingTop: 4, paddingBottom: 4 }}
               >{facilityGrade.letter}</span>
             </span>
           </div>
-          <div className="grid grid-cols-4 gap-4">
-            {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} onToggle={() => toggleRow1("parcels")} />}
-            {trucksHero && <HeroCard card={trucksHero} expanded={row1Expanded === "trucks"} onToggle={() => toggleRow1("trucks")} />}
-            {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} onToggle={() => toggleRow1("returns")} />}
-            <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} onToggle={() => toggleRow1("associates")} />
-          </div>
+          <div>
+            <div className="grid grid-cols-3">
+              {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} dimmed={!!row1Expanded && row1Expanded !== "parcels"} onToggle={() => toggleRow1("parcels")} />}
+              {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} dimmed={!!row1Expanded && row1Expanded !== "returns"} onToggle={() => toggleRow1("returns")} />}
+              <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} dimmed={!!row1Expanded && row1Expanded !== "associates"} onToggle={() => toggleRow1("associates")} />
+            </div>
 
-          {/* Caret + expanded detail */}
-          {row1Expanded && (
-            <Caret index={row1Expanded === "parcels" ? 0 : row1Expanded === "trucks" ? 1 : row1Expanded === "returns" ? 2 : 3} columns={4} />
-          )}
+          {/* Bins ready by 9 a.m. — related metrics + Sort status chart */}
           {row1Expanded === "parcels" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
+            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-3 gap-6">
-                  {parcelSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
+                <div className="grid grid-cols-3 gap-4">
+                  {parcelSecondary.map((c) => (
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
+                  ))}
                 </div>
               </div>
               <div>
@@ -595,93 +545,135 @@ export function PerformancePageV35() {
                   data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
                   metric={metricConfigs.processed}
                   visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                  seriesLabels={{ processed: "Sorted before 9am", sortedLate: "Sorted after 9am", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
                   colorOverrides={{ lost: "#7c3aed" }}
                   secondaryBars={{ values: dwellChartData.map((d) => d.processed.lost), color: "#df3480", label: "Dwelled parcels" }}
                 />
               </div>
-            </div>
-          )}
-
-          {row1Expanded === "trucks" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
               <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-3 gap-6">
-                  {palletSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Flow rate</h3>
+                <div className="mb-4 inline-flex items-center rounded-button border border-line-hovered bg-white">
+                  {[
+                    { key: "presort" as const, label: "Pre-sort" },
+                    { key: "sort" as const, label: "Sort to bin" },
+                    { key: "runner" as const, label: "Runner dwell" },
+                  ].map((tab) => {
+                    const active = sortStage === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setSortStage(tab.key)}
+                        className={cn(
+                          "relative -my-px h-10 rounded-button px-6 text-body-md-strong transition-colors first:-ml-px last:-mr-px",
+                          active ? "z-10 bg-white text-ink ring-2 ring-inset ring-ink" : "text-ink-subdued hover:text-ink",
+                        )}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet outbound status</h3>
-                <VolumeChart
-                  data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
-                  metric={metricConfigs.processed}
-                  visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
-                  colorOverrides={{ lost: "#7c3aed" }}
-                />
+                {sortStage === "presort" && (
+                  <FlowRateSection
+                    flowRateWeek={payload.flowRateWeek}
+                    visibleDays={payload.visibleDays}
+                    hideTabs
+                    defaultCombo="parcels-presort"
+                    defaultItemType="parcels"
+                    aggregatedLabel={useAggregated ? selectedLabel : undefined}
+                  />
+                )}
+                {sortStage === "sort" && (
+                  <FlowRateSection
+                    flowRateWeek={payload.flowRateWeek}
+                    visibleDays={payload.visibleDays}
+                    hideTabs
+                    defaultCombo="parcels-sort"
+                    defaultItemType="parcels"
+                    aggregatedLabel={useAggregated ? selectedLabel : undefined}
+                  />
+                )}
+                {sortStage === "runner" && (
+                  <FlowRateSection
+                    flowRateWeek={buildRunnerDwellWeek()}
+                    visibleDays={payload.visibleDays}
+                    hideTabs
+                    defaultCombo="parcels-presort"
+                    defaultItemType="parcels"
+                    aggregatedLabel={useAggregated ? selectedLabel : undefined}
+                    singleSeriesMode={{
+                      label: "Avg. runner dwell",
+                      infoTooltip: "Average time a runner spends at the facility, from arrival to departure",
+                      valueSuffix: " min",
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}
 
+          {/* On time returns to merchant — unchanged from hub */}
           {row1Expanded === "returns" && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5 divide-y divide-line-hovered [&>*+*]:pt-8 [&>*:not(:last-child)]:pb-8">
+            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-3 gap-6">
-                  {returnsSecondary.map((c) => <SectionKpiCard key={c.id} card={c} />)}
+                <div className="grid grid-cols-3 gap-4">
+                  {returnsSecondary.map((c) => (
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
+                  ))}
                 </div>
               </div>
               <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Parcel return status</h3>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Return parcel scans</h3>
                 <VolumeChart
                   data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
                   metric={metricConfigs.processed}
                   visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Returned on time", sortedLate: "Returned late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                  seriesLabels={{ processed: "Scanned to truck on time", sortedLate: "Scanned to truck late", lost: "Lost", readyToSort: "Pending return", forecasted: "Forecasted" }}
                   colorOverrides={{ lost: "#7c3aed" }}
+                  hideLost
                 />
               </div>
             </div>
           )}
 
           {row1Expanded === "associates" && (
-            <div className="overflow-hidden rounded-[12px] border border-line-hovered bg-white pt-4">
-              <SortersTableV3 sorters={sorters} hideStatusIcons defaultSortKey="meetsTargets" defaultSortDir="desc" showFilters hideRateSelectors hideHeader noBorderTable searchPadding showDownload />
-            </div>
-          )}
-        </section>
-
-        {/* ============================================================ */}
-        {/*  Row 2 — Flow rates                                          */}
-        {/* ============================================================ */}
-        <section className="mt-10">
-          <h2 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Flow rates</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <HeroCard card={preSortCard} expanded={row2Expanded === "preSortRate"} onToggle={() => toggleRow2("preSortRate")} />
-            <HeroCard card={sortRateCard} expanded={row2Expanded === "sortRate"} onToggle={() => toggleRow2("sortRate")} />
-            <HeroCard card={loadRateCard} expanded={row2Expanded === "loadRate"} onToggle={() => toggleRow2("loadRate")} />
-          </div>
-
-          {row2Expanded && (
-            <Caret index={row2Expanded === "preSortRate" ? 0 : row2Expanded === "sortRate" ? 1 : 2} columns={3} />
-          )}
-          {row2Expanded && (
-            <div className="rounded-[12px] border border-line-hovered bg-white px-6 py-5">
-              <FlowRateSection
-                key={row2Expanded}
-                flowRateWeek={payload.flowRateWeek}
-                visibleDays={payload.visibleDays}
-                hideTabs
-                defaultCombo={row2Expanded === "preSortRate" ? "parcels-presort" : row2Expanded === "sortRate" ? "parcels-sort" : "pallets-average"}
-                defaultItemType={row2Expanded === "loadRate" ? "pallets" : "parcels"}
-                aggregatedLabel={useAggregated ? selectedLabel : undefined}
+            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] overflow-hidden pt-5">
+              <AssociatesInsightsSpoke sorters={sorters} />
+              <SortersTableV3
+                sorters={sorters}
+                hideStatusIcons
+                defaultSortKey="meetsTargets"
+                defaultSortDir="desc"
+                showFilters
+                hideRateSelectors
+                hideHeader
+                noBorderTable
+                searchPadding
+                showDownload
+                loadRateLabel="Dispatch rate"
+                hideLoadColumns
+                palletsLoadedLabel="Bins dispatched"
+                columnTooltips={{
+                  preSortRate: { body: "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode", target: "160 / hr" },
+                  sortRate: { body: "Average hourly rate at which parcels were actively scanned to bins", target: "160 / hr" },
+                  parcelsSorted: { body: "Total parcels this associate sorted in the selected period" },
+                  missorted: { body: "Parcels this associate last scanned in the selected period that were next scanned at the wrong location", target: "0" },
+                  lost: { body: "Parcels this associate last scanned in the selected period that were lost and not scanned again for 10 days", target: "0" },
+                  loadRate: { body: "Average hourly rate at which bins were actively dispatched to runners", target: "20 / hr" },
+                  palletsLoaded: { body: "Total bins this associate dispatched in the selected period" },
+                  idleTime: { body: "Time signed in but not actively sorting, loading, or scanning" },
+                  targetStatus: { body: "Whether this associate is meeting all individual performance targets" },
+                }}
               />
             </div>
           )}
+          </div>
         </section>
 
-        {/* Sorters table removed — only shown inside Associates detail panel */}
       </div>
     </div>
   );

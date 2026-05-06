@@ -10,8 +10,25 @@ const CHART_H = 260;
 const PAD = { top: 24, right: 16, bottom: 32, left: 56 };
 const plotH = CHART_H - PAD.top - PAD.bottom;
 const plotW = CHART_W - PAD.left - PAD.right;
-const Y_MAX = 250;
-const Y_TICKS = [0, 50, 100, 150, 200, 250];
+
+function computeYAxis(data: FlowRateDayBucket[], aggregated: { blendedAverage: number; smallOnly: number; largeOnly: number } | null) {
+  const values: number[] = [];
+  for (const d of data) {
+    values.push(d.blendedAverage, d.smallOnly, d.largeOnly);
+  }
+  if (aggregated) {
+    values.push(aggregated.blendedAverage, aggregated.smallOnly, aggregated.largeOnly);
+  }
+  const dataMax = values.length ? Math.max(...values) : 0;
+  // Round up to next 50, with at least 100 floor (so empty data still has axis), padded ~10% above peak
+  const target = dataMax < 50
+    ? Math.max(10, Math.ceil(dataMax * 1.2 / 5) * 5)
+    : Math.max(100, Math.ceil(dataMax * 1.1 / 50) * 50);
+  const step = target / 5;
+  const ticks: number[] = [];
+  for (let v = 0; v <= target; v += step) ticks.push(Math.round(v));
+  return { yMax: target, yTicks: ticks };
+}
 
 const SERIES_COLORS = {
   blended: chartStateColors.primary,
@@ -20,9 +37,9 @@ const SERIES_COLORS = {
 };
 
 const LEGEND_TOOLTIPS: Record<string, string> = {
-  blendedAverage: "Parcels greater than 2 lbs count 1.8x towards sort rate",
-  smallOnly: "Parcels under 2 lbs",
-  largeOnly: "Parcels over 2 lbs",
+  blendedAverage: "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode",
+  smallOnly: "Parcels pre-sorted that ultimately go into gaylord containers",
+  largeOnly: "Parcels pre-sorted that ultimately go into wooden pallets",
 };
 
 // ---- Tab definitions ----
@@ -58,8 +75,8 @@ function comboKey(item: ItemType, rate: ParcelStageType | SummaryRateType): Flow
 }
 
 // ---- SVG helpers ----
-function yPx(val: number) {
-  return PAD.top + plotH - (val / Y_MAX) * plotH;
+function makeYPx(yMax: number) {
+  return (val: number) => PAD.top + plotH - (val / yMax) * plotH;
 }
 
 function smoothPath(points: [number, number][]): string {
@@ -86,12 +103,21 @@ type Props = {
   flowRateWeek: FlowRateWeekData;
   visibleDays?: Set<string>;
   hideTabs?: boolean;
+  // Show ONLY the Pre-sort / Sort to pallet selector. Hides item-type tabs and rate-summary tabs.
+  showStageTabsOnly?: boolean;
+  // Override the label for the "sort" stage tab (e.g. "Sort to bin" on spoke).
+  sortStageLabel?: string;
+  // Render a single line/series — hides Smalls and Larges and shows only the blendedAverage data
+  // with the provided label and (optional) info tooltip. valueSuffix overrides the default "/ hr"
+  // unit shown in tooltips and bar labels.
+  singleSeriesMode?: { label: string; infoTooltip?: string; valueSuffix?: string };
   defaultCombo?: FlowRateCombo;
   defaultItemType?: ItemType;
   aggregatedLabel?: string; // When set, switch to bar chart mode with aggregated data
+  palletLabel?: string; // Override for the "Pallets loaded" series label (e.g. "Bin dispatch rate" on spoke)
 };
 
-export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCombo, defaultItemType, aggregatedLabel }: Props) {
+export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStageTabsOnly, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallet load rate", singleSeriesMode }: Props) {
   const [itemType, setItemType] = useState<ItemType>(defaultItemType ?? "parcels");
   useEffect(() => { if (defaultItemType) setItemType(defaultItemType); }, [defaultItemType]);
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
@@ -137,6 +163,9 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
     };
   }, [allData, isAggregated, visibleDays]);
 
+  const { yTicks: Y_TICKS } = computeYAxis(data, aggregated);
+  const yPx = makeYPx(computeYAxis(data, aggregated).yMax);
+
   const n = data.length;
   const slotW = plotW / n;
   const pointX = (i: number) => PAD.left + slotW * i + slotW / 2;
@@ -147,8 +176,8 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       return [pointX(origIdx), yPx(d[key])];
     });
   const isVisible = (series: "blendedAverage" | "smallOnly" | "largeOnly") =>
-    !hiddenSeries.has(series) && (hoveredSeries == null || hoveredSeries === series);
-  const isActive = (series: "blendedAverage" | "smallOnly" | "largeOnly") => !hiddenSeries.has(series);
+    !hiddenSeries.has(series) && (hoveredSeries == null || hoveredSeries === series) && !(singleSeriesMode && series !== "blendedAverage");
+  const isActive = (series: "blendedAverage" | "smallOnly" | "largeOnly") => !hiddenSeries.has(series) && !(singleSeriesMode && series !== "blendedAverage");
   const toggleSeries = (series: "blendedAverage" | "smallOnly" | "largeOnly") => {
     setHiddenSeries((current) => {
       if (current.has(series)) {
@@ -170,7 +199,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
   return (
     <section>
       {/* Tab rows */}
-      {!hideTabs && (
+      {!hideTabs && !showStageTabsOnly && (
       <div className="mb-2 flex items-center gap-4">
         {/* Group 1 — Parcels / Pallets */}
         <div className={tabGroupClass}>
@@ -219,8 +248,28 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       </div>
       )}
 
+      {showStageTabsOnly && (
+        <div className="mb-2 flex items-center gap-4">
+          <div className={tabGroupClass}>
+            {parcelStageTabs.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setParcelStage(tab.key);
+                  setParcelFlowMode("stage");
+                }}
+                className={tabBtnClass(parcelStage === tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Chart + legend row */}
-      <div className="relative z-10 flex gap-8">
+      <div className="relative z-10 flex items-center gap-8">
       <div className="flex-1">
 
       {/* Aggregated bar chart for custom range */}
@@ -414,11 +463,13 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
           const d = data[hoveredPoint];
           const cx = pointX(hoveredPoint);
           const rows = itemType === "pallets"
-            ? [{ label: "Pallets loaded", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: true }]
+            ? [{ label: palletLabel, value: d.blendedAverage, color: SERIES_COLORS.blended, visible: true }]
+            : singleSeriesMode
+            ? [{ label: singleSeriesMode.label, value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") }].filter((r) => r.visible)
             : [
-                { label: "Blended average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
-                { label: "Small parcels only", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
-                { label: "Large parcels only", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
+                { label: "Average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
+                { label: "Smalls", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
+                { label: "Larges", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
               ].filter((r) => r.visible);
           if (rows.length === 0) return null;
 
@@ -445,7 +496,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
                     {r.label}
                   </text>
                   <text x={tx + boxW - padX} y={ty + padY + 22 + ri * rowH + 12} fill="white" fontSize={11} fontFamily="Inter, sans-serif" fontWeight={600} textAnchor="end">
-                    {Math.round(r.value)} / hr
+                    {Math.round(r.value)}{singleSeriesMode?.valueSuffix ?? " / hr"}
                   </text>
                 </g>
               ))}
@@ -461,21 +512,40 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
       )}
       </div>
 
-      {/* Legend — vertical column to the right of chart */}
-      <div className="flex min-w-[180px] flex-col gap-2 pt-6">
+      {/* Legend — vertical column to the right of chart, vertically centered */}
+      <div className="flex min-w-[180px] flex-col gap-2">
         {itemType === "pallets" ? (
-          <div className="flex items-center gap-2">
-            <span className="block h-4 w-4 shrink-0 rounded-[4px]" style={{ backgroundColor: SERIES_COLORS.blended }} />
-            <span className="whitespace-nowrap text-body-md text-ink">Pallets loaded</span>
-          </div>
+          <>
+            <div className="flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" style={{ backgroundColor: SERIES_COLORS.blended }} />
+              <span className="whitespace-nowrap text-body-md text-ink">{palletLabel}</span>
+            </div>
+            {/* Invisible spacers so the legend column has the same height as the parcels variant
+                and ends up centered at the same vertical position relative to the chart. */}
+            <div className="invisible flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" />
+              <span className="whitespace-nowrap text-body-md text-ink">spacer</span>
+            </div>
+            <div className="invisible flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" />
+              <span className="whitespace-nowrap text-body-md text-ink">spacer</span>
+            </div>
+            <div className="invisible mt-2 flex items-center gap-2">
+              <span className="block h-4 w-4 shrink-0 rounded-[4px]" />
+              <span className="whitespace-nowrap text-body-md text-ink">spacer</span>
+            </div>
+          </>
         ) : (
           <>
-            {[
-              { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Blended average" },
-              { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Small parcels only" },
-              { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Large parcels only" },
-            ].map(({ key, color, label }) => (
-              <div key={label} className="flex items-center gap-2">
+            {(singleSeriesMode
+              ? [{ key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: singleSeriesMode.label }]
+              : [
+                  { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Average" },
+                  { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Smalls" },
+                  { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Larges" },
+                ]
+            ).map(({ key, color, label }) => (
+              <div key={label} className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => toggleSeries(key)}
@@ -490,7 +560,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
                   />
                   <span className={cn("whitespace-nowrap text-body-md text-ink", !isActive(key) && "line-through opacity-60")}>{label}</span>
                 </button>
-                {LEGEND_TOOLTIPS[key] && (
+                {(singleSeriesMode?.infoTooltip ?? LEGEND_TOOLTIPS[key]) && (
                   <div className="relative">
                     <button
                       type="button"
@@ -502,7 +572,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, defaultCo
                     </button>
                     {tooltipOpen === key && (
                       <div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
-                        <div className="text-body-sm text-white/80">{LEGEND_TOOLTIPS[key]}</div>
+                        <div className="text-body-sm text-white/80">{singleSeriesMode?.infoTooltip ?? LEGEND_TOOLTIPS[key]}</div>
                         <div className="absolute top-full left-1/2 h-0 w-0 -translate-x-1/2 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
                       </div>
                     )}
