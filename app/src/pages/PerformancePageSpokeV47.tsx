@@ -14,7 +14,6 @@ import {
   resolveCustomRangeV3,
   type V3MetricCard,
   type V3MetricId,
-  type V3SimpleSeriesDay,
 } from "../data/mockV3";
 import { getSortersForRange } from "../data/sortersData";
 import { cn } from "../lib/cn";
@@ -257,29 +256,6 @@ function buildRunnerDwellWeek(): FlowRateWeekData {
     "pallets-average": series,
     "pallets-max": series,
   };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Caret pointer between card and detail panel                        */
-/* ------------------------------------------------------------------ */
-
-function Caret({ index, columns }: { index: number; columns: number }) {
-  const leftPercent = ((index + 0.5) / columns) * 100;
-  return (
-    <div className="relative h-4 -mb-[1px] z-10" style={{ pointerEvents: "none" }}>
-      <svg
-        className="absolute -translate-x-1/2 bottom-0"
-        style={{ left: `${leftPercent}%` }}
-        width="32"
-        height="12"
-        viewBox="0 0 32 12"
-        fill="none"
-      >
-        <path d="M16 0L0 12H32L16 0Z" fill="#d3d6d9" />
-        <path d="M16 1.5L1.5 12H30.5L16 1.5Z" fill="white" />
-      </svg>
-    </div>
-  );
 }
 
 /* ------------------------------------------------------------------ */
