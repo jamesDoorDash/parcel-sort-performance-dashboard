@@ -459,6 +459,7 @@ export function PerformancePageSpokeV49() {
           seriesLabels={{ processed: "Scanned to truck on time", sortedLate: "Scanned to truck late", lost: "Lost", readyToSort: "Pending return", forecasted: "Forecasted" }}
           colorOverrides={{ lost: "#7c3aed" }}
           hideLost
+                  hideForecasted
         />
       </div>
       </div>

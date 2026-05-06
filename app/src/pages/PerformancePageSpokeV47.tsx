@@ -149,8 +149,8 @@ function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; ex
           )}
         </div>
       </div>
-      <div className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-button border border-line-hovered bg-white text-body-sm-strong text-ink">
-        {expanded ? <ChevronUp className="h-4 w-4" strokeWidth={2} /> : <ChevronDown className="h-4 w-4" strokeWidth={2} />}
+      <div className="mt-3 inline-flex h-10 self-start items-center gap-1 rounded-button border border-line-hovered bg-white px-3 text-body-md-strong text-ink">
+        {expanded ? <ChevronUp className="h-5 w-5" strokeWidth={2} /> : <ChevronDown className="h-5 w-5" strokeWidth={2} />}
         {expanded ? "View less" : "View more"}
       </div>
     </button>
@@ -607,6 +607,7 @@ export function PerformancePageSpokeV47() {
                   seriesLabels={{ processed: "Scanned to truck on time", sortedLate: "Scanned to truck late", lost: "Lost", readyToSort: "Pending return", forecasted: "Forecasted" }}
                   colorOverrides={{ lost: "#7c3aed" }}
                   hideLost
+                  hideForecasted
                 />
               </div>
             </div>
