@@ -88,9 +88,14 @@ const VERSION_OPTIONS = [
   { value: "V45", label: "V45: 24px headers", hidden: true },
   { value: "V46", label: "V46: May4 feedback" },
   { value: "V47", label: "V47: May5 update" },
+  { value: "V48", label: "V48: Alt layout A" },
+  { value: "V49", label: "V49: Alt layout B" },
+  { value: "V50", label: "V50: V47 with related boxes", hidden: true },
+  { value: "V51", label: "V51: V48 with related boxes", hidden: true },
+  { value: "V52", label: "V52: V49 with related boxes", hidden: true },
 ];
 
-const SPOKE_VERSION_VALUES = ["V35", "V46", "V47"];
+const SPOKE_VERSION_VALUES = ["V35", "V46", "V47", "V48", "V49", "V50", "V51", "V52"];
 
 type Props = {
   active: string;

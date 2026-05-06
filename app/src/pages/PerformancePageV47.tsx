@@ -521,9 +521,7 @@ export function PerformancePageV47() {
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {parcelSecondary.map((c) => (
-                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
-                      <SectionKpiCard card={c} />
-                    </div>
+                    <SectionKpiCard key={c.id} card={c} />
                   ))}
                 </div>
               </div>
@@ -557,9 +555,7 @@ export function PerformancePageV47() {
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {palletSecondary.map((c) => (
-                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
-                      <SectionKpiCard card={c} />
-                    </div>
+                    <SectionKpiCard key={c.id} card={c} />
                   ))}
                 </div>
               </div>
@@ -593,9 +589,7 @@ export function PerformancePageV47() {
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {returnsSecondary.map((c) => (
-                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
-                      <SectionKpiCard card={c} />
-                    </div>
+                    <SectionKpiCard key={c.id} card={c} />
                   ))}
                 </div>
               </div>

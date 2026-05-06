@@ -2,12 +2,11 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Info, RefreshCw } from "lucide-react";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
+import { AssociatesInsightsV41 } from "../components/AssociatesInsightsV41";
 import { FlowRateSection } from "../components/FlowRateSection";
-import { AssociatesInsightsSpoke } from "../components/AssociatesInsightsSpoke";
 import { VolumeChart } from "../components/VolumeChart";
 import type { DateRangeKey, DayBucket } from "../data/mock";
 import { metricConfigs, rangeIsoBounds } from "../data/mock";
-import type { FlowRateDayBucket, FlowRateWeekData } from "../data/mockV2";
 import { applySorterTargetStatuses, toSorterV2 } from "../data/mockV2";
 import {
   rangePayloadsV3,
@@ -19,9 +18,7 @@ import { getSortersForRange } from "../data/sortersData";
 import { cn } from "../lib/cn";
 
 /* ------------------------------------------------------------------ */
-/*  Spoke V35 — terminology-customized copy of hub V35.                */
-/*  Tooltips and underlying data still match hub for now; will diverge */
-/*  in subsequent edits.                                               */
+/*  Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
 function toIso(date: Date) {
@@ -88,7 +85,7 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hero card                                                          */
+/*  Hero card (primary metric with show more/less)                     */
 /* ------------------------------------------------------------------ */
 
 function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; expanded: boolean; dimmed?: boolean; onToggle: () => void }) {
@@ -158,7 +155,7 @@ function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; ex
 }
 
 /* ------------------------------------------------------------------ */
-/*  Section KPI card                                                   */
+/*  Section KPI card (for secondary metrics inside detail panels)      */
 /* ------------------------------------------------------------------ */
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
@@ -227,42 +224,10 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Runner dwell — synthetic FlowRateWeekData (single line chart)     */
-/* ------------------------------------------------------------------ */
-
-const RUNNER_DWELL_VALUES: { date: string; label: string; value: number }[] = [
-  { date: "2026-02-09", label: "Feb 9", value: 21 },
-  { date: "2026-02-10", label: "Feb 10", value: 19 },
-  { date: "2026-02-11", label: "Feb 11", value: 22 },
-  { date: "2026-02-12", label: "Feb 12", value: 18 },
-  { date: "2026-02-13", label: "Feb 13", value: 20 },
-  { date: "2026-02-14", label: "Feb 14", value: 20 },
-  { date: "2026-02-15", label: "Feb 15", value: 0 },
-];
-
-function buildRunnerDwellWeek(): FlowRateWeekData {
-  const series: FlowRateDayBucket[] = RUNNER_DWELL_VALUES.map((d) => ({
-    date: d.date,
-    label: d.label,
-    blendedAverage: d.value,
-    smallOnly: 0,
-    largeOnly: 0,
-  }));
-  return {
-    "parcels-presort": series,
-    "parcels-sort": series,
-    "parcels-average": series,
-    "parcels-max": series,
-    "pallets-average": series,
-    "pallets-max": series,
-  };
-}
-
-/* ------------------------------------------------------------------ */
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageSpokeV47() {
+export function PerformancePageV50() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
@@ -307,10 +272,12 @@ export function PerformancePageSpokeV47() {
       isoEnd = bounds.end;
     }
     const base = applySorterTargetStatuses(getSortersForRange(isoStart, isoEnd).map((s) => toSorterV2(s, sorterDays)));
+    // Demo: today's roster all meet target so the day lands on an A grade
     if (range === "today") return base.map((s) => ({ ...s, meetsTargets: true, belowTargetMetric: null }));
     return base;
   }, [customRange, range, sorterDays]);
 
+  // Build cards from payload
   const cardMap = useMemo(() => {
     const m = new Map(payload.cards.map((c) => [c.id, c]));
     return m;
@@ -318,18 +285,61 @@ export function PerformancePageSpokeV47() {
 
   const getCard = (id: V3MetricId) => cardMap.get(id);
 
-
-  // Spoke labels + tooltips for top-level metrics.
-  const relabel = (card: V3MetricCard | undefined, label: string, body?: string): V3MetricCard | undefined => {
-    if (!card) return card;
-    return { ...card, label, labelTooltip: { title: "", body: body ?? card.labelTooltip.body } };
-  };
-
-  const parcelsHero = relabel(
-    getCard("parcelsSortedOnTime"),
-    "QA by 9am",
-    "% of bins that are fully sorted for runner pickup by 9am",
-  );
+  // Hero cards for row 1
+  // V46 override: Sort SLA compliance — target 100%, custom tooltip
+  const parcelsHero = (() => {
+    const c = getCard("parcelsSortedOnTime");
+    if (!c) return c;
+    const value = parseFloat(c.value);
+    const target = 100;
+    let delta: V3MetricCard["delta"];
+    if (isNaN(value)) {
+      delta = c.delta;
+    } else {
+      const diff = value - target;
+      const rounded = Math.abs(Math.round(diff * 10) / 10);
+      if (rounded === 0) {
+        delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
+      } else if (value >= target) {
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
+      } else {
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
+      }
+    }
+    return {
+      ...c,
+      label: "Sort SLA compliance",
+      labelTooltip: { title: "", body: "% of parcels sorted at least 15m before the first truck CPT of the day" },
+      delta,
+    };
+  })();
+  // V46 override: Controllable CPT compliance — target 100%, custom tooltip
+  const trucksHero = (() => {
+    const c = getCard("trucksDepartedOnTime");
+    if (!c) return c;
+    const value = parseFloat(c.value);
+    const target = 100;
+    let delta: V3MetricCard["delta"];
+    if (isNaN(value)) {
+      delta = c.delta;
+    } else {
+      const diff = value - target;
+      const rounded = Math.abs(Math.round(diff * 10) / 10);
+      if (rounded === 0) {
+        delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
+      } else if (value >= target) {
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
+      } else {
+        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
+      }
+    }
+    return {
+      ...c,
+      label: "Controllable CPT compliance",
+      labelTooltip: { title: "", body: "% of pallets loaded to truck by the truck's CPT — only for trucks that arrived on time or early" },
+      delta,
+    };
+  })();
   // V46 override: On time returns to merchant — target 100%, custom tooltip
   const returnsHero = (() => {
     const c = getCard("parcelsReturnedOnTime");
@@ -372,12 +382,16 @@ export function PerformancePageSpokeV47() {
     };
   }, [sorters]);
 
-  // Secondary cards — only kept for "Bins ready by 9 a.m." (parcels) and returns.
-  // "On-time delivery" expanded panel has no related metrics in spoke.
+  // Secondary cards for detail panels
   const parcelSecondary = [
     getCard("parcelDwellTime"),
     getCard("parcelsMissorted"),
     getCard("parcelsLost"),
+  ].filter(Boolean) as V3MetricCard[];
+
+  const palletSecondary = [
+    getCard("palletsScannedToTruck"),
+    getCard("palletsMissloaded"),
   ].filter(Boolean) as V3MetricCard[];
 
   const returnsSecondary = [
@@ -385,7 +399,7 @@ export function PerformancePageSpokeV47() {
     getCard("returnPalletScannedToTruck"),
   ].filter(Boolean) as V3MetricCard[];
 
-  // Dwell chart data for dual-bar parcels chart (Sort status secondary bars + Runner returned)
+  // Dwell chart data for dual-bar parcels chart
   const dwellChartData: DayBucket[] = useMemo(() => {
     const DWELL_COUNTS = range === "lastWeek"
       ? [3, 5, 8, 12, 4, 6, 9]
@@ -404,14 +418,11 @@ export function PerformancePageSpokeV47() {
   }, [payload.processedWeek, range]);
 
   // Facility grade — count of top-level metrics that hit target
+  // (placeholder logic; finalize with team)
   const facilityGrade = useMemo(() => {
-    const cardHit = (id: V3MetricId) => {
-      const c = getCard(id);
-      return !!c?.delta && c.delta.tone !== "negative";
-    };
-
     let hits = 0;
-    if (cardHit("parcelsSortedOnTime")) hits += 1;
+    if (parcelsHero?.delta && parcelsHero.delta.tone !== "negative") hits += 1;
+    if (trucksHero?.delta && trucksHero.delta.tone !== "negative") hits += 1;
     if (returnsHero?.delta && returnsHero.delta.tone !== "negative") hits += 1;
 
     const total = sorters.length;
@@ -419,17 +430,18 @@ export function PerformancePageSpokeV47() {
     if (total > 0 && meeting === total) hits += 1;
 
     const grades = [
-      { letter: "F", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
-      { letter: "D", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
-      { letter: "C", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
-      { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" },
+      { letter: "F", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 0
+      { letter: "D", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 1
+      { letter: "C", color: "#b71000", bg: "#fff0ed", border: "#b71000" }, // 2
+      { letter: "B", color: "#a36500", bg: "#fff6d4", border: "#a36500" }, // 3
+      { letter: "A", color: "#00832d", bg: "#e7fbef", border: "#00832d" }, // 4
     ];
     return { ...grades[hits], hits };
-  }, [payload, sorters, returnsHero]);
+  }, [payload, sorters, parcelsHero, trucksHero, returnsHero]);
 
+  // Row-level accordion: only one expanded per row (null = all collapsed)
   const [gradeTooltipOpen, setGradeTooltipOpen] = useState(false);
   const [row1Expanded, setRow1Expanded] = useState<string | null>("parcels");
-  const [sortStage, setSortStage] = useState<"presort" | "sort" | "runner">("presort");
 
   const toggleRow1 = (id: string) => setRow1Expanded((prev) => (prev === id ? null : id));
 
@@ -480,7 +492,8 @@ export function PerformancePageSpokeV47() {
                       Determined by the number of top-level metrics at or above target:
                     </div>
                     <div className="mt-2 space-y-0.5 text-body-sm text-white/80">
-                      <div><span className="font-bold text-white">A</span> · 3</div>
+                      <div><span className="font-bold text-white">A</span> · 4</div>
+                      <div><span className="font-bold text-white">B</span> · 3</div>
                       <div><span className="font-bold text-white">C</span> · 2</div>
                       <div><span className="font-bold text-white">D</span> · 1</div>
                       <div><span className="font-bold text-white">F</span> · 0</div>
@@ -496,20 +509,21 @@ export function PerformancePageSpokeV47() {
             </span>
           </div>
           <div>
-            <div className="grid grid-cols-3">
+            <div className="grid grid-cols-4">
               {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} dimmed={!!row1Expanded && row1Expanded !== "parcels"} onToggle={() => toggleRow1("parcels")} />}
+              {trucksHero && <HeroCard card={trucksHero} expanded={row1Expanded === "trucks"} dimmed={!!row1Expanded && row1Expanded !== "trucks"} onToggle={() => toggleRow1("trucks")} />}
               {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} dimmed={!!row1Expanded && row1Expanded !== "returns"} onToggle={() => toggleRow1("returns")} />}
               <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} dimmed={!!row1Expanded && row1Expanded !== "associates"} onToggle={() => toggleRow1("associates")} />
             </div>
-
-          {/* Bins ready by 9 a.m. — related metrics + Sort status chart */}
           {row1Expanded === "parcels" && (
             <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {parcelSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -519,82 +533,69 @@ export function PerformancePageSpokeV47() {
                   data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
                   metric={metricConfigs.processed}
                   visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Sorted before 9am", sortedLate: "Sorted after 9am", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                  seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
                   colorOverrides={{ lost: "#7c3aed" }}
                   secondaryBars={{ values: dwellChartData.map((d) => d.processed.lost), color: "#df3480", label: "Dwelled parcels" }}
                 />
               </div>
               <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Flow rate</h3>
-                <div className="mb-4 inline-flex items-center rounded-button border border-line-hovered bg-white">
-                  {[
-                    { key: "presort" as const, label: "Pre-sort" },
-                    { key: "sort" as const, label: "Sort to bin" },
-                    { key: "runner" as const, label: "Runner dwell" },
-                  ].map((tab) => {
-                    const active = sortStage === tab.key;
-                    return (
-                      <button
-                        key={tab.key}
-                        type="button"
-                        onClick={() => setSortStage(tab.key)}
-                        className={cn(
-                          "relative -my-px h-10 rounded-button px-6 text-body-md-strong transition-colors first:-ml-px last:-mr-px",
-                          active ? "z-10 bg-white text-ink ring-2 ring-inset ring-ink" : "text-ink-subdued hover:text-ink",
-                        )}
-                      >
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {sortStage === "presort" && (
-                  <FlowRateSection
-                    flowRateWeek={payload.flowRateWeek}
-                    visibleDays={payload.visibleDays}
-                    hideTabs
-                    defaultCombo="parcels-presort"
-                    defaultItemType="parcels"
-                    aggregatedLabel={useAggregated ? selectedLabel : undefined}
-                  />
-                )}
-                {sortStage === "sort" && (
-                  <FlowRateSection
-                    flowRateWeek={payload.flowRateWeek}
-                    visibleDays={payload.visibleDays}
-                    hideTabs
-                    defaultCombo="parcels-sort"
-                    defaultItemType="parcels"
-                    aggregatedLabel={useAggregated ? selectedLabel : undefined}
-                  />
-                )}
-                {sortStage === "runner" && (
-                  <FlowRateSection
-                    flowRateWeek={buildRunnerDwellWeek()}
-                    visibleDays={payload.visibleDays}
-                    hideTabs
-                    defaultCombo="parcels-presort"
-                    defaultItemType="parcels"
-                    aggregatedLabel={useAggregated ? selectedLabel : undefined}
-                    singleSeriesMode={{
-                      label: "Avg. runner dwell",
-                      infoTooltip: "Average time a runner spends at the facility, from arrival to departure",
-                      valueSuffix: " min",
-                    }}
-                  />
-                )}
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Sort rate</h3>
+                <FlowRateSection
+                  flowRateWeek={payload.flowRateWeek}
+                  visibleDays={payload.visibleDays}
+                  showStageTabsOnly
+                  defaultItemType="parcels"
+                  aggregatedLabel={useAggregated ? selectedLabel : undefined}
+                />
               </div>
             </div>
           )}
 
-          {/* On time returns to merchant — unchanged from hub */}
+          {row1Expanded === "trucks" && (
+            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {palletSecondary.map((c) => (
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet outbound status</h3>
+                <VolumeChart
+                  data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
+                  metric={metricConfigs.processed}
+                  visibleDays={useAggregated ? undefined : payload.visibleDays}
+                  seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                  colorOverrides={{ lost: "#7c3aed" }}
+                />
+              </div>
+              <div>
+                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet load rate</h3>
+                <FlowRateSection
+                  flowRateWeek={payload.flowRateWeek}
+                  visibleDays={payload.visibleDays}
+                  hideTabs
+                  defaultCombo="pallets-average"
+                  defaultItemType="pallets"
+                  aggregatedLabel={useAggregated ? selectedLabel : undefined}
+                />
+              </div>
+            </div>
+          )}
+
           {row1Expanded === "returns" && (
             <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {returnsSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -614,7 +615,7 @@ export function PerformancePageSpokeV47() {
 
           {row1Expanded === "associates" && (
             <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] overflow-hidden pt-5">
-              <AssociatesInsightsSpoke sorters={sorters} />
+              <AssociatesInsightsV41 sorters={sorters} />
               <SortersTableV3
                 sorters={sorters}
                 hideStatusIcons
@@ -626,17 +627,14 @@ export function PerformancePageSpokeV47() {
                 noBorderTable
                 searchPadding
                 showDownload
-                loadRateLabel="Dispatch rate"
-                hideLoadColumns
-                palletsLoadedLabel="Bins dispatched"
                 columnTooltips={{
                   preSortRate: { body: "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode", target: "160 / hr" },
-                  sortRate: { body: "Average hourly rate at which parcels were actively scanned to bins", target: "160 / hr" },
+                  sortRate: { body: "Average hourly rate at which parcels were actively scanned to pallet", target: "160 / hr" },
                   parcelsSorted: { body: "Total parcels this associate sorted in the selected period" },
                   missorted: { body: "Parcels this associate last scanned in the selected period that were next scanned at the wrong location", target: "0" },
                   lost: { body: "Parcels this associate last scanned in the selected period that were lost and not scanned again for 10 days", target: "0" },
-                  loadRate: { body: "Average hourly rate at which bins were actively dispatched to runners", target: "20 / hr" },
-                  palletsLoaded: { body: "Total bins this associate dispatched in the selected period" },
+                  loadRate: { body: "Average hourly rate at which pallets were actively scanned to truck", target: "30 / hr" },
+                  palletsLoaded: { body: "Total pallets this associate loaded onto trucks in the selected period" },
                   idleTime: { body: "Cumulative idle time — any 10+ minute gap between scans. All other time-based metrics pause while idle." },
                   targetStatus: { body: "Whether this associate is meeting all individual performance targets" },
                 }}

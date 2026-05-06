@@ -18,12 +18,6 @@ import {
 import { getSortersForRange } from "../data/sortersData";
 import { cn } from "../lib/cn";
 
-/* ------------------------------------------------------------------ */
-/*  Spoke V35 — terminology-customized copy of hub V35.                */
-/*  Tooltips and underlying data still match hub for now; will diverge */
-/*  in subsequent edits.                                               */
-/* ------------------------------------------------------------------ */
-
 function toIso(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
@@ -76,22 +70,12 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
     label,
     weekday: visible[0].weekday,
     isFuture: allFuture,
-    processed: {
-      processed: sum.processed,
-      sortedLate: sum.sortedLate,
-      lost: sum.lost,
-      readyToSort: sum.readyToSort,
-      expectedVolume: sum.expectedVolume,
-    },
+    processed: { processed: sum.processed, sortedLate: sum.sortedLate, lost: sum.lost, readyToSort: sum.readyToSort, expectedVolume: sum.expectedVolume },
     values: {},
   }];
 }
 
-/* ------------------------------------------------------------------ */
-/*  Hero card                                                          */
-/* ------------------------------------------------------------------ */
-
-function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; expanded: boolean; dimmed?: boolean; onToggle: () => void }) {
+function HeroCard({ card, expanded, onToggle }: { card: V3MetricCard; expanded: boolean; onToggle: () => void }) {
   const isNeutral = card.delta?.tone === "neutral";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -101,13 +85,8 @@ function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; ex
       type="button"
       onClick={onToggle}
       className={cn(
-        "flex flex-col items-stretch text-left border-line-hovered",
-        dimmed
-          ? "bg-[#F6F7F8] border-t border-b-2 border-r first:border-l pt-[17px] pb-[15px] first:pl-[21px] [&:not(:first-child)]:pl-5 pr-[21px]"
-          : "bg-white border-t-2 border-r-2 first:border-l-2",
-        !dimmed && !expanded && "border-b-2 first:rounded-bl-[12px] last:rounded-br-[12px] py-4 px-5",
-        !dimmed && expanded && "border-l-2 first:ml-0 [&:not(:first-child)]:-ml-px pt-4 pb-[17px] first:px-5 [&:not(:first-child)]:pl-[19px] [&:not(:first-child)]:pr-[19px]",
-        "first:rounded-tl-[12px] last:rounded-tr-[12px]",
+        "flex flex-col items-stretch rounded-[12px] border border-line-hovered bg-white px-5 py-4 text-left transition-all",
+        expanded ? "ring-[2.5px] ring-inset ring-ink shadow-card" : "hover:shadow-card",
       )}
     >
       <div className="flex min-w-0 flex-col items-start">
@@ -156,10 +135,6 @@ function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; ex
     </button>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/*  Section KPI card                                                   */
-/* ------------------------------------------------------------------ */
 
 function SectionKpiCard({ card }: { card: V3MetricCard }) {
   const isNeutral = card.delta?.tone === "neutral";
@@ -226,9 +201,24 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Runner dwell — synthetic FlowRateWeekData (single line chart)     */
-/* ------------------------------------------------------------------ */
+function Caret({ index, columns }: { index: number; columns: number }) {
+  const leftPercent = ((index + 0.5) / columns) * 100;
+  return (
+    <div className="relative h-4 -mb-[1px] z-10" style={{ pointerEvents: "none" }}>
+      <svg
+        className="absolute -translate-x-1/2 bottom-0"
+        style={{ left: `${leftPercent}%` }}
+        width="32"
+        height="12"
+        viewBox="0 0 32 12"
+        fill="none"
+      >
+        <path d="M16 0L0 12H32L16 0Z" fill="#d3d6d9" />
+        <path d="M16 1.5L1.5 12H30.5L16 1.5Z" fill="white" />
+      </svg>
+    </div>
+  );
+}
 
 const RUNNER_DWELL_VALUES: { date: string; label: string; value: number }[] = [
   { date: "2026-02-09", label: "Feb 9", value: 21 },
@@ -258,11 +248,7 @@ function buildRunnerDwellWeek(): FlowRateWeekData {
   };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main page                                                          */
-/* ------------------------------------------------------------------ */
-
-export function PerformancePageSpokeV47() {
+export function PerformancePageSpokeV51() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
@@ -311,26 +297,15 @@ export function PerformancePageSpokeV47() {
     return base;
   }, [customRange, range, sorterDays]);
 
-  const cardMap = useMemo(() => {
-    const m = new Map(payload.cards.map((c) => [c.id, c]));
-    return m;
-  }, [payload]);
-
+  const cardMap = useMemo(() => new Map(payload.cards.map((c) => [c.id, c])), [payload]);
   const getCard = (id: V3MetricId) => cardMap.get(id);
 
-
-  // Spoke labels + tooltips for top-level metrics.
   const relabel = (card: V3MetricCard | undefined, label: string, body?: string): V3MetricCard | undefined => {
     if (!card) return card;
     return { ...card, label, labelTooltip: { title: "", body: body ?? card.labelTooltip.body } };
   };
 
-  const parcelsHero = relabel(
-    getCard("parcelsSortedOnTime"),
-    "QA by 9am",
-    "% of bins that are fully sorted for runner pickup by 9am",
-  );
-  // V46 override: On time returns to merchant — target 100%, custom tooltip
+  const parcelsHero = relabel(getCard("parcelsSortedOnTime"), "QA by 9am", "% of bins that are fully sorted for runner pickup by 9am");
   const returnsHero = (() => {
     const c = getCard("parcelsReturnedOnTime");
     if (!c) return c;
@@ -342,20 +317,11 @@ export function PerformancePageSpokeV47() {
     } else {
       const diff = value - target;
       const rounded = Math.abs(Math.round(diff * 10) / 10);
-      if (rounded === 0) {
-        delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
-      } else if (value >= target) {
-        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
-      } else {
-        delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
-      }
+      if (rounded === 0) delta = { value: "on target", direction: "up" as const, tone: "neutral" as const };
+      else if (value >= target) delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
+      else delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
     }
-    return {
-      ...c,
-      label: "On time returns",
-      labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" },
-      delta,
-    };
+    return { ...c, label: "On time returns", labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" }, delta };
   })();
   const associatesHero: V3MetricCard = useMemo(() => {
     const total = sorters.length;
@@ -372,52 +338,29 @@ export function PerformancePageSpokeV47() {
     };
   }, [sorters]);
 
-  // Secondary cards — only kept for "Bins ready by 9 a.m." (parcels) and returns.
-  // "On-time delivery" expanded panel has no related metrics in spoke.
-  const parcelSecondary = [
-    getCard("parcelDwellTime"),
-    getCard("parcelsMissorted"),
-    getCard("parcelsLost"),
-  ].filter(Boolean) as V3MetricCard[];
+  const parcelSecondary = [getCard("parcelDwellTime"), getCard("parcelsMissorted"), getCard("parcelsLost")].filter(Boolean) as V3MetricCard[];
+  const returnsSecondary = [getCard("returnsScannedToPallet"), getCard("returnPalletScannedToTruck")].filter(Boolean) as V3MetricCard[];
 
-  const returnsSecondary = [
-    getCard("returnsScannedToPallet"),
-    getCard("returnPalletScannedToTruck"),
-  ].filter(Boolean) as V3MetricCard[];
-
-  // Dwell chart data for dual-bar parcels chart (Sort status secondary bars + Runner returned)
   const dwellChartData: DayBucket[] = useMemo(() => {
-    const DWELL_COUNTS = range === "lastWeek"
-      ? [3, 5, 8, 12, 4, 6, 9]
-      : [1, 2, 3, 1, 2, 1, 2];
+    const DWELL_COUNTS = range === "lastWeek" ? [3, 5, 8, 12, 4, 6, 9] : [1, 2, 3, 1, 2, 1, 2];
     return payload.processedWeek.map((day, i) => ({
       ...day,
-      processed: {
-        processed: 0,
-        sortedLate: 0,
-        lost: day.isFuture ? 0 : DWELL_COUNTS[i % DWELL_COUNTS.length],
-        readyToSort: 0,
-        expectedVolume: 0,
-      },
+      processed: { processed: 0, sortedLate: 0, lost: day.isFuture ? 0 : DWELL_COUNTS[i % DWELL_COUNTS.length], readyToSort: 0, expectedVolume: 0 },
       values: {},
     }));
   }, [payload.processedWeek, range]);
 
-  // Facility grade — count of top-level metrics that hit target
   const facilityGrade = useMemo(() => {
     const cardHit = (id: V3MetricId) => {
       const c = getCard(id);
       return !!c?.delta && c.delta.tone !== "negative";
     };
-
     let hits = 0;
     if (cardHit("parcelsSortedOnTime")) hits += 1;
     if (returnsHero?.delta && returnsHero.delta.tone !== "negative") hits += 1;
-
     const total = sorters.length;
     const meeting = sorters.filter((s) => s.meetsTargets).length;
     if (total > 0 && meeting === total) hits += 1;
-
     const grades = [
       { letter: "F", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
       { letter: "D", color: "#b71000", bg: "#fff0ed", border: "#b71000" },
@@ -430,11 +373,12 @@ export function PerformancePageSpokeV47() {
   const [gradeTooltipOpen, setGradeTooltipOpen] = useState(false);
   const [row1Expanded, setRow1Expanded] = useState<string | null>("parcels");
   const [sortStage, setSortStage] = useState<"presort" | "sort" | "runner">("presort");
-
   const toggleRow1 = (id: string) => setRow1Expanded((prev) => (prev === id ? null : id));
 
+  const caretIndex = row1Expanded === "parcels" ? 0 : row1Expanded === "returns" ? 1 : 2;
+
   return (
-    <div className="flex h-full flex-col overflow-y-scroll bg-white">
+    <div className="flex h-full flex-col overflow-y-scroll bg-[#F6F7F8]">
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
         <div className="flex items-start justify-between">
           <h1 className="text-display-lg text-ink">Performance</h1>
@@ -461,9 +405,6 @@ export function PerformancePageSpokeV47() {
           />
         </div>
 
-        {/* ============================================================ */}
-        {/*  Row 1 — Top level metrics                                    */}
-        {/* ============================================================ */}
         <section className="mt-8">
           <div className="relative pb-4">
             <h2 className="text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Top level metrics</h2>
@@ -476,9 +417,7 @@ export function PerformancePageSpokeV47() {
                 <span className="metric-label-underline text-[14px] leading-[20px] font-medium tracking-[-0.01em] text-ink-subdued">Overall grade</span>
                 {gradeTooltipOpen && (
                   <div className="pointer-events-none absolute top-full right-0 z-20 mt-2 w-[300px] rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
-                    <div className="text-body-sm text-white/80">
-                      Determined by the number of top-level metrics at or above target:
-                    </div>
+                    <div className="text-body-sm text-white/80">Determined by the number of top-level metrics at or above target:</div>
                     <div className="mt-2 space-y-0.5 text-body-sm text-white/80">
                       <div><span className="font-bold text-white">A</span> · 3</div>
                       <div><span className="font-bold text-white">C</span> · 2</div>
@@ -495,21 +434,24 @@ export function PerformancePageSpokeV47() {
               >{facilityGrade.letter}</span>
             </span>
           </div>
-          <div>
-            <div className="grid grid-cols-3">
-              {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} dimmed={!!row1Expanded && row1Expanded !== "parcels"} onToggle={() => toggleRow1("parcels")} />}
-              {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} dimmed={!!row1Expanded && row1Expanded !== "returns"} onToggle={() => toggleRow1("returns")} />}
-              <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} dimmed={!!row1Expanded && row1Expanded !== "associates"} onToggle={() => toggleRow1("associates")} />
-            </div>
 
-          {/* Bins ready by 9 a.m. — related metrics + Sort status chart */}
+          <div className="grid grid-cols-3 gap-4">
+            {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} onToggle={() => toggleRow1("parcels")} />}
+            {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} onToggle={() => toggleRow1("returns")} />}
+            <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} onToggle={() => toggleRow1("associates")} />
+          </div>
+
+          {row1Expanded && <Caret index={caretIndex} columns={3} />}
+
           {row1Expanded === "parcels" && (
-            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-5 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {parcelSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -587,14 +529,15 @@ export function PerformancePageSpokeV47() {
             </div>
           )}
 
-          {/* On time returns to merchant — unchanged from hub */}
           {row1Expanded === "returns" && (
-            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
+            <div className="rounded-[12px] border border-line-hovered bg-white px-5 py-5 [&>*+*]:pt-8">
               <div>
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {returnsSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -613,7 +556,7 @@ export function PerformancePageSpokeV47() {
           )}
 
           {row1Expanded === "associates" && (
-            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] overflow-hidden pt-5">
+            <div className="overflow-hidden rounded-[12px] border border-line-hovered bg-white pt-5">
               <AssociatesInsightsSpoke sorters={sorters} />
               <SortersTableV3
                 sorters={sorters}
@@ -643,9 +586,7 @@ export function PerformancePageSpokeV47() {
               />
             </div>
           )}
-          </div>
         </section>
-
       </div>
     </div>
   );

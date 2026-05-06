@@ -262,7 +262,7 @@ function buildRunnerDwellWeek(): FlowRateWeekData {
 /*  Main page                                                          */
 /* ------------------------------------------------------------------ */
 
-export function PerformancePageSpokeV47() {
+export function PerformancePageSpokeV50() {
   const [range, setRangeRaw] = useState<DateRangeKey>("thisWeek");
   const [customRange, setCustomRange] = useState<{ start: Date; end: Date }>({
     start: new Date("2026-02-14T00:00:00"),
@@ -509,7 +509,9 @@ export function PerformancePageSpokeV47() {
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {parcelSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -594,7 +596,9 @@ export function PerformancePageSpokeV47() {
                 <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {returnsSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
+                    <div key={c.id} className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
+                      <SectionKpiCard card={c} />
+                    </div>
                   ))}
                 </div>
               </div>
