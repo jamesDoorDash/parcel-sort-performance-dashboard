@@ -35,6 +35,7 @@ export type V3MetricCard = {
   labelTooltip: {
     title: string;
     body: string;
+    target?: string;
   };
   value: string;
   placeholderNote?: string;
@@ -174,6 +175,7 @@ const metricDefinitions: V3MetricDefinition[] = [
     target: 0,
     lowerIsBetter: true,
     chartLabel: "Dwelled parcels",
+    targetLabel: "0",
     formatValue: (value) => `${Math.round(value)}`,
     formatDelta: (value) => `${Math.abs(Math.round(value))}`,
     summarize: sumSummary,
@@ -581,6 +583,14 @@ function createPayload(week: V3WeekKey, visibleDays: Set<string> | undefined, la
   };
 }
 
+function tooltipFor(definition: V3MetricDefinition): { title: string; body: string; target?: string } {
+  return {
+    title: definition.description.title,
+    body: definition.description.body,
+    ...(definition.targetLabel ? { target: definition.targetLabel } : {}),
+  };
+}
+
 function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays?: Set<string>): V3MetricCard {
   if (definition.id === "parcelsProcessed") {
     const days = processedByWeek[week].filter((day) => !visibleDays || visibleDays.has(day.date));
@@ -592,7 +602,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
       return {
         id: definition.id,
         label: definition.label,
-        labelTooltip: definition.description,
+        labelTooltip: tooltipFor(definition),
         value: `0 / ${projected.toLocaleString()}`,
         delta: null,
       };
@@ -602,7 +612,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
       return {
         id: definition.id,
         label: definition.label,
-        labelTooltip: definition.description,
+        labelTooltip: tooltipFor(definition),
         value: "--",
         placeholderNote: "No data yet",
         delta: null,
@@ -615,7 +625,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
     return {
       id: definition.id,
       label: definition.label,
-      labelTooltip: definition.description,
+      labelTooltip: tooltipFor(definition),
       value: definition.formatValue(processed, { denominator: expected }),
       delta: null,
     };
@@ -644,7 +654,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
       return {
         id: definition.id,
         label: definition.label,
-        labelTooltip: definition.description,
+        labelTooltip: tooltipFor(definition),
         value: "--",
         placeholderNote: "No data yet",
         delta: null,
@@ -655,7 +665,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
     return {
       id: definition.id,
       label: definition.label,
-      labelTooltip: definition.description,
+      labelTooltip: tooltipFor(definition),
       value: definition.formatValue(summary.value),
       delta: createDelta(definition, summary.value),
     };
@@ -670,7 +680,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
     return {
       id: definition.id,
       label: definition.label,
-      labelTooltip: definition.description,
+      labelTooltip: tooltipFor(definition),
       value: definition.unit === "rate" ? "-- / hr" : "--",
       placeholderNote: "No data yet",
       delta: null,
@@ -711,7 +721,7 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
   return {
     id: definition.id,
     label: definition.label,
-    labelTooltip: definition.description,
+    labelTooltip: tooltipFor(definition),
     value: definition.formatValue(summary.value, { denominator: summary.denominator }),
     delta: createDelta(definition, summary.value),
     bakeNote,

@@ -25,6 +25,8 @@ type Props = {
   colorOverrides?: Partial<Record<"processed" | "sortedLate" | "lost" | "readyToSort" | "expected", string>>;
   // Hide the Lost data category entirely (chart segments + legend + tooltip).
   hideLost?: boolean;
+  // Hide the Forecasted data category entirely (chart segments + legend + tooltip).
+  hideForecasted?: boolean;
 };
 
 const COLORS = {
@@ -95,7 +97,7 @@ const DEFAULT_LABELS: SeriesLabels = {
   forecasted: "Forecasted",
 };
 
-export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLegend, secondaryBars, extraTopStack, colorOverrides, hideLost }: Props) {
+export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLegend, secondaryBars, extraTopStack, colorOverrides, hideLost, hideForecasted }: Props) {
   const labels = seriesLabels ?? DEFAULT_LABELS;
   const colors = colorOverrides ? { ...COLORS, ...colorOverrides } : COLORS;
   const isProcessed = metric.key === "processed";
@@ -117,8 +119,8 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
   const [extraHidden, setExtraHidden] = useState(false);
   const allProcessedKeys: ProcessedSeriesKey[] = ["processed", "sortedLate", "lost", "readyToSort", "expected"];
   const isSeriesVisible = (series: ProcessedSeriesKey) =>
-    !hiddenSeries.has(series) && !(hideLost && series === "lost") && (hoveredSeries == null || hoveredSeries === series) && (!hoveredSecondary);
-  const isSeriesActive = (series: ProcessedSeriesKey) => !hiddenSeries.has(series) && !(hideLost && series === "lost");
+    !hiddenSeries.has(series) && !(hideLost && series === "lost") && !(hideForecasted && series === "expected") && (hoveredSeries == null || hoveredSeries === series) && (!hoveredSecondary);
+  const isSeriesActive = (series: ProcessedSeriesKey) => !hiddenSeries.has(series) && !(hideLost && series === "lost") && !(hideForecasted && series === "expected");
   const isSecondaryVisible = secondaryBars && !secondaryHidden && !hoveredSeries;
   const isExtraVisible = !!extraTopStack && !extraHidden && (hoveredSeries == null || hoveredSeries === ("extra" as unknown as ProcessedSeriesKey)) && !hoveredSecondary;
   const hiddenCount = hiddenSeries.size + (secondaryBars && secondaryHidden ? 1 : 0) + (extraTopStack && extraHidden ? 1 : 0);
@@ -952,14 +954,16 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("readyToSort") && setHoveredSeries("readyToSort")}
                 onMouseLeave={() => setHoveredSeries(null)}
               />
-              <LegendItem
-                color={COLORS.expected}
-                label={labels.forecasted}
-                active={isSeriesActive("expected")}
-                onClick={() => toggleSeries("expected")}
-                onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("expected") && setHoveredSeries("expected")}
-                onMouseLeave={() => setHoveredSeries(null)}
-              />
+              {!hideForecasted && (
+                <LegendItem
+                  color={COLORS.expected}
+                  label={labels.forecasted}
+                  active={isSeriesActive("expected")}
+                  onClick={() => toggleSeries("expected")}
+                  onMouseEnter={() => !anyFilterActive && !hiddenSeries.has("expected") && setHoveredSeries("expected")}
+                  onMouseLeave={() => setHoveredSeries(null)}
+                />
+              )}
             </>
           ) : (
             <>

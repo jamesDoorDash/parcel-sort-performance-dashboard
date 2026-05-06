@@ -120,6 +120,9 @@ function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; ex
                 <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
               )}
               <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+              {card.labelTooltip.target && (
+                <div className="mt-2 text-body-sm-strong text-white">Target: {card.labelTooltip.target}</div>
+              )}
               <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
             </div>
           )}
@@ -146,8 +149,8 @@ function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; ex
           )}
         </div>
       </div>
-      <div className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-button border border-line-hovered bg-white text-body-sm-strong text-ink">
-        {expanded ? <ChevronUp className="h-4 w-4" strokeWidth={2} /> : <ChevronDown className="h-4 w-4" strokeWidth={2} />}
+      <div className="mt-3 inline-flex h-10 self-start items-center gap-1 rounded-button border border-line-hovered bg-white px-3 text-body-md-strong text-ink">
+        {expanded ? <ChevronUp className="h-5 w-5" strokeWidth={2} /> : <ChevronDown className="h-5 w-5" strokeWidth={2} />}
         {expanded ? "View less" : "View more"}
       </div>
     </button>
@@ -178,6 +181,9 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
               <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
             )}
             <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+            {card.labelTooltip.target && (
+              <div className="mt-2 text-body-sm-strong text-white">Target: {card.labelTooltip.target}</div>
+            )}
             <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
           </div>
         )}
@@ -309,7 +315,7 @@ export function PerformancePageV47() {
     return {
       ...c,
       label: "Sort SLA compliance",
-      labelTooltip: { title: "", body: "% of parcels sorted at least 15m before the first truck CPT of the day" },
+      labelTooltip: { title: "", body: "% of parcels sorted at least 15m before the first truck CPT of the day", target: "100%" },
       delta,
     };
   })();
@@ -336,7 +342,7 @@ export function PerformancePageV47() {
     return {
       ...c,
       label: "Controllable CPT compliance",
-      labelTooltip: { title: "", body: "% of pallets loaded to truck by the truck's CPT — only for trucks that arrived on time or early" },
+      labelTooltip: { title: "", body: "% of pallets loaded to truck by the truck's CPT — only for trucks that arrived on time or early", target: "100%" },
       delta,
     };
   })();
@@ -363,7 +369,7 @@ export function PerformancePageV47() {
     return {
       ...c,
       label: "On time returns",
-      labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" },
+      labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return", target: "100%" },
       delta,
     };
   })();
@@ -374,7 +380,7 @@ export function PerformancePageV47() {
     return {
       id: "associatesMeetingTargets",
       label: "Associates meeting targets",
-      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets" },
+      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets", target: `${total} / ${total}` },
       value: `${meeting} / ${total}`,
       delta: notMeeting === 0
         ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
@@ -602,6 +608,7 @@ export function PerformancePageV47() {
                   seriesLabels={{ processed: "Scanned to truck on time", sortedLate: "Scanned to truck late", lost: "Lost", readyToSort: "Pending return", forecasted: "Forecasted" }}
                   colorOverrides={{ lost: "#7c3aed" }}
                   hideLost
+                  hideForecasted
                 />
               </div>
             </div>
