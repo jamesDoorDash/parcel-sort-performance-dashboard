@@ -351,7 +351,7 @@ export function PerformancePageSpokeV47() {
 
   const parcelsHero = relabel(
     getCard("parcelsSortedOnTime"),
-    "Bins ready by 9am",
+    "QA by 9am",
     "% of bins that are fully sorted for runner pickup by 9am",
   );
   // V46 override: On time returns to merchant — target 100%, custom tooltip
