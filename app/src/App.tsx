@@ -47,13 +47,23 @@ import { PerformancePageV44 } from "./pages/PerformancePageV44";
 import { PerformancePageV45 } from "./pages/PerformancePageV45";
 import { PerformancePageV46 } from "./pages/PerformancePageV46";
 import { PerformancePageV47 } from "./pages/PerformancePageV47";
+import { PerformancePageV48 } from "./pages/PerformancePageV48";
+import { PerformancePageV49 } from "./pages/PerformancePageV49";
+import { PerformancePageV50 } from "./pages/PerformancePageV50";
+import { PerformancePageV51 } from "./pages/PerformancePageV51";
+import { PerformancePageV52 } from "./pages/PerformancePageV52";
 import { PerformancePageSpokeV35 } from "./pages/PerformancePageSpokeV35";
 import { PerformancePageSpokeV46 } from "./pages/PerformancePageSpokeV46";
 import { PerformancePageSpokeV47 } from "./pages/PerformancePageSpokeV47";
+import { PerformancePageSpokeV48 } from "./pages/PerformancePageSpokeV48";
+import { PerformancePageSpokeV49 } from "./pages/PerformancePageSpokeV49";
+import { PerformancePageSpokeV50 } from "./pages/PerformancePageSpokeV50";
+import { PerformancePageSpokeV51 } from "./pages/PerformancePageSpokeV51";
+import { PerformancePageSpokeV52 } from "./pages/PerformancePageSpokeV52";
 import { AdminPage } from "./pages/AdminPage";
 
-const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V38", "V39", "V40", "V41", "V42", "V43", "V44", "V45", "V46", "V47"];
-const SPOKE_VERSIONS = ["V35", "V46", "V47"];
+const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V38", "V39", "V40", "V41", "V42", "V43", "V44", "V45", "V46", "V47", "V48", "V49", "V50", "V51", "V52"];
+const SPOKE_VERSIONS = ["V35", "V46", "V47", "V48", "V49", "V50", "V51", "V52"];
 
 export type Facility = "hub" | "spoke";
 
@@ -180,10 +190,20 @@ export default function App() {
   if (version === "V45") page = <PerformancePageV45 />;
   if (version === "V46") page = <PerformancePageV46 />;
   if (version === "V47") page = <PerformancePageV47 />;
+  if (version === "V48") page = <PerformancePageV48 />;
+  if (version === "V49") page = <PerformancePageV49 />;
+  if (version === "V50") page = <PerformancePageV50 />;
+  if (version === "V51") page = <PerformancePageV51 />;
+  if (version === "V52") page = <PerformancePageV52 />;
 
   if (facility === "spoke" && version === "V35") page = <PerformancePageSpokeV35 />;
   if (facility === "spoke" && version === "V46") page = <PerformancePageSpokeV46 />;
   if (facility === "spoke" && version === "V47") page = <PerformancePageSpokeV47 />;
+  if (facility === "spoke" && version === "V48") page = <PerformancePageSpokeV48 />;
+  if (facility === "spoke" && version === "V49") page = <PerformancePageSpokeV49 />;
+  if (facility === "spoke" && version === "V50") page = <PerformancePageSpokeV50 />;
+  if (facility === "spoke" && version === "V51") page = <PerformancePageSpokeV51 />;
+  if (facility === "spoke" && version === "V52") page = <PerformancePageSpokeV52 />;
 
   if (adminMode) {
     return (
