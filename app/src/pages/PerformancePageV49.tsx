@@ -99,6 +99,9 @@ function HeroRow({ card, expanded, onToggle }: { card: V3MetricCard; expanded: b
                 <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
               )}
               <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+              {card.labelTooltip.target && (
+                <div className="mt-2 text-body-sm-strong text-white">Target: {card.labelTooltip.target}</div>
+              )}
               <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
             </div>
           )}
@@ -153,6 +156,9 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
               <div className="mb-1 text-body-sm-strong text-white">{card.labelTooltip.title}</div>
             )}
             <div className="text-body-sm text-white/80">{card.labelTooltip.body}</div>
+            {card.labelTooltip.target && (
+              <div className="mt-2 text-body-sm-strong text-white">Target: {card.labelTooltip.target}</div>
+            )}
             <div className="absolute top-full left-4 h-0 w-0 border-t-[6px] border-r-[6px] border-l-[6px] border-t-[#111318] border-r-transparent border-l-transparent" />
           </div>
         )}
@@ -265,7 +271,7 @@ export function PerformancePageV49() {
       else if (value >= target) delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
       else delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
     }
-    return { ...c, label: "Sort SLA compliance", labelTooltip: { title: "", body: "% of parcels sorted at least 15m before the first truck CPT of the day" }, delta };
+    return { ...c, label: "Sort SLA compliance", labelTooltip: { title: "", body: "% of parcels sorted at least 15m before the first truck CPT of the day", target: "100%" }, delta };
   })();
   const trucksHero = (() => {
     const c = getCard("trucksDepartedOnTime");
@@ -282,7 +288,7 @@ export function PerformancePageV49() {
       else if (value >= target) delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
       else delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
     }
-    return { ...c, label: "Controllable CPT compliance", labelTooltip: { title: "", body: "% of pallets loaded to truck by the truck's CPT — only for trucks that arrived on time or early" }, delta };
+    return { ...c, label: "Controllable CPT compliance", labelTooltip: { title: "", body: "% of pallets loaded to truck by the truck's CPT — only for trucks that arrived on time or early", target: "100%" }, delta };
   })();
   const returnsHero = (() => {
     const c = getCard("parcelsReturnedOnTime");
@@ -299,7 +305,7 @@ export function PerformancePageV49() {
       else if (value >= target) delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "up" as const, tone: "positive" as const };
       else delta = { value: `${rounded.toFixed(1).replace(/\.?0+$/, "")}%`, direction: "down" as const, tone: "negative" as const };
     }
-    return { ...c, label: "On time returns", labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return" }, delta };
+    return { ...c, label: "On time returns", labelTooltip: { title: "", body: "% of return parcels loaded onto the soonest scheduled return truck after being scanned as return", target: "100%" }, delta };
   })();
   const associatesHero: V3MetricCard = useMemo(() => {
     const total = sorters.length;
@@ -308,7 +314,7 @@ export function PerformancePageV49() {
     return {
       id: "associatesMeetingTargets",
       label: "Associates meeting targets",
-      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets" },
+      labelTooltip: { title: "", body: "Number of associates meeting all individual performance targets", target: `${total} / ${total}` },
       value: `${meeting} / ${total}`,
       delta: notMeeting === 0
         ? { value: "on target", direction: "up" as const, tone: "neutral" as const }
