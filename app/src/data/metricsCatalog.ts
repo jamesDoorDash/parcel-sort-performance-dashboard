@@ -1,5 +1,6 @@
-// Catalog of every metric label and info tooltip exposed in V46 (hub + spoke).
-// Hand-curated reference for the Admin page. Update whenever V46 copy changes.
+// Catalog of every metric label and info tooltip exposed in V56 (hub + spoke) —
+// the active "post-design review" group. Hand-curated reference for the Admin page.
+// Update whenever V56 copy changes.
 
 export type CatalogElement =
   | { kind: "underline"; label: string }
@@ -41,10 +42,10 @@ export const metricRows: CatalogRow[] = [
     inDoc: true,
   },
   {
-    id: "binsReadyBy9am",
-    element: { kind: "underline", label: "Bins ready by 9am" },
+    id: "qaBy9am",
+    element: { kind: "underline", label: "QA by 9am" },
     tooltip: "% of bins that are fully sorted for runner pickup by 9am",
-    target: "98%",
+    target: "100%",
     hub: false,
     spoke: true,
     inDoc: false,
@@ -220,8 +221,8 @@ export const infoTooltipRows: CatalogRow[] = [
       { bold: "F", text: "0" },
     ],
     target: "4",
-    hub: true,
-    spoke: true,
+    hub: false,
+    spoke: false,
     inDoc: false,
   },
   {
@@ -243,8 +244,8 @@ export const infoTooltipRows: CatalogRow[] = [
     inDoc: false,
   },
   {
-    id: "mostInNeedOfCoachingHub",
-    element: { kind: "underline", label: "Most in need of coaching" },
+    id: "worstPerformersHub",
+    element: { kind: "underline", label: "Worst performers" },
     tooltip: "The 3 most underperforming associates based on a combination of sort rates, load rates, missloads, missorts, lost items, idle time, and other quality metrics.",
     target: "—",
     hub: true,
@@ -252,8 +253,8 @@ export const infoTooltipRows: CatalogRow[] = [
     inDoc: false,
   },
   {
-    id: "mostInNeedOfCoachingSpoke",
-    element: { kind: "underline", label: "Most in need of coaching" },
+    id: "worstSortersSpoke",
+    element: { kind: "underline", label: "Worst sorters" },
     tooltip: "The 3 most underperforming associates based on a combination of sort rates, missorts, lost items, idle time, and other quality metrics",
     target: "—",
     hub: false,
@@ -425,7 +426,7 @@ export const infoTooltipRows: CatalogRow[] = [
   {
     id: "preSortLegendLarges",
     group: "Parcel pre-sort rate chart legend",
-    element: { kind: "swatchInfo", label: "Larges", color: "#df3480" },
+    element: { kind: "swatchInfo", label: "Larges", color: "#7c3aed" },
     tooltip: "Parcels pre-sorted that ultimately go into wooden pallets",
     target: "75 / hr",
     hub: true,
@@ -457,7 +458,7 @@ export const infoTooltipRows: CatalogRow[] = [
   {
     id: "sortPalletLegendLarges",
     group: "Parcel sort to pallet rate chart legend",
-    element: { kind: "swatchInfo", label: "Larges", color: "#df3480" },
+    element: { kind: "swatchInfo", label: "Larges", color: "#7c3aed" },
     tooltip: "Parcels sorted onto wooden pallets directly",
     target: "75 / hr",
     hub: true,
@@ -489,7 +490,7 @@ export const infoTooltipRows: CatalogRow[] = [
   {
     id: "sortBinLegendLarges",
     group: "Parcel sort to bin rate chart legend",
-    element: { kind: "swatchInfo", label: "Larges", color: "#df3480" },
+    element: { kind: "swatchInfo", label: "Larges", color: "#7c3aed" },
     tooltip: "Boxes > 2lb",
     target: "75 / hr",
     hub: false,

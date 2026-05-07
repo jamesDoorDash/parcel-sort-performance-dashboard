@@ -158,7 +158,7 @@ export function AdminPage() {
       <div className="mx-auto w-full max-w-[1220px] px-12 pt-12 pb-16">
         <h1 className="text-display-lg text-ink">Metrics & tooltip alignment</h1>
         <p className="mt-2 text-body-md text-ink-subdued">
-          Exhaustive list of every underlined metric label and info tooltip currently in V46. Hover any UI element to preview its live tooltip.
+          Exhaustive list of every underlined metric label and info tooltip currently in V56 (post-design review). Hover any UI element to preview its live tooltip.
         </p>
 
         <section className="mt-10">

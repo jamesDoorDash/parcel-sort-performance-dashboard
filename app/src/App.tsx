@@ -52,6 +52,10 @@ import { PerformancePageV49 } from "./pages/PerformancePageV49";
 import { PerformancePageV50 } from "./pages/PerformancePageV50";
 import { PerformancePageV51 } from "./pages/PerformancePageV51";
 import { PerformancePageV52 } from "./pages/PerformancePageV52";
+import { PerformancePageV53 } from "./pages/PerformancePageV53";
+import { PerformancePageV54 } from "./pages/PerformancePageV54";
+import { PerformancePageV55 } from "./pages/PerformancePageV55";
+import { PerformancePageV56 } from "./pages/PerformancePageV56";
 import { PerformancePageSpokeV35 } from "./pages/PerformancePageSpokeV35";
 import { PerformancePageSpokeV46 } from "./pages/PerformancePageSpokeV46";
 import { PerformancePageSpokeV47 } from "./pages/PerformancePageSpokeV47";
@@ -60,10 +64,14 @@ import { PerformancePageSpokeV49 } from "./pages/PerformancePageSpokeV49";
 import { PerformancePageSpokeV50 } from "./pages/PerformancePageSpokeV50";
 import { PerformancePageSpokeV51 } from "./pages/PerformancePageSpokeV51";
 import { PerformancePageSpokeV52 } from "./pages/PerformancePageSpokeV52";
+import { PerformancePageSpokeV53 } from "./pages/PerformancePageSpokeV53";
+import { PerformancePageSpokeV54 } from "./pages/PerformancePageSpokeV54";
+import { PerformancePageSpokeV55 } from "./pages/PerformancePageSpokeV55";
+import { PerformancePageSpokeV56 } from "./pages/PerformancePageSpokeV56";
 import { AdminPage } from "./pages/AdminPage";
 
-const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V38", "V39", "V40", "V41", "V42", "V43", "V44", "V45", "V46", "V47", "V48", "V49", "V50", "V51", "V52"];
-const SPOKE_VERSIONS = ["V35", "V46", "V47", "V48", "V49", "V50", "V51", "V52"];
+const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V38", "V39", "V40", "V41", "V42", "V43", "V44", "V45", "V46", "V47", "V48", "V49", "V50", "V51", "V52", "V53", "V54", "V55", "V56"];
+const SPOKE_VERSIONS = ["V35", "V46", "V47", "V48", "V49", "V50", "V51", "V52", "V53", "V54", "V55", "V56"];
 
 export type Facility = "hub" | "spoke";
 
@@ -82,13 +90,13 @@ function parseRoute(): { facility: Facility; version: string | null; admin: bool
 }
 
 function getInitial(): { facility: Facility; version: string; admin: boolean } {
-  if (typeof window === "undefined") return { facility: "hub", version: "V47", admin: false };
+  if (typeof window === "undefined") return { facility: "hub", version: "V56", admin: false };
   const fromPath = parseRoute();
-  if (fromPath.admin) return { facility: "hub", version: "V47", admin: true };
+  if (fromPath.admin) return { facility: "hub", version: "V56", admin: true };
   if (fromPath.version) return { facility: fromPath.facility, version: fromPath.version, admin: false };
   const fromQuery = new URLSearchParams(window.location.search).get("version");
   if (fromQuery && ALL_VERSIONS.includes(fromQuery)) return { facility: fromPath.facility, version: fromQuery, admin: false };
-  return { facility: fromPath.facility, version: fromPath.facility === "spoke" ? "V47" : "V47", admin: false };
+  return { facility: fromPath.facility, version: fromPath.facility === "spoke" ? "V56" : "V56", admin: false };
 }
 
 function buildPath(facility: Facility, version: string) {
@@ -116,7 +124,7 @@ export default function App() {
     setFacilityRaw(f);
     setVersionRaw((current) => {
       const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
-      const nextVersion = validList.includes(current) ? current : (f === "spoke" ? "V47" : "V47");
+      const nextVersion = validList.includes(current) ? current : (f === "spoke" ? "V56" : "V56");
       window.history.replaceState(null, "", buildPath(f, nextVersion));
       return nextVersion;
     });
@@ -132,7 +140,7 @@ export default function App() {
     setFacilityRaw((f) => {
       setVersionRaw((current) => {
         const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
-        const next = validList.includes(current) ? current : "V47";
+        const next = validList.includes(current) ? current : "V56";
         window.history.replaceState(null, "", buildPath(f, next));
         return next;
       });
@@ -195,6 +203,10 @@ export default function App() {
   if (version === "V50") page = <PerformancePageV50 />;
   if (version === "V51") page = <PerformancePageV51 />;
   if (version === "V52") page = <PerformancePageV52 />;
+  if (version === "V53") page = <PerformancePageV53 />;
+  if (version === "V54") page = <PerformancePageV54 />;
+  if (version === "V55") page = <PerformancePageV55 />;
+  if (version === "V56") page = <PerformancePageV56 />;
 
   if (facility === "spoke" && version === "V35") page = <PerformancePageSpokeV35 />;
   if (facility === "spoke" && version === "V46") page = <PerformancePageSpokeV46 />;
@@ -204,6 +216,10 @@ export default function App() {
   if (facility === "spoke" && version === "V50") page = <PerformancePageSpokeV50 />;
   if (facility === "spoke" && version === "V51") page = <PerformancePageSpokeV51 />;
   if (facility === "spoke" && version === "V52") page = <PerformancePageSpokeV52 />;
+  if (facility === "spoke" && version === "V53") page = <PerformancePageSpokeV53 />;
+  if (facility === "spoke" && version === "V54") page = <PerformancePageSpokeV54 />;
+  if (facility === "spoke" && version === "V55") page = <PerformancePageSpokeV55 />;
+  if (facility === "spoke" && version === "V56") page = <PerformancePageSpokeV56 />;
 
   if (adminMode) {
     return (

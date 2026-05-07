@@ -115,9 +115,10 @@ type Props = {
   defaultItemType?: ItemType;
   aggregatedLabel?: string; // When set, switch to bar chart mode with aggregated data
   palletLabel?: string; // Override for the "Pallets loaded" series label (e.g. "Bin dispatch rate" on spoke)
+  largeColor?: string; // Override the color of the "Larges" series
 };
 
-export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStageTabsOnly, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallet load rate", singleSeriesMode }: Props) {
+export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStageTabsOnly, defaultCombo, defaultItemType, aggregatedLabel, palletLabel = "Pallet load rate", singleSeriesMode, largeColor }: Props) {
   const [itemType, setItemType] = useState<ItemType>(defaultItemType ?? "parcels");
   useEffect(() => { if (defaultItemType) setItemType(defaultItemType); }, [defaultItemType]);
   const [parcelStage, setParcelStage] = useState<ParcelStageType>("presort");
@@ -319,7 +320,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStage
             const bars = [
               { key: "blendedAverage" as const, val: aggregated.blendedAverage, color: SERIES_COLORS.blended },
               { key: "smallOnly" as const, val: aggregated.smallOnly, color: SERIES_COLORS.small },
-              { key: "largeOnly" as const, val: aggregated.largeOnly, color: SERIES_COLORS.large },
+              { key: "largeOnly" as const, val: aggregated.largeOnly, color: (largeColor ?? SERIES_COLORS.large) },
             ].filter((b) => isVisible(b.key));
             return (
               <g>
@@ -420,12 +421,12 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStage
           </>
         ) : (
           <>
-            {!singleDayMode && isVisible("largeOnly") && <path d={smoothPath(points("largeOnly"))} fill="none" stroke={SERIES_COLORS.large} strokeWidth={2} />}
+            {!singleDayMode && isVisible("largeOnly") && <path d={smoothPath(points("largeOnly"))} fill="none" stroke={(largeColor ?? SERIES_COLORS.large)} strokeWidth={2} />}
             {!singleDayMode && isVisible("smallOnly") && <path d={smoothPath(points("smallOnly"))} fill="none" stroke={SERIES_COLORS.small} strokeWidth={2} />}
             {!singleDayMode && isVisible("blendedAverage") && <path d={smoothPath(points("blendedAverage"))} fill="none" stroke={SERIES_COLORS.blended} strokeWidth={2.5} />}
             {(["blendedAverage", "smallOnly", "largeOnly"] as const).map((key) => {
               if (!isVisible(key)) return null;
-              const color = key === "blendedAverage" ? SERIES_COLORS.blended : key === "smallOnly" ? SERIES_COLORS.small : SERIES_COLORS.large;
+              const color = key === "blendedAverage" ? SERIES_COLORS.blended : key === "smallOnly" ? SERIES_COLORS.small : (largeColor ?? SERIES_COLORS.large);
               return points(key).map(([x, y], i) => (
                 <circle key={`${key}-${i}`} cx={x} cy={y} r={3} fill={color} />
               ));
@@ -469,7 +470,7 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStage
             : [
                 { label: "Average", value: d.blendedAverage, color: SERIES_COLORS.blended, visible: isVisible("blendedAverage") },
                 { label: "Smalls", value: d.smallOnly, color: SERIES_COLORS.small, visible: isVisible("smallOnly") },
-                { label: "Larges", value: d.largeOnly, color: SERIES_COLORS.large, visible: isVisible("largeOnly") },
+                { label: "Larges", value: d.largeOnly, color: (largeColor ?? SERIES_COLORS.large), visible: isVisible("largeOnly") },
               ].filter((r) => r.visible);
           if (rows.length === 0) return null;
 
@@ -542,10 +543,16 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStage
               : [
                   { key: "blendedAverage" as const, color: SERIES_COLORS.blended, label: "Average" },
                   { key: "smallOnly" as const, color: SERIES_COLORS.small, label: "Smalls" },
-                  { key: "largeOnly" as const, color: SERIES_COLORS.large, label: "Larges" },
+                  { key: "largeOnly" as const, color: (largeColor ?? SERIES_COLORS.large), label: "Larges" },
                 ]
             ).map(({ key, color, label }) => (
               <div key={label} className="flex items-center gap-1">
+                {singleSeriesMode ? (
+                  <div className="flex items-center gap-2">
+                    <span className="block h-4 w-4 shrink-0 rounded-[4px]" style={{ backgroundColor: color }} />
+                    <span className="whitespace-nowrap text-body-md text-ink">{label}</span>
+                  </div>
+                ) : (
                 <button
                   type="button"
                   onClick={() => toggleSeries(key)}
@@ -558,8 +565,9 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStage
                     className="block h-4 w-4 shrink-0 rounded-[4px]"
                     style={{ backgroundColor: color, opacity: isActive(key) ? 1 : 0 }}
                   />
-                  <span className={cn("whitespace-nowrap text-body-md text-ink", !isActive(key) && "line-through opacity-60")}>{label}</span>
+                  <span className={cn("whitespace-nowrap text-body-md text-ink underline underline-offset-2", !isActive(key) && "opacity-60")}>{label}</span>
                 </button>
+                )}
                 {(singleSeriesMode?.infoTooltip ?? LEGEND_TOOLTIPS[key]) && (
                   <div className="relative">
                     <button
