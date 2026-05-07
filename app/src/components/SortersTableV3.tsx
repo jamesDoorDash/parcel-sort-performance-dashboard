@@ -24,6 +24,7 @@ type Props = {
   inlineHeader?: boolean;
   hideHeader?: boolean;
   noBorderTable?: boolean;
+  transparentBg?: boolean;
   searchPadding?: boolean;
   defaultSortKey?: SortKey;
   defaultSortDir?: "asc" | "desc";
@@ -103,7 +104,7 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload, loadRateLabel = "Load rate", palletsLoadedLabel = "Pallets loaded", hideLoadColumns, searchValue, onSearchChange, columnTooltips }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, transparentBg, searchPadding, defaultSortKey, defaultSortDir, showDownload, loadRateLabel = "Load rate", palletsLoadedLabel = "Pallets loaded", hideLoadColumns, searchValue, onSearchChange, columnTooltips }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>(defaultSortKey ?? "name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">(defaultSortDir ?? "asc");
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
@@ -309,7 +310,14 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
         </div>
       )}
 
-      <div className={`overflow-x-auto ${noBorderTable ? "[&_th]:!rounded-none" : "rounded-card border border-line-hovered"} bg-white`}>
+      <div className={cn(
+        "overflow-x-auto",
+        noBorderTable ? "[&_th]:!rounded-none" : "rounded-card border border-line-hovered",
+        transparentBg
+          // Inset everything (header bg fill + row dividers) by 2px on each side so it sits *inside* the L's 2px strokes. Hide the bottom border on the last row so the L's bottom stroke takes over.
+          ? "px-[2px] [&_tbody_tr:last-child_td]:!border-b-0"
+          : "bg-white",
+      )}>
         <table className="w-full border-separate border-spacing-0 [&_th:first-child]:pl-5 [&_td:first-child]:pl-5 [&_th:last-child]:pr-5 [&_td:last-child]:pr-5">
           <thead>
             <tr>
@@ -327,7 +335,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
           </thead>
           <tbody>
             {sorted.map((sorter, index) => (
-              <tr key={sorter.id} className={cn("transition-colors hover:bg-surface-hovered", index > 0 && "border-t border-line")}>
+              <tr key={sorter.id} className={cn(!transparentBg && "transition-colors hover:bg-surface-hovered", index > 0 && "border-t border-line")}>
                 <td className="whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink">{sorter.name}</td>
                 <td className={cn(
                   "whitespace-nowrap border-b border-line px-2.5 py-3 text-body-sm text-ink",

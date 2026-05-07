@@ -233,16 +233,74 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
 /*  DualShapeContainer — exactly 2 shapes: gray rect (back) + white L  */
 /*                                                                     */
 /*  Renders a single SVG with a rounded gray rectangle and a single    */
-/*  white L path. The L's concave inner corner uses a sweep-reversed   */
-/*  arc so it bulges outward into the gray (proper fillet) — something */
-/*  stacked CSS rectangles can never produce. Dimensions are measured  */
-/*  via ResizeObserver so the L scales cleanly with content height.    */
+/*  white "L" path (orientation depends on which column is selected).  */
+/*  Concave inner corners use sweep-reversed arcs so they bulge        */
+/*  outward into the gray — a fillet stacked CSS rectangles cannot     */
+/*  produce. Dimensions are measured via ResizeObserver so the L       */
+/*  scales cleanly with content height.                                */
+/*                                                                     */
+/*  selectedCol semantics:                                             */
+/*    0 = far-left  tower (1 concave: right)                           */
+/*    1 = mid-left  tower (2 concaves: left + right)                   */
+/*    2 = mid-right tower (2 concaves: left + right)                   */
+/*    3 = far-right tower (1 concave: left)                            */
 /* ------------------------------------------------------------------ */
 
+function buildLPath(selectedCol: 0 | 1 | 2 | 3, w: number, h: number, cardH: number, r: number): string {
+  const towerLeft = selectedCol * (w / 4);
+  const towerRight = (selectedCol + 1) * (w / 4);
+  const hasLeft = selectedCol > 0;   // gray exposed left of tower in cards row
+  const hasRight = selectedCol < 3;  // gray exposed right of tower in cards row
+
+  const path: string[] = [];
+
+  // Top of tower — convex top-left, then top edge, then convex top-right
+  path.push(`M ${towerLeft + r} 0`);
+  path.push(`L ${towerRight - r} 0`);
+  path.push(`A ${r} ${r} 0 0 1 ${towerRight} ${r}`);
+
+  if (hasRight) {
+    // Down tower's right edge → concave (outward fillet) → across panel top → convex top-right of panel → down to bottom
+    path.push(`L ${towerRight} ${cardH - r}`);
+    path.push(`A ${r} ${r} 0 0 0 ${towerRight + r} ${cardH}`);
+    path.push(`L ${w - r} ${cardH}`);
+    path.push(`A ${r} ${r} 0 0 1 ${w} ${cardH + r}`);
+    path.push(`L ${w} ${h - r}`);
+  } else {
+    // Tower right IS the overall right edge — no concave, straight down
+    path.push(`L ${w} ${h - r}`);
+  }
+
+  // Bottom-right convex → bottom edge → bottom-left convex
+  path.push(`A ${r} ${r} 0 0 1 ${w - r} ${h}`);
+  path.push(`L ${r} ${h}`);
+  path.push(`A ${r} ${r} 0 0 1 0 ${h - r}`);
+
+  if (hasLeft) {
+    // Up panel's left edge → convex top-left of panel → across panel top → concave (outward fillet) → up tower's left edge
+    path.push(`L 0 ${cardH + r}`);
+    path.push(`A ${r} ${r} 0 0 1 ${r} ${cardH}`);
+    path.push(`L ${towerLeft - r} ${cardH}`);
+    path.push(`A ${r} ${r} 0 0 0 ${towerLeft} ${cardH - r}`);
+    path.push(`L ${towerLeft} ${r}`);
+  } else {
+    // Tower left IS the overall left edge — no concave, straight up
+    path.push(`L 0 ${r}`);
+  }
+
+  // Top-left of tower convex (closes the path)
+  path.push(`A ${r} ${r} 0 0 1 ${towerLeft + r} 0`);
+  path.push("Z");
+
+  return path.join(" ");
+}
+
 function DualShapeContainer({
+  selectedCol,
   cardsRow,
   panel,
 }: {
+  selectedCol: 0 | 1 | 2 | 3;
   cardsRow: React.ReactNode;
   panel: React.ReactNode;
 }) {
@@ -268,28 +326,9 @@ function DualShapeContainer({
 
   const r = 12;
   const { w, h, cardH } = dims;
-  const stepX = w / 4;
   const ready = w > 0 && h > 0 && cardH > 0;
 
-  // Single L path. Convex corners sweep=1 (clockwise); concave inner corner uses sweep=0 for an outward-bulging fillet into the gray.
-  const lPath = ready
-    ? [
-        `M ${r} 0`,
-        `L ${stepX - r} 0`,
-        `A ${r} ${r} 0 0 1 ${stepX} ${r}`,
-        `L ${stepX} ${cardH - r}`,
-        `A ${r} ${r} 0 0 0 ${stepX + r} ${cardH}`,
-        `L ${w - r} ${cardH}`,
-        `A ${r} ${r} 0 0 1 ${w} ${cardH + r}`,
-        `L ${w} ${h - r}`,
-        `A ${r} ${r} 0 0 1 ${w - r} ${h}`,
-        `L ${r} ${h}`,
-        `A ${r} ${r} 0 0 1 0 ${h - r}`,
-        `L 0 ${r}`,
-        `A ${r} ${r} 0 0 1 ${r} 0`,
-        "Z",
-      ].join(" ")
-    : "";
+  const lPath = ready ? buildLPath(selectedCol, w, h, cardH, r) : "";
 
   return (
     <div ref={outerRef} className="relative">
@@ -583,6 +622,7 @@ export function PerformancePageV56() {
           {row1Expanded === "parcels" ? (
             // ── Sort SLA selected: TWO shapes only — gray rounded rect (back) + single white L path (front). All visuals come from one SVG; content is layered on top. The concave inner corner uses a sweep-reversed arc so it bulges OUTWARD into the gray (proper fillet). See DualShapeContainer above. ──
             <DualShapeContainer
+              selectedCol={0}
               cardsRow={
                 <div className="grid grid-cols-4">
                   {parcelsHero && (
@@ -630,107 +670,147 @@ export function PerformancePageV56() {
                 </div>
               }
             />
+          ) : row1Expanded === "trucks" ? (
+            <DualShapeContainer
+              selectedCol={1}
+              cardsRow={
+                <div className="grid grid-cols-4">
+                  {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                  {trucksHero && <HeroCard card={trucksHero} expanded={true} bare onToggle={() => toggleRow1("trucks")} />}
+                  <div className="col-span-2 grid grid-cols-2 divide-x divide-line-hovered">
+                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                    <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
+                  </div>
+                </div>
+              }
+              panel={
+                <div className="px-5 py-5 [&>*+*]:pt-8">
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {palletSecondary.map((c) => (
+                        <SectionKpiCard key={c.id} card={c} />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet outbound status</h3>
+                    <VolumeChart
+                      data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
+                      metric={metricConfigs.processed}
+                      visibleDays={useAggregated ? undefined : payload.visibleDays}
+                      seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                      colorOverrides={{ lost: "#7c3aed" }}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet load rate</h3>
+                    <FlowRateSection
+                      flowRateWeek={payload.flowRateWeek}
+                      visibleDays={payload.visibleDays}
+                      hideTabs
+                      defaultCombo="pallets-average"
+                      defaultItemType="pallets"
+                      aggregatedLabel={useAggregated ? selectedLabel : undefined}
+                      largeColor="#7c3aed"
+                      palletLabel="Avg. load rate"
+                    />
+                  </div>
+                </div>
+              }
+            />
+          ) : row1Expanded === "returns" ? (
+            <DualShapeContainer
+              selectedCol={2}
+              cardsRow={
+                <div className="grid grid-cols-4">
+                  <div className="col-span-2 grid grid-cols-2 divide-x divide-line-hovered">
+                    {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                    {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
+                  </div>
+                  {returnsHero && <HeroCard card={returnsHero} expanded={true} bare onToggle={() => toggleRow1("returns")} />}
+                  <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
+                </div>
+              }
+              panel={
+                <div className="px-5 py-5 [&>*+*]:pt-8">
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {returnsSecondary.map((c) => (
+                        <SectionKpiCard key={c.id} card={c} />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Return parcel scans</h3>
+                    <VolumeChart
+                      data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
+                      metric={metricConfigs.processed}
+                      visibleDays={useAggregated ? undefined : payload.visibleDays}
+                      seriesLabels={{ processed: "Scanned to truck on time", sortedLate: "Scanned to truck late", lost: "Lost", readyToSort: "Pending return", forecasted: "Forecasted" }}
+                      colorOverrides={{ lost: "#7c3aed" }}
+                      hideLost
+                      hideForecasted
+                    />
+                  </div>
+                </div>
+              }
+            />
+          ) : row1Expanded === "associates" ? (
+            <DualShapeContainer
+              selectedCol={3}
+              cardsRow={
+                <div className="grid grid-cols-4">
+                  <div className="col-span-3 grid grid-cols-3 divide-x divide-line-hovered">
+                    {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                    {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
+                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                  </div>
+                  <HeroCard card={associatesHero} expanded={true} bare onToggle={() => toggleRow1("associates")} />
+                </div>
+              }
+              panel={
+                // SortersTable runs in transparentBg mode so the L's white fill (from the SVG) provides the bg — no opaque rectangle to cover the L's rounded BL/BR corners or strokes.
+                <div className="pt-5">
+                  <AssociatesInsightsV41 sorters={sorters} onNameClick={setAssociatesSearch} coachingSectionLabel="Worst performers" />
+                  <SortersTableV3
+                    sorters={sorters}
+                    searchValue={associatesSearch}
+                    onSearchChange={setAssociatesSearch}
+                    hideStatusIcons
+                    defaultSortKey="meetsTargets"
+                    defaultSortDir="desc"
+                    showFilters
+                    hideRateSelectors
+                    hideHeader
+                    noBorderTable
+                    transparentBg
+                    searchPadding
+                    showDownload
+                    columnTooltips={{
+                      preSortRate: { body: "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode", target: "160 / hr" },
+                      sortRate: { body: "Average hourly rate at which parcels were actively scanned to pallet", target: "160 / hr" },
+                      parcelsSorted: { body: "Total parcels this associate sorted in the selected period" },
+                      missorted: { body: "Parcels this associate last scanned in the selected period that were next scanned at the wrong location", target: "0" },
+                      lost: { body: "Parcels this associate last scanned in the selected period that were lost and not scanned again for 10 days", target: "0" },
+                      loadRate: { body: "Average hourly rate at which pallets were actively scanned to truck", target: "30 / hr" },
+                      palletsLoaded: { body: "Total pallets this associate loaded onto trucks in the selected period" },
+                      idleTime: { body: "Cumulative idle time — any 10+ minute gap between scans. All other time-based metrics pause while idle." },
+                      targetStatus: { body: "Whether this associate is meeting all individual performance targets" },
+                    }}
+                  />
+                </div>
+              }
+            />
           ) : (
-            <div>
-              <div className="grid grid-cols-4">
-                {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} dimmed={!!row1Expanded && row1Expanded !== "parcels"} onToggle={() => toggleRow1("parcels")} />}
-                {trucksHero && <HeroCard card={trucksHero} expanded={row1Expanded === "trucks"} dimmed={!!row1Expanded && row1Expanded !== "trucks"} onToggle={() => toggleRow1("trucks")} />}
-                {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} dimmed={!!row1Expanded && row1Expanded !== "returns"} onToggle={() => toggleRow1("returns")} />}
-                <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} dimmed={!!row1Expanded && row1Expanded !== "associates"} onToggle={() => toggleRow1("associates")} />
-              </div>
-
-          {row1Expanded === "trucks" && (
-            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {palletSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet outbound status</h3>
-                <VolumeChart
-                  data={useAggregated ? aggregateDays(payload.palletVolumeWeek, payload.visibleDays, selectedLabel) : payload.palletVolumeWeek}
-                  metric={metricConfigs.processed}
-                  visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Outbounded on time", sortedLate: "Outbounded late", lost: "Missloaded", readyToSort: "Scheduled", forecasted: "Forecasted" }}
-                  colorOverrides={{ lost: "#7c3aed" }}
-                />
-              </div>
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Pallet load rate</h3>
-                <FlowRateSection
-                  flowRateWeek={payload.flowRateWeek}
-                  visibleDays={payload.visibleDays}
-                  hideTabs
-                  defaultCombo="pallets-average"
-                  defaultItemType="pallets"
-                  aggregatedLabel={useAggregated ? selectedLabel : undefined}
-                  largeColor="#7c3aed"
-                  palletLabel="Avg. load rate"
-                />
-              </div>
+            // No card expanded — plain 4-card row, no L
+            <div className="grid grid-cols-4">
+              {parcelsHero && <HeroCard card={parcelsHero} expanded={false} onToggle={() => toggleRow1("parcels")} />}
+              {trucksHero && <HeroCard card={trucksHero} expanded={false} onToggle={() => toggleRow1("trucks")} />}
+              {returnsHero && <HeroCard card={returnsHero} expanded={false} onToggle={() => toggleRow1("returns")} />}
+              <HeroCard card={associatesHero} expanded={false} onToggle={() => toggleRow1("associates")} />
             </div>
-          )}
-
-          {row1Expanded === "returns" && (
-            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {returnsSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Return parcel scans</h3>
-                <VolumeChart
-                  data={useAggregated ? aggregateDays(payload.returnVolumeWeek, payload.visibleDays, selectedLabel) : payload.returnVolumeWeek}
-                  metric={metricConfigs.processed}
-                  visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Scanned to truck on time", sortedLate: "Scanned to truck late", lost: "Lost", readyToSort: "Pending return", forecasted: "Forecasted" }}
-                  colorOverrides={{ lost: "#7c3aed" }}
-                  hideLost
-                  hideForecasted
-                />
-              </div>
-            </div>
-          )}
-
-          {row1Expanded === "associates" && (
-            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] overflow-hidden pt-5">
-              <AssociatesInsightsV41 sorters={sorters} onNameClick={setAssociatesSearch} coachingSectionLabel="Worst performers" />
-              <SortersTableV3
-                sorters={sorters}
-                searchValue={associatesSearch}
-                onSearchChange={setAssociatesSearch}
-                hideStatusIcons
-                defaultSortKey="meetsTargets"
-                defaultSortDir="desc"
-                showFilters
-                hideRateSelectors
-                hideHeader
-                noBorderTable
-                searchPadding
-                showDownload
-                columnTooltips={{
-                  preSortRate: { body: "Average hourly rate at which parcels were actively pre-sorted in pre-sort mode", target: "160 / hr" },
-                  sortRate: { body: "Average hourly rate at which parcels were actively scanned to pallet", target: "160 / hr" },
-                  parcelsSorted: { body: "Total parcels this associate sorted in the selected period" },
-                  missorted: { body: "Parcels this associate last scanned in the selected period that were next scanned at the wrong location", target: "0" },
-                  lost: { body: "Parcels this associate last scanned in the selected period that were lost and not scanned again for 10 days", target: "0" },
-                  loadRate: { body: "Average hourly rate at which pallets were actively scanned to truck", target: "30 / hr" },
-                  palletsLoaded: { body: "Total pallets this associate loaded onto trucks in the selected period" },
-                  idleTime: { body: "Cumulative idle time — any 10+ minute gap between scans. All other time-based metrics pause while idle." },
-                  targetStatus: { body: "Whether this associate is meeting all individual performance targets" },
-                }}
-              />
-            </div>
-          )}
-          </div>
           )}
         </section>
 
