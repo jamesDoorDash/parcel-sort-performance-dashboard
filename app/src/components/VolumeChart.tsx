@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { Info, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { DayBucket, MetricConfig, MetricKey } from "../data/mock";
 import { getDayStatus } from "../data/mock";
 import { cn } from "../lib/cn";
 import { chartNeutralColors, chartStateColors } from "../lib/chartColors";
+import { PrismInfoIcon } from "./icons/PrismInfoIcon";
 
 type SeriesLabels = {
   processed: string;
@@ -1096,7 +1097,7 @@ function LegendItem({
       onMouseEnter={() => setInfoOpen(true)}
       onMouseLeave={() => setInfoOpen(false)}
     >
-      <Info className="h-3.5 w-3.5 text-ink-subdued" strokeWidth={1.75} />
+      <PrismInfoIcon className="h-3.5 w-3.5 text-ink" />
       {infoOpen && (
         <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[220px] -translate-x-1/2 whitespace-normal rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
           <div className="text-body-sm text-white/80">{infoTooltip}</div>

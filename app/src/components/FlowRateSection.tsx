@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Info, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { FlowRateDayBucket, FlowRateCombo, FlowRateWeekData } from "../data/mockV2";
 import { cn } from "../lib/cn";
 import { chartNeutralColors, chartStateColors } from "../lib/chartColors";
+import { PrismInfoIcon } from "./icons/PrismInfoIcon";
 
 // ---- Chart constants ----
 const CHART_W = 900;
@@ -572,11 +573,11 @@ export function FlowRateSection({ flowRateWeek, visibleDays, hideTabs, showStage
                   <div className="relative">
                     <button
                       type="button"
-                      className="flex items-center text-ink-subdued"
+                      className="flex items-center text-ink"
                       onMouseEnter={() => setTooltipOpen(key)}
                       onMouseLeave={() => setTooltipOpen(null)}
                     >
-                      <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      <PrismInfoIcon className="h-3.5 w-3.5" />
                     </button>
                     {tooltipOpen === key && (
                       <div className="absolute bottom-full left-1/2 z-20 mb-2 -translate-x-1/2 rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg whitespace-nowrap">
