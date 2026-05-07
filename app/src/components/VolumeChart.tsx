@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
 import type { DayBucket, MetricConfig, MetricKey } from "../data/mock";
 import { getDayStatus } from "../data/mock";
 import { cn } from "../lib/cn";
 import { chartNeutralColors, chartStateColors } from "../lib/chartColors";
 import { PrismInfoIcon } from "./icons/PrismInfoIcon";
+import { PrismTrashIcon } from "./icons/PrismTrashIcon";
 
 type SeriesLabels = {
   processed: string;
@@ -983,7 +983,7 @@ export function VolumeChart({ data, metric, visibleDays, seriesLabels, simpleLeg
                 onClick={() => { setHiddenSeries(new Set()); setSecondaryHidden(false); setExtraHidden(false); }}
                 className="flex items-center gap-2 rounded-button px-1.5 py-0.5 -mx-1.5 transition-all hover:bg-surface-hovered"
               >
-                <Trash2 className="h-4 w-4 shrink-0 text-ink" strokeWidth={1.75} />
+                <PrismTrashIcon className="h-4 w-4 shrink-0 text-ink" />
                 <span className="text-body-md text-ink">{hiddenCount} {hiddenCount === 1 ? "filter" : "filters"} active</span>
               </button>
             </div>
