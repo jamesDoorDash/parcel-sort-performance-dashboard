@@ -707,13 +707,13 @@ function createCard(definition: V3MetricDefinition, week: V3WeekKey, visibleDays
       const rangeLabel = (arr: typeof observedDays) => {
         if (arr.length === 0) return "";
         if (arr.length === 1) return fmtShort(arr[0].date);
-        return `${fmtShort(arr[0].date)} – ${fmtShort(arr[arr.length - 1].date)}`;
+        return `${fmtShort(arr[0].date)} to ${fmtShort(arr[arr.length - 1].date)}`;
       };
       const daysWord = definition.bakeDays === 1 ? "day" : "days";
 
       bakeNote = {
-        title: `${definition.label} takes ${definition.bakeDays} ${daysWord} to finalize`,
-        body: `Showing ${rangeLabel(observedDays)}. Full results for this period by ${readyLabel}.`,
+        title: `Showing data from ${rangeLabel(observedDays)} only`,
+        body: `${definition.label} takes ${definition.bakeDays} ${daysWord} to finalize. Full results for this period available on ${readyLabel}.`,
       };
     }
   }

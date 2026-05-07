@@ -30,6 +30,8 @@ type Props = {
   loadRateLabel?: string;
   palletsLoadedLabel?: string;
   hideLoadColumns?: boolean;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
   columnTooltips?: {
     preSortRate?: ColumnTooltip;
     sortRate?: ColumnTooltip;
@@ -100,10 +102,15 @@ function HeaderCell({
   );
 }
 
-export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload, loadRateLabel = "Load rate", palletsLoadedLabel = "Pallets loaded", hideLoadColumns, columnTooltips }: Props) {
+export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRateSelectors, inlineHeader, hideHeader, noBorderTable, searchPadding, defaultSortKey, defaultSortDir, showDownload, loadRateLabel = "Load rate", palletsLoadedLabel = "Pallets loaded", hideLoadColumns, searchValue, onSearchChange, columnTooltips }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>(defaultSortKey ?? "name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">(defaultSortDir ?? "asc");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
+  const searchQuery = searchValue ?? internalSearchQuery;
+  const setSearchQuery = (value: string) => {
+    if (onSearchChange) onSearchChange(value);
+    else setInternalSearchQuery(value);
+  };
   const [rateType, setRateType] = useState<"average" | "max">("average");
   const [parcelType, setParcelType] = useState<"blended" | "small" | "large">("blended");
 
@@ -197,8 +204,20 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search name"
-                className={`h-10 rounded-button border border-line-hovered bg-white pl-9 pr-3 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink ${hideHeader ? "w-full" : "w-[330px]"}`}
+                className={`h-10 rounded-button border border-line-hovered bg-white pl-9 pr-9 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink ${hideHeader ? "w-full" : "w-[330px]"}`}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-white"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+                    <path d="M2 2 L8 8 M8 2 L2 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
             </div>
             {showDownload && (
               <button type="button" className="flex h-10 shrink-0 items-center gap-1 rounded-button border border-line-hovered bg-white px-3 text-body-md-strong text-ink hover:bg-surface-hovered transition-colors">
@@ -225,8 +244,20 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search name"
-                className="h-10 w-full rounded-button border border-line-hovered bg-white pl-9 pr-3 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink"
+                className="h-10 w-full rounded-button border border-line-hovered bg-white pl-9 pr-9 text-body-md text-ink outline-none placeholder:text-ink-subdued focus:border-ink"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-white"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+                    <path d="M2 2 L8 8 M8 2 L2 8" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             {/* Rate type selector */}

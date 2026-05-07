@@ -3,6 +3,9 @@ import type { SorterV2 } from "../data/mockV2";
 
 type Props = {
   sorters: SorterV2[];
+  onNameClick?: (name: string) => void;
+  coachingSectionLabel?: string;
+  coachingSectionTooltip?: string;
 };
 
 function SectionLabel({ label, tooltip }: { label: string; tooltip: string }) {
@@ -41,7 +44,19 @@ function improvementScore(s: SorterV2) {
   return sortGap + preSortGap + missortRate * 8 + lostRate * 40 + idle * 0.5;
 }
 
-export function AssociatesInsightsSpoke({ sorters }: Props) {
+export function AssociatesInsightsSpoke({ sorters, onNameClick, coachingSectionLabel = "Most in need of coaching", coachingSectionTooltip = "The 3 most underperforming associates based on a combination of sort rates, missorts, lost items, idle time, and other quality metrics" }: Props) {
+  const renderName = (name: string) =>
+    onNameClick ? (
+      <button
+        type="button"
+        onClick={() => onNameClick(name)}
+        className="flex-1 truncate text-left text-body-sm text-ink"
+      >
+        {name}
+      </button>
+    ) : (
+      <span className="flex-1 truncate text-body-sm text-ink">{name}</span>
+    );
   const topSorters = [...sorters]
     .sort((a, b) => sorterQualityScore(b) - sorterQualityScore(a))
     .slice(0, 3);
@@ -61,7 +76,7 @@ export function AssociatesInsightsSpoke({ sorters }: Props) {
           {topSorters.map((s, i) => (
             <li key={s.id} className="flex items-baseline gap-2">
               <span className="w-3 text-body-sm font-bold text-ink-subdued">{i + 1}.</span>
-              <span className="flex-1 truncate text-body-sm text-ink">{s.name}</span>
+              {renderName(s.name)}
             </li>
           ))}
           {topSorters.length === 0 && (
@@ -71,15 +86,12 @@ export function AssociatesInsightsSpoke({ sorters }: Props) {
       </div>
 
       <div className="rounded-[8px] border border-line-hovered bg-white px-4 py-3">
-        <SectionLabel
-          label="Most in need of coaching"
-          tooltip="The 3 most underperforming associates based on a combination of sort rates, missorts, lost items, idle time, and other quality metrics"
-        />
+        <SectionLabel label={coachingSectionLabel} tooltip={coachingSectionTooltip} />
         <ol className="mt-3 space-y-1.5">
           {needsImprovement.map((s, i) => (
             <li key={s.id} className="flex items-baseline gap-2">
               <span className="w-3 text-body-sm font-bold text-ink-subdued">{i + 1}.</span>
-              <span className="flex-1 truncate text-body-sm text-ink">{s.name}</span>
+              {renderName(s.name)}
             </li>
           ))}
           {needsImprovement.length === 0 && (

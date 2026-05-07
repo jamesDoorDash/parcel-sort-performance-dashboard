@@ -1086,7 +1086,7 @@ function LegendItem({
           style={{ backgroundColor: color, opacity: active ? 1 : 0 }}
         />
       )}
-      <span className={cn("text-body-md text-ink", !active && "line-through opacity-60")}>{label}</span>
+      <span className={cn("text-body-md text-ink", onClick && "underline underline-offset-2", !active && "opacity-60")}>{label}</span>
     </>
   );
 
