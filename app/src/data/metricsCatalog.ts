@@ -110,7 +110,7 @@ export const metricRows: CatalogRow[] = [
     id: "parcelLossRate",
     element: { kind: "underline", label: "Parcel loss rate" },
     tooltip: "% of parcels from this period that were lost and not scanned for 10 days",
-    target: "0.08%",
+    target: "0.06%",
     hub: true,
     spoke: true,
     inDoc: true,
