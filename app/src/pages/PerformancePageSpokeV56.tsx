@@ -446,7 +446,7 @@ export function PerformancePageSpokeV56() {
             <h2 className="text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Top level metrics</h2>
             {/* Overall grade hidden for now — may bring back later */}
           </div>
-          {/* ── Spoke has 3 cards (parcels / returns / associates). The shared DualShapeContainer is generalized for any column count via cols=3. ── */}
+          {/* ── Spoke has 3 cards. Cards row is a flat grid-cols-3 with all cards as direct bare children (no nested wrappers, no divide-x). Dividers come from the SVG so content positions never wiggle when switching tabs or collapsing them. ── */}
           {row1Expanded === "parcels" ? (
             <DualShapeContainer
               cols={3}
@@ -454,10 +454,8 @@ export function PerformancePageSpokeV56() {
               cardsRow={
                 <div className="grid grid-cols-3">
                   {parcelsHero && <HeroCard card={parcelsHero} expanded={true} bare onToggle={() => toggleRow1("parcels")} />}
-                  <div className="col-span-2 grid grid-cols-2 divide-x divide-line-hovered">
-                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
-                    <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
-                  </div>
+                  {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                  <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
                 </div>
               }
               panel={
@@ -589,10 +587,8 @@ export function PerformancePageSpokeV56() {
               selectedCol={2}
               cardsRow={
                 <div className="grid grid-cols-3">
-                  <div className="col-span-2 grid grid-cols-2 divide-x divide-line-hovered">
-                    {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
-                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
-                  </div>
+                  {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                  {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
                   <HeroCard card={associatesHero} expanded={true} bare onToggle={() => toggleRow1("associates")} />
                 </div>
               }
@@ -633,12 +629,17 @@ export function PerformancePageSpokeV56() {
               }
             />
           ) : (
-            // No card expanded — plain 3-card row, no L
-            <div className="grid grid-cols-3">
-              {parcelsHero && <HeroCard card={parcelsHero} expanded={false} onToggle={() => toggleRow1("parcels")} />}
-              {returnsHero && <HeroCard card={returnsHero} expanded={false} onToggle={() => toggleRow1("returns")} />}
-              <HeroCard card={associatesHero} expanded={false} onToggle={() => toggleRow1("associates")} />
-            </div>
+            // No card expanded — same DualShapeContainer architecture (selectedCol omitted = white rounded rect, no L) so cards stay bare and content positions don't shift relative to the expanded states.
+            <DualShapeContainer
+              cols={3}
+              cardsRow={
+                <div className="grid grid-cols-3">
+                  {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                  {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                  <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
+                </div>
+              }
+            />
           )}
         </section>
 

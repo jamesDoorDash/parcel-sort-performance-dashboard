@@ -10,7 +10,14 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 /*  CSS rectangles cannot produce. Dimensions are measured via         */
 /*  ResizeObserver so the L scales cleanly with content height.        */
 /*                                                                     */
+/*  Also draws 1px dividers between non-expanded columns inside the    */
+/*  cards row, so dividers live in the SVG (not as CSS borders on the  */
+/*  cells). This keeps cell content positions identical across every   */
+/*  state — no horizontal/vertical wiggle when switching tabs or       */
+/*  collapsing them.                                                   */
+/*                                                                     */
 /*  selectedCol semantics (for `cols` columns total):                  */
+/*    undefined   → no card expanded; render plain white rounded rect  */
 /*    0           → tower at far-left  (1 concave: right)              */
 /*    cols-1      → tower at far-right (1 concave: left)               */
 /*    interior    → tower in middle    (2 concaves: left + right)      */
@@ -71,10 +78,10 @@ export function DualShapeContainer({
   cardsRow,
   panel,
 }: {
-  selectedCol: number;
+  selectedCol?: number;
   cols?: number;
   cardsRow: ReactNode;
-  panel: ReactNode;
+  panel?: ReactNode;
 }) {
   const outerRef = useRef<HTMLDivElement>(null);
   const cardsRowRef = useRef<HTMLDivElement>(null);
@@ -99,8 +106,18 @@ export function DualShapeContainer({
   const r = 12;
   const { w, h, cardH } = dims;
   const ready = w > 0 && h > 0 && cardH > 0;
+  const isExpanded = selectedCol !== undefined;
+  const lPath = ready && isExpanded ? buildLPath(selectedCol, cols, w, h, cardH, r) : "";
 
-  const lPath = ready ? buildLPath(selectedCol, cols, w, h, cardH, r) : "";
+  // 1px dividers between adjacent dimmed cards in the cards row.
+  // Skip boundaries adjacent to the expanded tower (those are already drawn by the L's stroke).
+  const dividers: number[] = [];
+  if (ready) {
+    for (let i = 1; i < cols; i++) {
+      const adjacentToExpanded = isExpanded && (i === selectedCol || i === selectedCol! + 1);
+      if (!adjacentToExpanded) dividers.push(i * (w / cols));
+    }
+  }
 
   return (
     <div ref={outerRef} className="relative">
@@ -110,18 +127,18 @@ export function DualShapeContainer({
         preserveAspectRatio="none"
         aria-hidden
       >
-        {/* Strokes clipped to each shape so only the inside half renders. Drawing 2× the desired width means visible inner half = the requested thickness. Result: gray = 1px inside, L = 2px inside, no overlap stacking because both strokes live entirely inside their own shape's interior. */}
+        {/* Strokes clipped to each shape so only the inside half renders. Drawing 2× the desired width means visible inner half = the requested thickness. Result: gray = 1px inside, L = 2px inside, no overlap stacking. */}
         <defs>
-          <clipPath id="dual-shape-gray-clip">
+          <clipPath id="dual-shape-bg-clip">
             <rect x={0} y={0} width={w || 0} height={h || 0} rx={r} ry={r} />
           </clipPath>
-          {ready && (
+          {ready && isExpanded && (
             <clipPath id="dual-shape-l-clip">
               <path d={lPath} />
             </clipPath>
           )}
         </defs>
-        {/* Shape 1 (back): gray rounded rectangle. 2px stroke clipped → 1px visible inside. */}
+        {/* Background rounded rect: gray when an L is overlaid, white when no card is expanded. 2px stroke clipped → 1px visible inside. */}
         <rect
           x={0}
           y={0}
@@ -129,13 +146,13 @@ export function DualShapeContainer({
           height={h || 0}
           rx={r}
           ry={r}
-          fill="#F6F7F8"
+          fill={isExpanded ? "#F6F7F8" : "#FFFFFF"}
           stroke="#D3D6D9"
           strokeWidth={2}
-          clipPath="url(#dual-shape-gray-clip)"
+          clipPath="url(#dual-shape-bg-clip)"
         />
-        {/* Shape 2 (front): single white L path with concave outward fillets. 4px stroke clipped → 2px visible inside. */}
-        {ready && (
+        {/* White L (only when a card is expanded). 4px stroke clipped → 2px visible inside. */}
+        {ready && isExpanded && (
           <path
             d={lPath}
             fill="#FFFFFF"
@@ -144,6 +161,19 @@ export function DualShapeContainer({
             clipPath="url(#dual-shape-l-clip)"
           />
         )}
+        {/* Cell dividers (1px). Drawn here instead of as CSS divide-x so the cells themselves stay border-free and content positions never wiggle. */}
+        {dividers.map((x) => (
+          <line
+            key={x}
+            x1={x}
+            y1={0}
+            x2={x}
+            y2={cardH}
+            stroke="#D3D6D9"
+            strokeWidth={1}
+            shapeRendering="crispEdges"
+          />
+        ))}
       </svg>
 
       <div className="relative">

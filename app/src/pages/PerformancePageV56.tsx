@@ -468,19 +468,15 @@ export function PerformancePageV56() {
             {/* Overall grade hidden for now — may bring back later */}
           </div>
           {row1Expanded === "parcels" ? (
-            // ── Sort SLA selected: TWO shapes only — gray rounded rect (back) + single white L path (front). All visuals come from one SVG; content is layered on top. The concave inner corner uses a sweep-reversed arc so it bulges OUTWARD into the gray (proper fillet). See DualShapeContainer above. ──
+            // ── Sort SLA selected: TWO shapes only — gray rounded rect (back) + single white L path (front). Cards row is a FLAT 4-col grid with all cards as direct bare children (no nested col-span wrappers, no divide-x) so content positions don't wiggle when switching tabs. Dividers between dimmed cards are drawn in the SVG behind the cards instead. ──
             <DualShapeContainer
               selectedCol={0}
               cardsRow={
                 <div className="grid grid-cols-4">
-                  {parcelsHero && (
-                    <HeroCard card={parcelsHero} expanded={true} bare onToggle={() => toggleRow1("parcels")} />
-                  )}
-                  <div className="col-span-3 grid grid-cols-3 divide-x divide-line-hovered">
-                    {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
-                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
-                    <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
-                  </div>
+                  {parcelsHero && <HeroCard card={parcelsHero} expanded={true} bare onToggle={() => toggleRow1("parcels")} />}
+                  {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
+                  {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                  <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
                 </div>
               }
               panel={
@@ -525,10 +521,8 @@ export function PerformancePageV56() {
                 <div className="grid grid-cols-4">
                   {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
                   {trucksHero && <HeroCard card={trucksHero} expanded={true} bare onToggle={() => toggleRow1("trucks")} />}
-                  <div className="col-span-2 grid grid-cols-2 divide-x divide-line-hovered">
-                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
-                    <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
-                  </div>
+                  {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                  <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
                 </div>
               }
               panel={
@@ -572,10 +566,8 @@ export function PerformancePageV56() {
               selectedCol={2}
               cardsRow={
                 <div className="grid grid-cols-4">
-                  <div className="col-span-2 grid grid-cols-2 divide-x divide-line-hovered">
-                    {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
-                    {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
-                  </div>
+                  {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                  {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
                   {returnsHero && <HeroCard card={returnsHero} expanded={true} bare onToggle={() => toggleRow1("returns")} />}
                   <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
                 </div>
@@ -610,11 +602,9 @@ export function PerformancePageV56() {
               selectedCol={3}
               cardsRow={
                 <div className="grid grid-cols-4">
-                  <div className="col-span-3 grid grid-cols-3 divide-x divide-line-hovered">
-                    {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
-                    {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
-                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
-                  </div>
+                  {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                  {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
+                  {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
                   <HeroCard card={associatesHero} expanded={true} bare onToggle={() => toggleRow1("associates")} />
                 </div>
               }
@@ -652,13 +642,17 @@ export function PerformancePageV56() {
               }
             />
           ) : (
-            // No card expanded — plain 4-card row, no L
-            <div className="grid grid-cols-4">
-              {parcelsHero && <HeroCard card={parcelsHero} expanded={false} onToggle={() => toggleRow1("parcels")} />}
-              {trucksHero && <HeroCard card={trucksHero} expanded={false} onToggle={() => toggleRow1("trucks")} />}
-              {returnsHero && <HeroCard card={returnsHero} expanded={false} onToggle={() => toggleRow1("returns")} />}
-              <HeroCard card={associatesHero} expanded={false} onToggle={() => toggleRow1("associates")} />
-            </div>
+            // No card expanded — same architecture (DualShapeContainer w/ no selectedCol = white rounded rect, no L) so cards stay bare and content positions don't shift relative to the expanded states.
+            <DualShapeContainer
+              cardsRow={
+                <div className="grid grid-cols-4">
+                  {parcelsHero && <HeroCard card={parcelsHero} expanded={false} bare onToggle={() => toggleRow1("parcels")} />}
+                  {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
+                  {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                  <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
+                </div>
+              }
+            />
           )}
         </section>
 
