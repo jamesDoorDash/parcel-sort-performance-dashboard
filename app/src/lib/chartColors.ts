@@ -23,7 +23,7 @@ export const chartNeutralColors = {
   pending: "#e9eaec",
   hoveredLine: "#d3d6d9",
   disabled: "#aeb1b7",
-  axis: "#606060",
+  axis: "#6C707A",
   baseline: "#6c707a",
   ink: "#111318",
 } as const;

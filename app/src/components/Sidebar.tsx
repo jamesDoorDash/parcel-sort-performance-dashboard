@@ -110,6 +110,7 @@ type Props = {
   onFacilityChange: (f: Facility) => void;
   adminMode?: boolean;
   onGoToAdmin?: () => void;
+  onGoToEaster?: () => void;
 };
 
 const FACILITY_SITES: { id: string; facility: Facility; address: string }[] = [
@@ -117,7 +118,7 @@ const FACILITY_SITES: { id: string; facility: Facility; address: string }[] = [
   { id: "SPK-1", facility: "spoke", address: "3500 Lenox Rd NE, Atlanta, GA 30326" },
 ];
 
-export function Sidebar({ active, onSelect, version, onVersionChange, facility, onFacilityChange, onGoToAdmin }: Props) {
+export function Sidebar({ active, onSelect, version, onVersionChange, facility, onFacilityChange, onGoToAdmin, onGoToEaster }: Props) {
   const [trucksOpen, setTrucksOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [facilityOpen, setFacilityOpen] = useState(false);
@@ -303,7 +304,13 @@ export function Sidebar({ active, onSelect, version, onVersionChange, facility, 
             <button
               type="button"
               key={item.key}
-              onClick={() => onSelect(item.key)}
+              onClick={() => {
+                if (item.key === "admin" && onGoToEaster) {
+                  onGoToEaster();
+                  return;
+                }
+                onSelect(item.key);
+              }}
               className={cn(
                 "flex h-12 w-full items-center gap-3 rounded-button px-3 text-left transition-colors",
                 isActive

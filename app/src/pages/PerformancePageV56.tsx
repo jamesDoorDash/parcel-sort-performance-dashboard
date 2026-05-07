@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { PrismWarningIcon } from "../components/icons/PrismWarningIcon";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { AssociatesInsightsV41 } from "../components/AssociatesInsightsV41";
@@ -88,7 +89,7 @@ function aggregateDays(data: DayBucket[], visibleDays: Set<string> | undefined, 
 /*  Hero card (primary metric with show more/less)                     */
 /* ------------------------------------------------------------------ */
 
-function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; expanded: boolean; dimmed?: boolean; onToggle: () => void }) {
+function HeroCard({ card, expanded, dimmed, bare, onToggle }: { card: V3MetricCard; expanded: boolean; dimmed?: boolean; bare?: boolean; onToggle: () => void }) {
   const isNeutral = card.delta?.tone === "neutral";
   const isPlaceholder = card.value === "--" || card.value.startsWith("--");
   const [tooltipOpen, setTooltipOpen] = useState(false);
@@ -99,12 +100,13 @@ function HeroCard({ card, expanded, dimmed, onToggle }: { card: V3MetricCard; ex
       onClick={onToggle}
       className={cn(
         "flex flex-col items-stretch text-left border-line-hovered",
-        dimmed
+        bare && "px-5 py-4",
+        !bare && (dimmed
           ? "bg-[#F6F7F8] border-t border-b-2 border-r first:border-l pt-[17px] pb-[15px] first:pl-[21px] [&:not(:first-child)]:pl-5 pr-[21px]"
-          : "bg-white border-t-2 border-r-2 first:border-l-2",
-        !dimmed && !expanded && "border-b-2 first:rounded-bl-[12px] last:rounded-br-[12px] py-4 px-5",
-        !dimmed && expanded && "border-l-2 first:ml-0 [&:not(:first-child)]:-ml-px pt-4 pb-[17px] first:px-5 [&:not(:first-child)]:pl-[19px] [&:not(:first-child)]:pr-[19px]",
-        "first:rounded-tl-[12px] last:rounded-tr-[12px]",
+          : "bg-white border-t-2 border-r-2 first:border-l-2"),
+        !bare && !dimmed && !expanded && "border-b-2 first:rounded-bl-[12px] last:rounded-br-[12px] py-4 px-5",
+        !bare && !dimmed && expanded && "border-l-2 first:ml-0 [&:not(:first-child)]:-ml-px pt-4 pb-[17px] first:px-5 [&:not(:first-child)]:pl-[19px] [&:not(:first-child)]:pr-[19px]",
+        !bare && "first:rounded-tl-[12px] last:rounded-tr-[12px]",
       )}
     >
       <div className="flex min-w-0 flex-col items-start">
@@ -194,7 +196,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
             onMouseEnter={() => setBakeTooltipOpen(true)}
             onMouseLeave={() => setBakeTooltipOpen(false)}
           >
-            <AlertTriangle className="h-4 w-4 text-ink" strokeWidth={1.75} />
+            <PrismWarningIcon className="h-4 w-4 text-ink" />
             {bakeTooltipOpen && (
               <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[280px] -translate-x-1/2 whitespace-normal rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
                 <div className="text-body-sm-strong text-white">{card.bakeNote.title}</div>
@@ -222,6 +224,120 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
             </span>
           )
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  DualShapeContainer — exactly 2 shapes: gray rect (back) + white L  */
+/*                                                                     */
+/*  Renders a single SVG with a rounded gray rectangle and a single    */
+/*  white L path. The L's concave inner corner uses a sweep-reversed   */
+/*  arc so it bulges outward into the gray (proper fillet) — something */
+/*  stacked CSS rectangles can never produce. Dimensions are measured  */
+/*  via ResizeObserver so the L scales cleanly with content height.    */
+/* ------------------------------------------------------------------ */
+
+function DualShapeContainer({
+  cardsRow,
+  panel,
+}: {
+  cardsRow: React.ReactNode;
+  panel: React.ReactNode;
+}) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const cardsRowRef = useRef<HTMLDivElement>(null);
+  const [dims, setDims] = useState({ w: 0, h: 0, cardH: 0 });
+
+  useLayoutEffect(() => {
+    if (!outerRef.current || !cardsRowRef.current) return;
+
+    const measure = () => {
+      const outer = outerRef.current!.getBoundingClientRect();
+      const cards = cardsRowRef.current!.getBoundingClientRect();
+      setDims({ w: outer.width, h: outer.height, cardH: cards.height });
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(outerRef.current);
+    ro.observe(cardsRowRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const r = 12;
+  const { w, h, cardH } = dims;
+  const stepX = w / 4;
+  const ready = w > 0 && h > 0 && cardH > 0;
+
+  // Single L path. Convex corners sweep=1 (clockwise); concave inner corner uses sweep=0 for an outward-bulging fillet into the gray.
+  const lPath = ready
+    ? [
+        `M ${r} 0`,
+        `L ${stepX - r} 0`,
+        `A ${r} ${r} 0 0 1 ${stepX} ${r}`,
+        `L ${stepX} ${cardH - r}`,
+        `A ${r} ${r} 0 0 0 ${stepX + r} ${cardH}`,
+        `L ${w - r} ${cardH}`,
+        `A ${r} ${r} 0 0 1 ${w} ${cardH + r}`,
+        `L ${w} ${h - r}`,
+        `A ${r} ${r} 0 0 1 ${w - r} ${h}`,
+        `L ${r} ${h}`,
+        `A ${r} ${r} 0 0 1 0 ${h - r}`,
+        `L 0 ${r}`,
+        `A ${r} ${r} 0 0 1 ${r} 0`,
+        "Z",
+      ].join(" ")
+    : "";
+
+  return (
+    <div ref={outerRef} className="relative">
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        viewBox={`0 0 ${w || 1} ${h || 1}`}
+        preserveAspectRatio="none"
+        aria-hidden
+      >
+        {/* Strokes clipped to each shape so only the inside half renders. Drawing 2× the desired width means visible inner half = the requested thickness. Result: gray = 1px inside, L = 2px inside, no 3px overlap anywhere because both strokes live entirely inside their own shape's interior. */}
+        <defs>
+          <clipPath id="dual-shape-gray-clip">
+            <rect x={0} y={0} width={w || 0} height={h || 0} rx={r} ry={r} />
+          </clipPath>
+          {ready && (
+            <clipPath id="dual-shape-l-clip">
+              <path d={lPath} />
+            </clipPath>
+          )}
+        </defs>
+        {/* Shape 1 (back): gray rounded rectangle. 2px stroke clipped to its own interior → 1px visible inside. */}
+        <rect
+          x={0}
+          y={0}
+          width={w || 0}
+          height={h || 0}
+          rx={r}
+          ry={r}
+          fill="#F6F7F8"
+          stroke="#D3D6D9"
+          strokeWidth={2}
+          clipPath="url(#dual-shape-gray-clip)"
+        />
+        {/* Shape 2 (front): single white L path with concave outward fillet. 4px stroke clipped to its own interior → 2px visible inside. */}
+        {ready && (
+          <path
+            d={lPath}
+            fill="#FFFFFF"
+            stroke="#D3D6D9"
+            strokeWidth={4}
+            clipPath="url(#dual-shape-l-clip)"
+          />
+        )}
+      </svg>
+
+      <div className="relative">
+        <div ref={cardsRowRef}>{cardsRow}</div>
+        {panel}
       </div>
     </div>
   );
@@ -464,47 +580,64 @@ export function PerformancePageV56() {
             <h2 className="text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Top level metrics</h2>
             {/* Overall grade hidden for now — may bring back later */}
           </div>
-          <div>
-            <div className="grid grid-cols-4">
-              {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} dimmed={!!row1Expanded && row1Expanded !== "parcels"} onToggle={() => toggleRow1("parcels")} />}
-              {trucksHero && <HeroCard card={trucksHero} expanded={row1Expanded === "trucks"} dimmed={!!row1Expanded && row1Expanded !== "trucks"} onToggle={() => toggleRow1("trucks")} />}
-              {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} dimmed={!!row1Expanded && row1Expanded !== "returns"} onToggle={() => toggleRow1("returns")} />}
-              <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} dimmed={!!row1Expanded && row1Expanded !== "associates"} onToggle={() => toggleRow1("associates")} />
-            </div>
-          {row1Expanded === "parcels" && (
-            <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {parcelSecondary.map((c) => (
-                    <SectionKpiCard key={c.id} card={c} />
-                  ))}
+          {row1Expanded === "parcels" ? (
+            // ── Sort SLA selected: TWO shapes only — gray rounded rect (back) + single white L path (front). All visuals come from one SVG; content is layered on top. The concave inner corner uses a sweep-reversed arc so it bulges OUTWARD into the gray (proper fillet). See DualShapeContainer above. ──
+            <DualShapeContainer
+              cardsRow={
+                <div className="grid grid-cols-4">
+                  {parcelsHero && (
+                    <HeroCard card={parcelsHero} expanded={true} bare onToggle={() => toggleRow1("parcels")} />
+                  )}
+                  <div className="col-span-3 grid grid-cols-3 divide-x divide-line-hovered">
+                    {trucksHero && <HeroCard card={trucksHero} expanded={false} bare onToggle={() => toggleRow1("trucks")} />}
+                    {returnsHero && <HeroCard card={returnsHero} expanded={false} bare onToggle={() => toggleRow1("returns")} />}
+                    <HeroCard card={associatesHero} expanded={false} bare onToggle={() => toggleRow1("associates")} />
+                  </div>
                 </div>
+              }
+              panel={
+                <div className="px-5 py-5 [&>*+*]:pt-8">
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Related metrics</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {parcelSecondary.map((c) => (
+                        <SectionKpiCard key={c.id} card={c} />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Parcel sort status</h3>
+                    <VolumeChart
+                      data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
+                      metric={metricConfigs.processed}
+                      visibleDays={useAggregated ? undefined : payload.visibleDays}
+                      seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
+                      colorOverrides={{ lost: "#7c3aed" }}
+                      secondaryBars={{ values: dwellChartData.map((d) => d.processed.lost), color: "#df3480", label: "Dwelled parcels" }}
+                    />
+                  </div>
+                  <div>
+                    <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Sort rate</h3>
+                    <FlowRateSection
+                      flowRateWeek={payload.flowRateWeek}
+                      visibleDays={payload.visibleDays}
+                      showStageTabsOnly
+                      defaultItemType="parcels"
+                      aggregatedLabel={useAggregated ? selectedLabel : undefined}
+                      largeColor="#7c3aed"
+                    />
+                  </div>
+                </div>
+              }
+            />
+          ) : (
+            <div>
+              <div className="grid grid-cols-4">
+                {parcelsHero && <HeroCard card={parcelsHero} expanded={row1Expanded === "parcels"} dimmed={!!row1Expanded && row1Expanded !== "parcels"} onToggle={() => toggleRow1("parcels")} />}
+                {trucksHero && <HeroCard card={trucksHero} expanded={row1Expanded === "trucks"} dimmed={!!row1Expanded && row1Expanded !== "trucks"} onToggle={() => toggleRow1("trucks")} />}
+                {returnsHero && <HeroCard card={returnsHero} expanded={row1Expanded === "returns"} dimmed={!!row1Expanded && row1Expanded !== "returns"} onToggle={() => toggleRow1("returns")} />}
+                <HeroCard card={associatesHero} expanded={row1Expanded === "associates"} dimmed={!!row1Expanded && row1Expanded !== "associates"} onToggle={() => toggleRow1("associates")} />
               </div>
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Parcel sort status</h3>
-                <VolumeChart
-                  data={useAggregated ? aggregateDays(payload.processedWeek, payload.visibleDays, selectedLabel) : payload.processedWeek}
-                  metric={metricConfigs.processed}
-                  visibleDays={useAggregated ? undefined : payload.visibleDays}
-                  seriesLabels={{ processed: "Sorted on time", sortedLate: "Sorted late", lost: "Lost", readyToSort: "Scheduled", forecasted: "Forecasted" }}
-                  colorOverrides={{ lost: "#7c3aed" }}
-                  secondaryBars={{ values: dwellChartData.map((d) => d.processed.lost), color: "#df3480", label: "Dwelled parcels" }}
-                />
-              </div>
-              <div>
-                <h3 className="pb-4 text-[16px] leading-[22px] font-bold tracking-[-0.01em] text-ink">Sort rate</h3>
-                <FlowRateSection
-                  flowRateWeek={payload.flowRateWeek}
-                  visibleDays={payload.visibleDays}
-                  showStageTabsOnly
-                  defaultItemType="parcels"
-                  aggregatedLabel={useAggregated ? selectedLabel : undefined}
-                  largeColor="#7c3aed"
-                />
-              </div>
-            </div>
-          )}
 
           {row1Expanded === "trucks" && (
             <div className="border-l-2 border-r-2 border-b-2 border-line-hovered rounded-bl-[12px] rounded-br-[12px] px-5 py-5 [&>*+*]:pt-8">
@@ -598,6 +731,7 @@ export function PerformancePageV56() {
             </div>
           )}
           </div>
+          )}
         </section>
 
       </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown, Check, AlertTriangle, Download, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronsUpDown, Check, Download, Search } from "lucide-react";
+import { PrismWarningIcon } from "./icons/PrismWarningIcon";
 import { cn } from "../lib/cn";
 import type { SorterV2 } from "../data/mockV2";
 
@@ -373,7 +374,7 @@ export function SortersTableV3({ sorters, hideStatusIcons, showFilters, hideRate
                     </span>
                   ) : (
                     <div className="inline-flex items-center gap-1 rounded-tag bg-negative-bg px-2 py-0.5 text-body-sm-strong text-negative">
-                      {!hideStatusIcons && <AlertTriangle className="h-3 w-3" strokeWidth={2.25} />}
+                      {!hideStatusIcons && <PrismWarningIcon className="h-3 w-3" />}
                       <span>Below target</span>
                     </div>
                   )}

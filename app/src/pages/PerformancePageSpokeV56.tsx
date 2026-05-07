@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { PrismWarningIcon } from "../components/icons/PrismWarningIcon";
 import { DateRangeTabs } from "../components/DateRangeTabs";
 import { SortersTableV3 } from "../components/SortersTableV3";
 import { FlowRateSection } from "../components/FlowRateSection";
@@ -191,7 +192,7 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
             onMouseEnter={() => setBakeTooltipOpen(true)}
             onMouseLeave={() => setBakeTooltipOpen(false)}
           >
-            <AlertTriangle className="h-4 w-4 text-ink" strokeWidth={1.75} />
+            <PrismWarningIcon className="h-4 w-4 text-ink" />
             {bakeTooltipOpen && (
               <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-[280px] -translate-x-1/2 whitespace-normal rounded-[6px] bg-[#111318] px-3 py-2 text-left shadow-lg">
                 <div className="text-body-sm-strong text-white">{card.bakeNote.title}</div>

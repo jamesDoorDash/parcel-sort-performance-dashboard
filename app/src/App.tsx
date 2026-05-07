@@ -69,34 +69,39 @@ import { PerformancePageSpokeV54 } from "./pages/PerformancePageSpokeV54";
 import { PerformancePageSpokeV55 } from "./pages/PerformancePageSpokeV55";
 import { PerformancePageSpokeV56 } from "./pages/PerformancePageSpokeV56";
 import { AdminPage } from "./pages/AdminPage";
+import { EasterEggPage } from "./pages/EasterEggPage";
 
 const ALL_VERSIONS = ["V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10", "V11", "V12", "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20", "V21", "V22", "V23", "V24", "V25", "V26", "V27", "V28", "V29", "V30", "V31", "V32", "V33", "V34", "V35", "V36", "V37", "V38", "V39", "V40", "V41", "V42", "V43", "V44", "V45", "V46", "V47", "V48", "V49", "V50", "V51", "V52", "V53", "V54", "V55", "V56"];
 const SPOKE_VERSIONS = ["V35", "V46", "V47", "V48", "V49", "V50", "V51", "V52", "V53", "V54", "V55", "V56"];
 
 export type Facility = "hub" | "spoke";
 
-function parseRoute(): { facility: Facility; version: string | null; admin: boolean } {
-  if (typeof window === "undefined") return { facility: "hub", version: null, admin: false };
+function parseRoute(): { facility: Facility; version: string | null; admin: boolean; easter: boolean } {
+  if (typeof window === "undefined") return { facility: "hub", version: null, admin: false, easter: false };
   const parts = window.location.pathname.replace(/^\//, "").toLowerCase().split("/").filter(Boolean);
   if (parts[0] === "metrics-reference") {
-    return { facility: "hub", version: null, admin: true };
+    return { facility: "hub", version: null, admin: true, easter: false };
+  }
+  if (parts[0] === "style-reference") {
+    return { facility: "hub", version: null, admin: false, easter: true };
   }
   if (parts[0] === "spk") {
     const v = parts[1] ? SPOKE_VERSIONS.find((x) => x.toLowerCase() === parts[1]) ?? null : null;
-    return { facility: "spoke", version: v, admin: false };
+    return { facility: "spoke", version: v, admin: false, easter: false };
   }
   const v = parts[0] ? ALL_VERSIONS.find((x) => x.toLowerCase() === parts[0]) ?? null : null;
-  return { facility: "hub", version: v, admin: false };
+  return { facility: "hub", version: v, admin: false, easter: false };
 }
 
-function getInitial(): { facility: Facility; version: string; admin: boolean } {
-  if (typeof window === "undefined") return { facility: "hub", version: "V56", admin: false };
+function getInitial(): { facility: Facility; version: string; admin: boolean; easter: boolean } {
+  if (typeof window === "undefined") return { facility: "hub", version: "V56", admin: false, easter: false };
   const fromPath = parseRoute();
-  if (fromPath.admin) return { facility: "hub", version: "V56", admin: true };
-  if (fromPath.version) return { facility: fromPath.facility, version: fromPath.version, admin: false };
+  if (fromPath.admin) return { facility: "hub", version: "V56", admin: true, easter: false };
+  if (fromPath.easter) return { facility: "hub", version: "V56", admin: false, easter: true };
+  if (fromPath.version) return { facility: fromPath.facility, version: fromPath.version, admin: false, easter: false };
   const fromQuery = new URLSearchParams(window.location.search).get("version");
-  if (fromQuery && ALL_VERSIONS.includes(fromQuery)) return { facility: fromPath.facility, version: fromQuery, admin: false };
-  return { facility: fromPath.facility, version: fromPath.facility === "spoke" ? "V56" : "V56", admin: false };
+  if (fromQuery && ALL_VERSIONS.includes(fromQuery)) return { facility: fromPath.facility, version: fromQuery, admin: false, easter: false };
+  return { facility: fromPath.facility, version: fromPath.facility === "spoke" ? "V56" : "V56", admin: false, easter: false };
 }
 
 function buildPath(facility: Facility, version: string) {
@@ -109,9 +114,11 @@ export default function App() {
   const [facility, setFacilityRaw] = useState<Facility>(initial.facility);
   const [versionRaw, setVersionRaw] = useState(initial.version);
   const [adminMode, setAdminMode] = useState<boolean>(initial.admin);
+  const [easterMode, setEasterMode] = useState<boolean>(initial.easter);
 
   const setVersion = useCallback((v: string) => {
     setAdminMode(false);
+    setEasterMode(false);
     setVersionRaw(v);
     setFacilityRaw((f) => {
       window.history.replaceState(null, "", buildPath(f, v));
@@ -121,6 +128,7 @@ export default function App() {
 
   const setFacility = useCallback((f: Facility) => {
     setAdminMode(false);
+    setEasterMode(false);
     setFacilityRaw(f);
     setVersionRaw((current) => {
       const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
@@ -132,11 +140,31 @@ export default function App() {
 
   const goToAdmin = useCallback(() => {
     setAdminMode(true);
+    setEasterMode(false);
     window.history.replaceState(null, "", "/metrics-reference");
   }, []);
 
   const exitAdmin = useCallback(() => {
     setAdminMode(false);
+    setFacilityRaw((f) => {
+      setVersionRaw((current) => {
+        const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
+        const next = validList.includes(current) ? current : "V56";
+        window.history.replaceState(null, "", buildPath(f, next));
+        return next;
+      });
+      return f;
+    });
+  }, []);
+
+  const goToEaster = useCallback(() => {
+    setEasterMode(true);
+    setAdminMode(false);
+    window.history.replaceState(null, "", "/style-reference");
+  }, []);
+
+  const exitEaster = useCallback(() => {
+    setEasterMode(false);
     setFacilityRaw((f) => {
       setVersionRaw((current) => {
         const validList = f === "spoke" ? SPOKE_VERSIONS : ALL_VERSIONS;
@@ -221,6 +249,25 @@ export default function App() {
   if (facility === "spoke" && version === "V55") page = <PerformancePageSpokeV55 />;
   if (facility === "spoke" && version === "V56") page = <PerformancePageSpokeV56 />;
 
+  if (easterMode) {
+    return (
+      <div className="relative flex h-screen w-screen bg-white text-ink">
+        <main className="min-w-0 flex-1 overflow-hidden bg-white">
+          <EasterEggPage />
+        </main>
+        <div className="pointer-events-none absolute top-0 left-0 px-4 pt-4">
+          <button
+            type="button"
+            onClick={exitEaster}
+            className="pointer-events-auto flex h-9 items-center justify-center rounded-button bg-ink px-4 text-body-sm-strong text-white shadow-card hover:bg-[#000]"
+          >
+            ← Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (adminMode) {
     return (
       <div className="relative flex h-screen w-screen bg-white text-ink">
@@ -256,6 +303,7 @@ export default function App() {
         onFacilityChange={setFacility}
         adminMode={false}
         onGoToAdmin={goToAdmin}
+        onGoToEaster={goToEaster}
       />
       <main className="min-w-0 flex-1 overflow-hidden bg-white">
         {page}

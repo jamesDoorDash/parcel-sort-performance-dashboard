@@ -18,8 +18,8 @@ export default {
       },
       colors: {
         ink: {
-          DEFAULT: "#191919",
-          subdued: "#606060",
+          DEFAULT: "#111318",
+          subdued: "#6C707A",
         },
         icon: {
           DEFAULT: "#111318",
@@ -42,8 +42,8 @@ export default {
           bg: "#e7fbef",
         },
         negative: {
-          DEFAULT: "#d91400",
-          bg: "#fde8e6",
+          DEFAULT: "#B71000",
+          bg: "#FFF0ED",
         },
         brand: {
           DEFAULT: "#4969f5",
