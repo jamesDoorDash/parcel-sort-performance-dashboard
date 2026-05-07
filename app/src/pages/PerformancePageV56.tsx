@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { PrismWarningIcon } from "../components/icons/PrismWarningIcon";
 import { DateRangeTabs } from "../components/DateRangeTabs";
@@ -6,6 +6,7 @@ import { SortersTableV3 } from "../components/SortersTableV3";
 import { AssociatesInsightsV41 } from "../components/AssociatesInsightsV41";
 import { FlowRateSection } from "../components/FlowRateSection";
 import { VolumeChart } from "../components/VolumeChart";
+import { DualShapeContainer } from "../components/DualShapeContainer";
 import type { DateRangeKey, DayBucket } from "../data/mock";
 import { metricConfigs, rangeIsoBounds } from "../data/mock";
 import { applySorterTargetStatuses, toSorterV2 } from "../data/mockV2";
@@ -224,159 +225,6 @@ function SectionKpiCard({ card }: { card: V3MetricCard }) {
             </span>
           )
         )}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  DualShapeContainer — exactly 2 shapes: gray rect (back) + white L  */
-/*                                                                     */
-/*  Renders a single SVG with a rounded gray rectangle and a single    */
-/*  white "L" path (orientation depends on which column is selected).  */
-/*  Concave inner corners use sweep-reversed arcs so they bulge        */
-/*  outward into the gray — a fillet stacked CSS rectangles cannot     */
-/*  produce. Dimensions are measured via ResizeObserver so the L       */
-/*  scales cleanly with content height.                                */
-/*                                                                     */
-/*  selectedCol semantics:                                             */
-/*    0 = far-left  tower (1 concave: right)                           */
-/*    1 = mid-left  tower (2 concaves: left + right)                   */
-/*    2 = mid-right tower (2 concaves: left + right)                   */
-/*    3 = far-right tower (1 concave: left)                            */
-/* ------------------------------------------------------------------ */
-
-function buildLPath(selectedCol: 0 | 1 | 2 | 3, w: number, h: number, cardH: number, r: number): string {
-  const towerLeft = selectedCol * (w / 4);
-  const towerRight = (selectedCol + 1) * (w / 4);
-  const hasLeft = selectedCol > 0;   // gray exposed left of tower in cards row
-  const hasRight = selectedCol < 3;  // gray exposed right of tower in cards row
-
-  const path: string[] = [];
-
-  // Top of tower — convex top-left, then top edge, then convex top-right
-  path.push(`M ${towerLeft + r} 0`);
-  path.push(`L ${towerRight - r} 0`);
-  path.push(`A ${r} ${r} 0 0 1 ${towerRight} ${r}`);
-
-  if (hasRight) {
-    // Down tower's right edge → concave (outward fillet) → across panel top → convex top-right of panel → down to bottom
-    path.push(`L ${towerRight} ${cardH - r}`);
-    path.push(`A ${r} ${r} 0 0 0 ${towerRight + r} ${cardH}`);
-    path.push(`L ${w - r} ${cardH}`);
-    path.push(`A ${r} ${r} 0 0 1 ${w} ${cardH + r}`);
-    path.push(`L ${w} ${h - r}`);
-  } else {
-    // Tower right IS the overall right edge — no concave, straight down
-    path.push(`L ${w} ${h - r}`);
-  }
-
-  // Bottom-right convex → bottom edge → bottom-left convex
-  path.push(`A ${r} ${r} 0 0 1 ${w - r} ${h}`);
-  path.push(`L ${r} ${h}`);
-  path.push(`A ${r} ${r} 0 0 1 0 ${h - r}`);
-
-  if (hasLeft) {
-    // Up panel's left edge → convex top-left of panel → across panel top → concave (outward fillet) → up tower's left edge
-    path.push(`L 0 ${cardH + r}`);
-    path.push(`A ${r} ${r} 0 0 1 ${r} ${cardH}`);
-    path.push(`L ${towerLeft - r} ${cardH}`);
-    path.push(`A ${r} ${r} 0 0 0 ${towerLeft} ${cardH - r}`);
-    path.push(`L ${towerLeft} ${r}`);
-  } else {
-    // Tower left IS the overall left edge — no concave, straight up
-    path.push(`L 0 ${r}`);
-  }
-
-  // Top-left of tower convex (closes the path)
-  path.push(`A ${r} ${r} 0 0 1 ${towerLeft + r} 0`);
-  path.push("Z");
-
-  return path.join(" ");
-}
-
-function DualShapeContainer({
-  selectedCol,
-  cardsRow,
-  panel,
-}: {
-  selectedCol: 0 | 1 | 2 | 3;
-  cardsRow: React.ReactNode;
-  panel: React.ReactNode;
-}) {
-  const outerRef = useRef<HTMLDivElement>(null);
-  const cardsRowRef = useRef<HTMLDivElement>(null);
-  const [dims, setDims] = useState({ w: 0, h: 0, cardH: 0 });
-
-  useLayoutEffect(() => {
-    if (!outerRef.current || !cardsRowRef.current) return;
-
-    const measure = () => {
-      const outer = outerRef.current!.getBoundingClientRect();
-      const cards = cardsRowRef.current!.getBoundingClientRect();
-      setDims({ w: outer.width, h: outer.height, cardH: cards.height });
-    };
-
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(outerRef.current);
-    ro.observe(cardsRowRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  const r = 12;
-  const { w, h, cardH } = dims;
-  const ready = w > 0 && h > 0 && cardH > 0;
-
-  const lPath = ready ? buildLPath(selectedCol, w, h, cardH, r) : "";
-
-  return (
-    <div ref={outerRef} className="relative">
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        viewBox={`0 0 ${w || 1} ${h || 1}`}
-        preserveAspectRatio="none"
-        aria-hidden
-      >
-        {/* Strokes clipped to each shape so only the inside half renders. Drawing 2× the desired width means visible inner half = the requested thickness. Result: gray = 1px inside, L = 2px inside, no 3px overlap anywhere because both strokes live entirely inside their own shape's interior. */}
-        <defs>
-          <clipPath id="dual-shape-gray-clip">
-            <rect x={0} y={0} width={w || 0} height={h || 0} rx={r} ry={r} />
-          </clipPath>
-          {ready && (
-            <clipPath id="dual-shape-l-clip">
-              <path d={lPath} />
-            </clipPath>
-          )}
-        </defs>
-        {/* Shape 1 (back): gray rounded rectangle. 2px stroke clipped to its own interior → 1px visible inside. */}
-        <rect
-          x={0}
-          y={0}
-          width={w || 0}
-          height={h || 0}
-          rx={r}
-          ry={r}
-          fill="#F6F7F8"
-          stroke="#D3D6D9"
-          strokeWidth={2}
-          clipPath="url(#dual-shape-gray-clip)"
-        />
-        {/* Shape 2 (front): single white L path with concave outward fillet. 4px stroke clipped to its own interior → 2px visible inside. */}
-        {ready && (
-          <path
-            d={lPath}
-            fill="#FFFFFF"
-            stroke="#D3D6D9"
-            strokeWidth={4}
-            clipPath="url(#dual-shape-l-clip)"
-          />
-        )}
-      </svg>
-
-      <div className="relative">
-        <div ref={cardsRowRef}>{cardsRow}</div>
-        {panel}
       </div>
     </div>
   );
